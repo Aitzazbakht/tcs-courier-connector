@@ -5,9 +5,19 @@
     },
     "api/label.js": {
       "maxDuration": 30
+    },
+    "api/orders.js": {
+      "maxDuration": 60
+    },
+    "api/shopify-webhook.js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
+    {
+      "source": "/orders/:key",
+      "destination": "/api/orders-page?key=:key"
+    },
     {
       "source": "/label/:key/:cn",
       "destination": "/api/label?key=:key&cn=:cn"

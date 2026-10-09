@@ -1,12 +1,6 @@
 // Serves a TCS CN label as a PDF: /label/<CONNECTOR_KEY>/<CN>
-import { timingSafeEqual } from "node:crypto";
+import { keyOk } from "../lib/auth.js";
 import { labelPdf } from "../lib/tcs.js";
-
-function keyOk(got) {
-  const expected = process.env.CONNECTOR_KEY || "";
-  if (!expected || !got || got.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(got), Buffer.from(expected));
-}
 
 export default async function handler(req, res) {
   const url = new URL(req.url, "http://x");
