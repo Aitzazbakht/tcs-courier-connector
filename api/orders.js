@@ -20,7 +20,8 @@ export default async function handler(req, res) {
     const body = JSON.parse((await rawBody(req)).toString("utf8") || "{}");
 
     if (body.action === "push") {
-      const r = await sync.pushOrder(body.id, { cityCode: body.city_code || undefined, force: !!body.force });
+      const [code, name] = String(body.city || body.city_code || "").split("|");
+      const r = await sync.pushOrder(body.id, { cityCode: code || undefined, cityName: name || undefined, force: !!body.force });
       return res.status(200).json(r);
     }
     if (body.action === "auto") {

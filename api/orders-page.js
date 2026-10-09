@@ -90,12 +90,13 @@ async function load() {
   } catch (e) { log("Couldn't load: " + e.message); $("#pending").innerHTML = '<tr><td colspan="7" class="empty">' + esc(e.message) + '</td></tr>'; }
 }
 
+const cityVal = (code, name) => code ? code + "|" + name : "";
 function cityOptions(sel) {
-  return '<option value="">— pick city —</option>' + state.cities.map(c => '<option value="' + c.code + '"' + (c.code === sel ? " selected" : "") + ">" + esc(c.name) + "</option>").join("");
+  return '<option value="">— pick city —</option>' + state.cities.map(c => { const v = cityVal(c.code, c.name); return '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("");
 }
 
 function ready(o) { const c = cityFor(o); return !o.processing && c && !o.issues.filter(i => !i.startsWith("City")).length; }
-function cityFor(o) { const s = document.querySelector('select[data-id="' + o.id + '"]'); return s ? s.value : o.city_code; }
+function cityFor(o) { const s = document.querySelector('select[data-id="' + o.id + '"]'); return s ? s.value : cityVal(o.city_code, o.city_name); }
 
 function render() {
   $("#auto").classList.toggle("on", !!state.auto);
@@ -110,7 +111,7 @@ function render() {
       '<td><input type="checkbox" class="sel" value="' + o.id + '"' + (o.processing ? " disabled" : "") + '></td>' +
       '<td><b>' + esc(o.name) + '</b><div class="muted">' + when(o.createdAt) + '</div></td>' +
       '<td>' + esc(o.customer) + '<div class="muted">' + esc(o.phone) + '</div><div class="muted">' + esc(o.address) + '</div></td>' +
-      '<td><select data-id="' + o.id + '" class="' + (o.city_code ? "" : "bad") + '">' + cityOptions(o.city_code) + '</select>' +
+      '<td><select data-id="' + o.id + '" class="' + (o.city_code ? "" : "bad") + '">' + cityOptions(cityVal(o.city_code, o.city_name)) + '</select>' +
         '<div class="muted">typed: ' + esc(o.city_input) + (fuzzy ? ' · check' : '') + '</div></td>' +
       '<td class="num">' + rs(o.cod) + '</td>' +
       '<td>' + esc(o.products) + '<div class="muted">' + esc(o.payment) + '</div></td>' +
@@ -142,7 +143,7 @@ async function push(ids) {
     log("Booking " + (i + 1) + " of " + ids.length + " — " + (o ? o.name : id) + "…");
     const cell = document.querySelector('tr[data-row="' + id + '"] .status');
     try {
-      const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "push", id, city_code: cityFor(o) }) });
+      const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "push", id, city: cityFor(o) }) });
       const d = await r.json();
       if (d.ok) { ok++; if (cell) cell.innerHTML = '<span class="res-ok">' + (d.cn ? "CN " + d.cn : esc(d.skipped || "Done")) + '</span>' + (d.warning ? ' <span class="issue">' + esc(d.warning) + '</span>' : ''); }
       else { fail++; if (cell) cell.innerHTML = '<span class="issue">' + esc(d.error || "Failed") + '</span>'; }
