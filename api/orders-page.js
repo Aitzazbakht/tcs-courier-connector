@@ -47,6 +47,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .res-ok{color:var(--ok);background:var(--ok-bg);border-radius:6px;padding:2px 6px;font-size:12px;display:inline-block}
 select{font:inherit;max-width:170px;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
 select.bad{border-color:var(--warn)}
+.prepaid{color:var(--ok);font-weight:700;font-size:12px}
 .check{color:#dc2626;font-weight:700;font-size:12px;margin-left:4px}
 select.fuzzy{border:2px solid #dc2626}
 a{color:var(--accent)}
@@ -115,7 +116,7 @@ function render() {
       '<td>' + esc(o.customer) + '<div class="muted">' + esc(o.phone) + '</div><div class="muted">' + esc(o.address) + '</div></td>' +
       '<td><select data-id="' + o.id + '" class="' + (o.city_code ? (fuzzy ? "fuzzy" : "") : "bad") + '">' + cityOptions(cityVal(o.city_code, o.city_name)) + '</select>' +
         '<div class="muted">typed: ' + esc(o.city_input) + (fuzzy ? ' <b class="check">CHECK CITY</b>' : '') + '</div></td>' +
-      '<td class="num">' + rs(o.cod) + '</td>' +
+      '<td class="num">' + (o.prepaid ? '<b class="prepaid">PREPAID</b><div class="muted">Rs 0</div>' : rs(o.cod)) + '</td>' +
       '<td>' + esc(o.products) + '<div class="muted">' + esc(o.payment) + '</div></td>' +
       '<td class="status">' + (o.processing ? '<span class="issue">Booking in progress</span>' : '') + (o.failed ? '<span class="issue">Last attempt failed</span>' : '') +
         other.map(i => '<span class="issue">' + esc(i) + '</span>').join(" ") + (!o.city_code ? '<span class="issue">Pick city</span>' : '') + '</td>' +
@@ -140,7 +141,7 @@ $("#all").onchange = (e) => { document.querySelectorAll(".sel:not(:disabled)").f
 
 async function push(ids) {
   if (!ids.length) return;
-  if (!confirm("Book " + ids.length + " order(s) on TCS and mark them fulfilled in Shopify? Customers will get a tracking message.")) return;
+  if (!confirm("Book " + ids.length + " order(s) on TCS and mark them fulfilled + paid in Shopify? Customers will get a tracking message.")) return;
   ["#pushSel","#pushAll","#refresh"].forEach(s => $(s).disabled = true);
   let ok = 0, fail = 0;
   for (let i = 0; i < ids.length; i++) {
