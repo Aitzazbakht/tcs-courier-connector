@@ -1,0 +1,3 @@
+{
+  "functions": { "api/mcp.js": { "maxDuration": 60 } }
+}

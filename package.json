@@ -1,0 +1,8 @@
+{
+  "name": "tcs-courier-connector",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude custom connector (MCP server) for TCS Courier Pakistan",
+  "engines": { "node": ">=18" }
+}
