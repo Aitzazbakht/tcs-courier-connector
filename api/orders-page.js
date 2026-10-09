@@ -47,6 +47,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .res-ok{color:var(--ok);background:var(--ok-bg);border-radius:6px;padding:2px 6px;font-size:12px;display:inline-block}
 select{font:inherit;max-width:170px;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
 select.bad{border-color:var(--warn)}
+.check{color:#dc2626;font-weight:700;font-size:12px;margin-left:4px}
+select.fuzzy{border:2px solid #dc2626}
 a{color:var(--accent)}
 #log{font-size:13px;color:var(--mute);min-height:18px}
 .empty{padding:24px;text-align:center;color:var(--mute)}
@@ -111,8 +113,8 @@ function render() {
       '<td><input type="checkbox" class="sel" value="' + o.id + '"' + (o.processing ? " disabled" : "") + '></td>' +
       '<td><b>' + esc(o.name) + '</b><div class="muted">' + when(o.createdAt) + '</div></td>' +
       '<td>' + esc(o.customer) + '<div class="muted">' + esc(o.phone) + '</div><div class="muted">' + esc(o.address) + '</div></td>' +
-      '<td><select data-id="' + o.id + '" class="' + (o.city_code ? "" : "bad") + '">' + cityOptions(cityVal(o.city_code, o.city_name)) + '</select>' +
-        '<div class="muted">typed: ' + esc(o.city_input) + (fuzzy ? ' · check' : '') + '</div></td>' +
+      '<td><select data-id="' + o.id + '" class="' + (o.city_code ? (fuzzy ? "fuzzy" : "") : "bad") + '">' + cityOptions(cityVal(o.city_code, o.city_name)) + '</select>' +
+        '<div class="muted">typed: ' + esc(o.city_input) + (fuzzy ? ' <b class="check">CHECK CITY</b>' : '') + '</div></td>' +
       '<td class="num">' + rs(o.cod) + '</td>' +
       '<td>' + esc(o.products) + '<div class="muted">' + esc(o.payment) + '</div></td>' +
       '<td class="status">' + (o.processing ? '<span class="issue">Booking in progress</span>' : '') + (o.failed ? '<span class="issue">Last attempt failed</span>' : '') +
@@ -125,7 +127,10 @@ function render() {
     '<td>' + esc(String(b.fulfillment || "").toLowerCase()) + '</td>' +
     '<td>' + (b.cn ? '<a href="/label/' + encodeURIComponent(KEY) + '/' + b.cn + '" target="_blank">PDF</a>' : '') + '</td></tr>').join("")
     : '<tr><td colspan="5" class="empty">Nothing booked from here yet.</td></tr>';
-  document.querySelectorAll("select[data-id]").forEach(s => s.onchange = () => { s.classList.toggle("bad", !s.value); });
+  document.querySelectorAll("select[data-id]").forEach(s => s.onchange = () => {
+    s.classList.toggle("bad", !s.value); s.classList.remove("fuzzy");
+    const c = s.parentElement.querySelector(".check"); if (c) c.remove();
+  });
   document.querySelectorAll(".sel").forEach(c => c.onchange = updateSel);
   updateSel();
 }
