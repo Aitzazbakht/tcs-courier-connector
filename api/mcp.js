@@ -1,5 +1,5 @@
 // MCP server (Streamable HTTP, JSON responses) for TCS Courier.
-// Deploy on Vercel; add https://<your-app>.vercel.app/api/mcp?key=<CONNECTOR_KEY>
+// Deploy on Vercel; add https://<your-app>.vercel.app/mcp/<CONNECTOR_KEY>
 // as a custom connector in Claude.
 import { timingSafeEqual } from "node:crypto";
 import { TOOLS } from "../lib/tools.js";
@@ -68,7 +68,8 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS");
   if (req.method === "OPTIONS") return res.status(204).end();
 
-  if (!authorized(req)) return res.status(401).json({ error: "Unauthorized: missing or wrong key" });
+  // 403 (not 401) so MCP clients don't start an OAuth sign-in flow.
+  if (!authorized(req)) return res.status(403).json({ error: "Forbidden: missing or wrong key" });
 
   if (req.method !== "POST") {
     // No server-initiated stream; stateless server.

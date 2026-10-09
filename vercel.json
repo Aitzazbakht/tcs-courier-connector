@@ -1,3 +1,7 @@
 {
-  "functions": { "api/mcp.js": { "maxDuration": 60 } }
+  "functions": { "api/mcp.js": { "maxDuration": 60 } },
+  "rewrites": [
+    { "source": "/mcp/:key", "destination": "/api/mcp?key=:key" },
+    { "source": "/mcp/:key/:rest*", "destination": "/api/mcp?key=:key" }
+  ]
 }

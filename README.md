@@ -27,7 +27,7 @@ No dependencies. Runs as one serverless function on Vercel.
 3. In the project: **Settings → Environment Variables**. Add every variable from `.env.example` with your real values. For `CONNECTOR_KEY` use a long random string — it's the password for the connector.
 4. **Deployments → ⋯ → Redeploy** so the variables take effect.
 5. Your connector URL is:
-   `https://<your-project>.vercel.app/api/mcp?key=<CONNECTOR_KEY>`
+   `https://<your-project>.vercel.app/mcp/<CONNECTOR_KEY>`
 
 ## Add to Claude
 
