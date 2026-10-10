@@ -29,6 +29,12 @@ export default async function handler(req, res) {
       const r = await sync.pushOrder(body.id, { cityCode: code || undefined, cityName: name || undefined, force: !!body.force });
       return res.status(200).json(r);
     }
+    if (body.action === "env_check") {
+      const names = ["CONNECTOR_KEY", "TCS_BEARER_TOKEN", "TCS_USERNAME", "TCS_PASSWORD", "TCS_ENV",
+        "SHOPIFY_CLIENT_ID", "SHOPIFY_CLIENT_SECRET", "SHOPIFY_CLIENT_ID_HERBS", "SHOPIFY_CLIENT_SECRET_HERBS",
+        "WHATSAPP_TOKEN", "WHATSAPP_APP_SECRET", "CRON_SECRET", "SHOPIFY_SHOP", "SHOPIFY_SHOP_HERBS"];
+      return res.status(200).json(Object.fromEntries(names.map((n) => [n, process.env[n] ? `set (${String(process.env[n]).length} chars)` : "missing"])));
+    }
     if (body.action === "stores_check") {
       const info = await Promise.all(stores().map((st) => withStore(st.key, async () => {
         try { const d = await shop.gql("query { shop { name myshopifyDomain } }"); return { store: st.label, ok: true, shop: d.shop }; }
