@@ -4,6 +4,9 @@ import * as sync from "../lib/sync.js";
 import * as shop from "../lib/shopify.js";
 import * as wa from "../lib/whatsapp.js";
 import * as notify from "../lib/notify.js";
+import { stores, withStore, splitId } from "../lib/store.js";
+
+const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
 
 export const config = { api: { bodyParser: false } };
 
@@ -16,7 +19,7 @@ export default async function handler(req, res) {
       const [pending, booked, cities, auto, waOn] = await Promise.all([
         sync.listPending(), sync.listRecentBooked(30), sync.cityOptions(), sync.isAutoOn(), notify.isOn(),
       ]);
-      return res.status(200).json({ auto, waOn, pending, booked, cities });
+      return res.status(200).json({ auto, waOn, pending, booked, cities, stores: stores().map((s) => s.label), storeErrors: sync.listPending.errors || [] });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Use GET or POST" });
     const body = JSON.parse((await rawBody(req)).toString("utf8") || "{}");
@@ -26,15 +29,24 @@ export default async function handler(req, res) {
       const r = await sync.pushOrder(body.id, { cityCode: code || undefined, cityName: name || undefined, force: !!body.force });
       return res.status(200).json(r);
     }
+    if (body.action === "stores_check") {
+      const info = await Promise.all(stores().map((st) => withStore(st.key, async () => {
+        try { const d = await shop.gql("query { shop { name myshopifyDomain } }"); return { store: st.label, ok: true, shop: d.shop }; }
+        catch (e) { return { store: st.label, ok: false, error: e.message }; }
+      })));
+      const [auto, waOn] = await Promise.all([sync.isAutoOn(), notify.isOn()]);
+      const webhooks = auto || waOn ? await hookAllStores() : "not needed (auto-book and WhatsApp are off)";
+      return res.status(200).json({ stores: info, webhooks });
+    }
     if (body.action === "wa_toggle") {
       const on = !!body.value;
-      if (on) await shop.ensureWebhook(`${publicBase()}/api/shopify-webhook`);
+      if (on) await hookAllStores();
       await shop.setSetting("wa_messages", on ? "true" : "false");
       return res.status(200).json({ waOn: on });
     }
     if (body.action === "wa_confirm_send") {
-      const o = await shop.getOrder(body.id);
-      return res.status(200).json(await notify.sendConfirm(o));
+      const { store, gid } = splitId(body.id);
+      return res.status(200).json(await withStore(store, async () => notify.sendConfirm(await shop.getOrder(gid))));
     }
     if (body.action === "wa_tracking_run") {
       return res.status(200).json(await notify.runTracking({ dryRun: !!body.dryRun }));
@@ -57,7 +69,7 @@ export default async function handler(req, res) {
     if (body.action === "auto") {
       const on = !!body.value;
       let webhook = null;
-      if (on) webhook = await shop.ensureWebhook(`${publicBase()}/api/shopify-webhook`);
+      if (on) webhook = await hookAllStores();
       await shop.setSetting("auto_book", on ? "true" : "false");
       return res.status(200).json({ auto: on, webhook });
     }

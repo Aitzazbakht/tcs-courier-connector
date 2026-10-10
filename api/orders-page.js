@@ -47,6 +47,9 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .res-ok{color:var(--ok);background:var(--ok-bg);border-radius:6px;padding:2px 6px;font-size:12px;display:inline-block}
 select{font:inherit;max-width:170px;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
 select.bad{border-color:var(--warn)}
+.store{font-size:11px;font-weight:600;border-radius:5px;padding:1px 5px;margin-left:4px;white-space:nowrap}
+.store-house{background:#e0f2fe;color:#075985}
+.store-herbs{background:#fef3c7;color:#92400e}
 .wa{border-radius:6px;padding:2px 6px;font-size:12px;display:inline-block;font-weight:600;margin-bottom:3px}
 .wa-confirmed{color:var(--ok);background:var(--ok-bg)}
 .wa-cancelled{color:#dc2626;background:var(--warn-bg)}
@@ -104,7 +107,7 @@ async function load() {
   try {
     const r = await fetch(API); const d = await r.json();
     if (!r.ok) throw new Error(d.error || r.status);
-    state = d; render(); log("");
+    state = d; render(); log((d.storeErrors || []).map(e => "⚠️ " + e.store + ": " + e.error).join("  ·  "));
   } catch (e) { log("Couldn't load: " + e.message); $("#pending").innerHTML = '<tr><td colspan="7" class="empty">' + esc(e.message) + '</td></tr>'; }
 }
 
@@ -122,6 +125,10 @@ function ready(o) {
 }
 function cityFor(o) { const s = document.querySelector('select[data-id="' + o.id + '"]'); return s ? s.value : cityVal(o.city_code, o.city_name); }
 
+function storeBadge(o) {
+  if (!state.stores || state.stores.length < 2) return '';
+  return ' <span class="store store-' + esc(o.store) + '">' + esc(o.storeLabel || o.store) + '</span>';
+}
 function waChip(o) {
   if (o.wa === "confirmed") return '<span class="wa wa-confirmed">✅ Confirmed</span><br>';
   if (o.wa === "cancelled") return '<span class="wa wa-cancelled">❌ Customer cancelled</span><br>';
@@ -141,7 +148,7 @@ function render() {
     const fuzzy = o.city_match && !["exact","alias","manual"].includes(o.city_match);
     return '<tr data-row="' + o.id + '">' +
       '<td><input type="checkbox" class="sel" value="' + o.id + '"' + (o.processing ? " disabled" : "") + '></td>' +
-      '<td><b>' + esc(o.name) + '</b><div class="muted">' + when(o.createdAt) + '</div></td>' +
+      '<td><b>' + esc(o.name) + '</b>' + storeBadge(o) + '<div class="muted">' + when(o.createdAt) + '</div></td>' +
       '<td>' + esc(o.customer) + '<div class="muted">' + esc(o.phone) + '</div><div class="muted">' + esc(o.address) + '</div></td>' +
       '<td><select data-id="' + o.id + '" class="' + (o.city_code ? (fuzzy ? "fuzzy" : "") : "bad") + '">' + cityOptions(cityVal(o.city_code, o.city_name)) + '</select>' +
         '<div class="muted">typed: ' + esc(o.city_input) + (fuzzy ? ' <b class="check">CHECK CITY</b>' : '') + '</div></td>' +
@@ -152,7 +159,7 @@ function render() {
     '</tr>';
   }).join("") : '<tr><td colspan="7" class="empty">No unfulfilled orders waiting. </td></tr>';
   $("#booked").innerHTML = state.booked.length ? state.booked.map(b =>
-    '<tr><td><b>' + esc(b.name) + '</b><div class="muted">' + when(b.createdAt) + '</div></td><td>' + esc(b.customer) + '</td>' +
+    '<tr><td><b>' + esc(b.name) + '</b>' + storeBadge(b) + '<div class="muted">' + when(b.createdAt) + '</div></td><td>' + esc(b.customer) + '</td>' +
     '<td>' + (b.cn ? '<a href="https://www.tcsexpress.com/track/' + b.cn + '" target="_blank" rel="noopener">' + b.cn + '</a>' : '—') + '</td>' +
     '<td>' + esc(String(b.fulfillment || "").toLowerCase()) + '</td>' +
     '<td>' + (b.cn ? '<a href="/label/' + encodeURIComponent(KEY) + '/' + b.cn + '" target="_blank">PDF</a>' : '') + '</td></tr>').join("")
