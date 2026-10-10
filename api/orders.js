@@ -29,6 +29,12 @@ export default async function handler(req, res) {
       const r = await sync.pushOrder(body.id, { cityCode: code || undefined, cityName: name || undefined, force: !!body.force });
       return res.status(200).json(r);
     }
+    if (body.action === "problems") {
+      return res.status(200).json({ problems: await notify.listProblems() });
+    }
+    if (body.action === "problem_handled") {
+      return res.status(200).json(await notify.markProblemHandled(body.id));
+    }
     if (body.action === "env_check") {
       const names = ["CONNECTOR_KEY", "TCS_BEARER_TOKEN", "TCS_USERNAME", "TCS_PASSWORD", "TCS_ENV",
         "SHOPIFY_CLIENT_ID", "SHOPIFY_CLIENT_SECRET", "SHOPIFY_CLIENT_ID_HERBS", "SHOPIFY_CLIENT_SECRET_HERBS",

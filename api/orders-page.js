@@ -88,6 +88,11 @@ a{color:var(--accent)}
   <div class="card"><h2>Waiting to book</h2><div class="scroll"><table>
     <thead><tr><th><input type="checkbox" id="all"></th><th>Order</th><th>Customer</th><th>City</th><th class="num">COD</th><th>Products</th><th>Status</th></tr></thead>
     <tbody id="pending"><tr><td colspan="7" class="empty">Loading orders…</td></tr></tbody></table></div></div>
+  <div class="card"><h2>Delivery problems <span class="muted" id="probCount" style="font-weight:400"></span></h2>
+    <div class="muted" style="padding:8px 14px 0">Parcels where TCS reported a failed attempt (refused, not home, address not found). Call the customer or TCS, then click <b>Done</b>.</div>
+    <div class="scroll"><table>
+    <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>TCS latest update</th><th>Customer reply</th><th></th></tr></thead>
+    <tbody id="problems"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table></div></div>
   <div class="card"><h2>Recently booked</h2><div class="scroll"><table>
     <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>Shopify</th><th>Label</th></tr></thead>
     <tbody id="booked"></tbody></table></div></div>
@@ -207,7 +212,7 @@ async function push(ids) {
 
 $("#pushSel").onclick = () => push([...document.querySelectorAll(".sel:checked")].map(c => c.value));
 $("#pushAll").onclick = () => push(state.pending.filter(o => ready(o)).map(o => o.id));
-$("#refresh").onclick = load;
+$("#refresh").onclick = () => { load(); loadProblems(); };
 $("#waSw").onclick = async () => {
   const want = !state.waOn;
   if (want && !confirm("Turn on WhatsApp messages? New orders get a confirmation message, pushed orders get a 'dispatched' message, and customers get out-for-delivery / delivery-problem updates.")) return;
@@ -236,6 +241,31 @@ async function waCall(body) {
 }
 $("#waStatus").onclick = () => waCall({ action: "wa_status" });
 $("#waReg").onclick = () => { const pin = $("#waPin").value.trim(); if (!/^\\d{6}$/.test(pin)) return ($("#waOut").textContent = "Enter the 6-digit PIN"); $("#waPin").value = ""; waCall({ action: "wa_register", pin }); };
+async function loadProblems() {
+  try {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "problems" }) });
+    const d = await r.json();
+    const list = (d.problems || []).filter(p => !p.error);
+    $("#probCount").textContent = list.length ? "(" + list.length + ")" : "";
+    const replyChip = (p) => p.reply === "retry" ? '<span class="wa wa-confirmed">🔁 Wants delivery again</span>'
+      : p.reply === "cancel" ? '<span class="wa wa-cancelled">❌ Wants to cancel</span>'
+      : p.reply === "asked" ? '<span class="wa wa-sent">⏳ Asked, no reply</span>' : '<span class="muted">Not messaged</span>';
+    $("#problems").innerHTML = list.length ? list.map(p =>
+      '<tr><td><b>' + esc(p.name) + '</b>' + storeBadge(p) + '<div class="muted">' + esc(p.city) + ' · Rs ' + esc(p.cod) + '</div></td>' +
+      '<td>' + esc(p.customer) + '<div class="muted"><a href="tel:' + esc(p.phone) + '">' + esc(p.phone) + '</a></div></td>' +
+      '<td><a href="https://www.tcsexpress.com/track/' + esc(p.cn) + '" target="_blank" rel="noopener">' + esc(p.cn) + '</a></td>' +
+      '<td>' + esc(p.status) + '<div class="muted">' + esc(p.when) + '</div></td>' +
+      '<td>' + replyChip(p) + '</td>' +
+      '<td><button class="linkbtn" data-handled="' + esc(p.id) + '">Done</button></td></tr>').join("")
+      : '<tr><td colspan="6" class="empty">No delivery problems right now. 🎉</td></tr>';
+    document.querySelectorAll("[data-handled]").forEach(b => b.onclick = async () => {
+      b.disabled = true; b.textContent = "…";
+      await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "problem_handled", id: b.dataset.handled }) });
+      b.closest("tr").remove();
+    });
+  } catch (e) { $("#problems").innerHTML = '<tr><td colspan="6" class="empty">Could not load: ' + esc(e.message) + '</td></tr>'; }
+}
 load();
+loadProblems();
 </script>
 </body></html>`;
