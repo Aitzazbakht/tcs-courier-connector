@@ -3,14 +3,15 @@ import { shopifyHmacOk, rawBody } from "../lib/auth.js";
 import * as sync from "../lib/sync.js";
 import * as notify from "../lib/notify.js";
 import * as shop from "../lib/shopify.js";
-import { withStore, getStore, tagId } from "../lib/store.js";
+import { withStore, getStore, tagId, clientSecretFor } from "../lib/store.js";
 
 export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   const raw = await rawBody(req);
-  if (!shopifyHmacOk(raw, req.headers["x-shopify-hmac-sha256"])) return res.status(401).send("Bad signature");
+  const storeKeyQ = getStore(new URL(req.url, "http://x").searchParams.get("store") || "house").key;
+  if (!shopifyHmacOk(raw, req.headers["x-shopify-hmac-sha256"], clientSecretFor(storeKeyQ))) return res.status(401).send("Bad signature");
   let order;
   try { order = JSON.parse(raw.toString("utf8")); } catch { return res.status(400).end(); }
   const storeKey = getStore(new URL(req.url, "http://x").searchParams.get("store") || "house").key;

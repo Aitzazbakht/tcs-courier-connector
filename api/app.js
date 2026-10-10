@@ -1,8 +1,8 @@
 // App home ("/"). When opened from Shopify admin, verify Shopify's signed link and go to the orders page.
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { stores, clientSecretFor } from "../lib/store.js";
 
-function shopifyQueryOk(params) {
-  const secret = process.env.SHOPIFY_CLIENT_SECRET || "";
+function shopifyQueryOk(params, secret) {
   const hmac = params.get("hmac");
   if (!secret || !hmac) return false;
   const msg = [...params.entries()]
@@ -19,8 +19,8 @@ function shopifyQueryOk(params) {
 
 export default function handler(req, res) {
   const params = new URL(req.url, "http://x").searchParams;
-  const shopOk = (params.get("shop") || "") === (process.env.SHOPIFY_SHOP || "6d8810-2.myshopify.com");
-  if (shopOk && shopifyQueryOk(params) && process.env.CONNECTOR_KEY) {
+  const st = stores().find((x) => x.domain === (params.get("shop") || ""));
+  if (st && shopifyQueryOk(params, clientSecretFor(st.key)) && process.env.CONNECTOR_KEY) {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Location", `/orders/${encodeURIComponent(process.env.CONNECTOR_KEY)}`);
     return res.status(302).end();
