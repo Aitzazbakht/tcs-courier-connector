@@ -25,6 +25,12 @@ export default async function handler(req, res) {
       const r = await sync.pushOrder(body.id, { cityCode: code || undefined, cityName: name || undefined, force: !!body.force });
       return res.status(200).json(r);
     }
+    if (body.action === "wa_templates_create") {
+      return res.status(200).json({ ok: true, templates: await wa.createTemplates() });
+    }
+    if (body.action === "wa_templates") {
+      return res.status(200).json({ ok: true, templates: await wa.listTemplates() });
+    }
     if (body.action === "wa_status") {
       return res.status(200).json({ ok: true, phone: await wa.phoneStatus() });
     }
