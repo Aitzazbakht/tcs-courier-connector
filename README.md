@@ -12,6 +12,7 @@ No dependencies. Runs as one serverless function on Vercel.
 | `track_shipment` | Status and checkpoint history for up to 20 CNs |
 | `delivery_return_stats` | Delivered / returned counts and rates for a date range, with per-city return rates |
 | `cod_payments` | COD records for a date range; `only_unpaid` finds delivered parcels TCS hasn't paid |
+| `booking_report` | COD amount per parcel for a date range (by booking or delivery date), with delivered / returned / in-transit totals |
 | `cod_payment_status` | Payment status of one CN |
 | `payment_invoice` | All CNs in a TCS invoice with COD, charges and GST totals |
 | `lookup_city` | TCS city codes for booking |
