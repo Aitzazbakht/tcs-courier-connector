@@ -66,6 +66,14 @@ a{color:var(--accent)}
   </div>
 </div><div class="wrap" id="log"></div></header>
 <main class="wrap">
+  <details class="card" id="wa" style="padding:0 14px 12px"><summary style="padding:12px 0;cursor:pointer;font-weight:600">WhatsApp setup</summary>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <button id="waStatus">Check number status</button>
+      <input id="waPin" type="password" inputmode="numeric" maxlength="6" placeholder="6-digit PIN" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;width:130px;background:var(--card);color:var(--ink)">
+      <button id="waReg" class="primary">Register number</button>
+    </div>
+    <pre id="waOut" style="white-space:pre-wrap;font-size:12px;color:var(--mute);margin:10px 0 0"></pre>
+  </details>
   <div class="summary" id="summary"></div>
   <div class="card"><h2>Waiting to book</h2><div class="scroll"><table>
     <thead><tr><th><input type="checkbox" id="all"></th><th>Order</th><th>Customer</th><th>City</th><th class="num">COD</th><th>Products</th><th>Status</th></tr></thead>
@@ -172,6 +180,16 @@ $("#auto").onclick = async () => {
   if (!r.ok) return log("Couldn't change auto mode: " + d.error);
   state.auto = d.auto; render(); log(d.auto ? "Auto-booking is ON." : "Auto-booking is OFF.");
 };
+async function waCall(body) {
+  $("#waOut").textContent = "Working…";
+  try {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const d = await r.json();
+    $("#waOut").textContent = r.ok ? JSON.stringify(d.phone || d, null, 2) + (d.register ? "\n\n✅ Registered" : "") : "❌ " + (d.error || r.status);
+  } catch (e) { $("#waOut").textContent = "❌ " + e.message; }
+}
+$("#waStatus").onclick = () => waCall({ action: "wa_status" });
+$("#waReg").onclick = () => { const pin = $("#waPin").value.trim(); if (!/^\d{6}$/.test(pin)) return ($("#waOut").textContent = "Enter the 6-digit PIN"); $("#waPin").value = ""; waCall({ action: "wa_register", pin }); };
 load();
 </script>
 </body></html>`;

@@ -2,6 +2,7 @@
 import { keyOk, rawBody, publicBase } from "../lib/auth.js";
 import * as sync from "../lib/sync.js";
 import * as shop from "../lib/shopify.js";
+import * as wa from "../lib/whatsapp.js";
 
 export const config = { api: { bodyParser: false } };
 
@@ -23,6 +24,15 @@ export default async function handler(req, res) {
       const [code, name] = String(body.city || body.city_code || "").split("|");
       const r = await sync.pushOrder(body.id, { cityCode: code || undefined, cityName: name || undefined, force: !!body.force });
       return res.status(200).json(r);
+    }
+    if (body.action === "wa_status") {
+      return res.status(200).json({ ok: true, phone: await wa.phoneStatus() });
+    }
+    if (body.action === "wa_register") {
+      if (!/^\d{6}$/.test(String(body.pin || ""))) return res.status(400).json({ error: "PIN must be 6 digits" });
+      const r = await wa.register(body.pin);
+      let sub = null; try { sub = await wa.subscribeApp(); } catch (e) { sub = { error: e.message }; }
+      return res.status(200).json({ ok: true, register: r, subscribe: sub, phone: await wa.phoneStatus().catch(() => null) });
     }
     if (body.action === "auto") {
       const on = !!body.value;
