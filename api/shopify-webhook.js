@@ -1,6 +1,8 @@
 // Shopify orders/create webhook -> book on TCS when auto mode is on.
 import { shopifyHmacOk, rawBody } from "../lib/auth.js";
 import * as sync from "../lib/sync.js";
+import * as notify from "../lib/notify.js";
+import * as shop from "../lib/shopify.js";
 
 export const config = { api: { bodyParser: false } };
 
@@ -11,8 +13,16 @@ export default async function handler(req, res) {
   let order;
   try { order = JSON.parse(raw.toString("utf8")); } catch { return res.status(400).end(); }
   try {
-    if (!(await sync.isAutoOn())) return res.status(200).json({ skipped: "auto mode off" });
     const id = order.admin_graphql_api_id || `gid://shopify/Order/${order.id}`;
+    const [auto, waOn] = await Promise.all([sync.isAutoOn(), notify.isOn()]);
+    const isWhatsAppOrder = String(order.tags || "").split(/,\s*/).some((t) => /^whatsapp$/i.test(t));
+    if (waOn && !isWhatsAppOrder) {
+      const full = await shop.getOrder(id);
+      const c = await notify.sendConfirm(full).catch((e) => ({ error: e.message }));
+      console.log("wa-confirm", order.name, JSON.stringify(c));
+      if (c.sent) return res.status(200).json({ confirmation: c, booking: "waits for customer confirmation" });
+    }
+    if (!auto) return res.status(200).json({ skipped: "auto mode off" });
     const r = await sync.pushOrder(id);
     console.log("auto-book", order.name, JSON.stringify(r));
     return res.status(200).json(r);

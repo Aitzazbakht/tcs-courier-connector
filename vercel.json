@@ -14,6 +14,9 @@
     },
     "api/whatsapp-webhook.js": {
       "maxDuration": 30
+    },
+    "api/cron-tracking.js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
@@ -36,6 +39,16 @@
     {
       "source": "/mcp/:key/:rest*",
       "destination": "/api/mcp?key=:key"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-tracking",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron-tracking",
+      "schedule": "0 12 * * *"
     }
   ]
 }

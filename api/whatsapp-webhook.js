@@ -1,6 +1,7 @@
 // WhatsApp Cloud API webhook: GET = Meta verification, POST = incoming messages / statuses.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { rawBody } from "../lib/auth.js";
+import { handleButton } from "../lib/notify.js";
 
 export const config = { api: { bodyParser: false } };
 const VERIFY = () => process.env.WHATSAPP_VERIFY_TOKEN || "chitralhouse-wa-7Hq2Lp9Xz4Rk";
@@ -29,7 +30,14 @@ export default async function handler(req, res) {
     for (const entry of body.entry || [])
       for (const ch of entry.changes || []) {
         const v = ch.value || {};
-        for (const m of v.messages || []) console.log("wa-message", JSON.stringify({ from: m.from, type: m.type, text: m.text?.body, button: m.button?.payload || m.interactive?.button_reply?.id }));
+        for (const m of v.messages || []) {
+          const payload = m.button?.payload || m.interactive?.button_reply?.id;
+          console.log("wa-message", JSON.stringify({ from: m.from, type: m.type, text: m.text?.body, button: payload }));
+          if (payload) {
+            try { console.log("wa-button", payload, JSON.stringify(await handleButton(payload))); }
+            catch (e) { console.error("wa-button failed", payload, e.message); }
+          }
+        }
         for (const s of v.statuses || []) console.log("wa-status", s.id, s.status, s.recipient_id);
       }
   } catch (e) { console.error("wa-webhook parse", e.message); }

@@ -47,6 +47,11 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .res-ok{color:var(--ok);background:var(--ok-bg);border-radius:6px;padding:2px 6px;font-size:12px;display:inline-block}
 select{font:inherit;max-width:170px;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
 select.bad{border-color:var(--warn)}
+.wa{border-radius:6px;padding:2px 6px;font-size:12px;display:inline-block;font-weight:600;margin-bottom:3px}
+.wa-confirmed{color:var(--ok);background:var(--ok-bg)}
+.wa-cancelled{color:#dc2626;background:var(--warn-bg)}
+.wa-sent{color:var(--mute);background:var(--chip)}
+.linkbtn{border:0;background:none;color:var(--accent);padding:0;font-size:12px;cursor:pointer;text-decoration:underline}
 .prepaid{color:var(--ok);font-weight:700;font-size:12px}
 .check{color:#dc2626;font-weight:700;font-size:12px;margin-left:4px}
 select.fuzzy{border:2px solid #dc2626}
@@ -59,7 +64,9 @@ a{color:var(--accent)}
 <header><div class="wrap top">
   <h1>TCS Orders <small>Chitral House</small></h1>
   <div class="actions">
+    <div class="toggle"><span>WhatsApp messages</span><button id="waSw" class="switch" aria-label="WhatsApp messages" role="switch"></button></div>
     <div class="toggle"><span>Auto-book new orders</span><button id="auto" class="switch" aria-label="Auto-book" role="switch"></button></div>
+    <label class="toggle" id="onlyConfWrap" style="display:none"><input type="checkbox" id="onlyConf" checked> Push only confirmed</label>
     <button id="refresh">Refresh</button>
     <button id="pushSel" class="primary" disabled>Push selected</button>
     <button id="pushAll" class="primary">Push all ready</button>
@@ -106,11 +113,25 @@ function cityOptions(sel) {
   return '<option value="">— pick city —</option>' + state.cities.map(c => { const v = cityVal(c.code, c.name); return '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("");
 }
 
-function ready(o) { const c = cityFor(o); return !o.processing && c && !o.issues.filter(i => !i.startsWith("City")).length; }
+function ready(o) {
+  const c = cityFor(o);
+  if (o.processing || !c || o.issues.filter(i => !i.startsWith("City")).length) return false;
+  if (o.wa === "cancelled") return false;
+  if (state.waOn && $("#onlyConf") && $("#onlyConf").checked && o.wa !== "confirmed") return false;
+  return true;
+}
 function cityFor(o) { const s = document.querySelector('select[data-id="' + o.id + '"]'); return s ? s.value : cityVal(o.city_code, o.city_name); }
 
+function waChip(o) {
+  if (o.wa === "confirmed") return '<span class="wa wa-confirmed">✅ Confirmed</span><br>';
+  if (o.wa === "cancelled") return '<span class="wa wa-cancelled">❌ Customer cancelled</span><br>';
+  if (o.wa === "sent") return '<span class="wa wa-sent">⏳ Awaiting reply</span><br>';
+  return state.waOn ? '<button class="linkbtn" data-conf="' + o.id + '">Send WhatsApp confirmation</button><br>' : '';
+}
 function render() {
   $("#auto").classList.toggle("on", !!state.auto);
+  $("#waSw").classList.toggle("on", !!state.waOn);
+  $("#onlyConfWrap").style.display = state.waOn ? "" : "none";
   const p = state.pending;
   const readyN = p.filter(o => ready(o)).length;
   const total = p.reduce((s, o) => s + (o.cod || 0), 0);
@@ -126,7 +147,7 @@ function render() {
         '<div class="muted">typed: ' + esc(o.city_input) + (fuzzy ? ' <b class="check">CHECK CITY</b>' : '') + '</div></td>' +
       '<td class="num">' + (o.prepaid ? '<b class="prepaid">PREPAID</b><div class="muted">Rs 0</div>' : rs(o.cod)) + '</td>' +
       '<td>' + esc(o.products) + '<div class="muted">' + esc(o.payment) + '</div></td>' +
-      '<td class="status">' + (o.processing ? '<span class="issue">Booking in progress</span>' : '') + (o.failed ? '<span class="issue">Last attempt failed</span>' : '') +
+      '<td class="status">' + waChip(o) + (o.processing ? '<span class="issue">Booking in progress</span>' : '') + (o.failed ? '<span class="issue">Last attempt failed</span>' : '') +
         other.map(i => '<span class="issue">' + esc(i) + '</span>').join(" ") + (!o.city_code ? '<span class="issue">Pick city</span>' : '') + '</td>' +
     '</tr>';
   }).join("") : '<tr><td colspan="7" class="empty">No unfulfilled orders waiting. </td></tr>';
@@ -141,6 +162,15 @@ function render() {
     const c = s.parentElement.querySelector(".check"); if (c) c.remove();
   });
   document.querySelectorAll(".sel").forEach(c => c.onchange = updateSel);
+  document.querySelectorAll("[data-conf]").forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = "Sending…";
+    try {
+      const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "wa_confirm_send", id: b.dataset.conf }) });
+      const d = await r.json();
+      b.outerHTML = d.sent ? '<span class="wa wa-sent">⏳ Awaiting reply</span>' : '<span class="issue">' + esc(d.error || d.skipped || "Not sent") + '</span>';
+    } catch (e) { b.textContent = "Failed: " + e.message; }
+  });
+  if ($("#onlyConf")) $("#onlyConf").onchange = render;
   updateSel();
 }
 
@@ -171,6 +201,15 @@ async function push(ids) {
 $("#pushSel").onclick = () => push([...document.querySelectorAll(".sel:checked")].map(c => c.value));
 $("#pushAll").onclick = () => push(state.pending.filter(o => ready(o)).map(o => o.id));
 $("#refresh").onclick = load;
+$("#waSw").onclick = async () => {
+  const want = !state.waOn;
+  if (want && !confirm("Turn on WhatsApp messages? New orders get a confirmation message, pushed orders get a 'dispatched' message, and customers get out-for-delivery / delivery-problem updates.")) return;
+  log("Saving…");
+  const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "wa_toggle", value: want }) });
+  const d = await r.json();
+  if (!r.ok) return log("Couldn't change WhatsApp setting: " + d.error);
+  state.waOn = d.waOn; render(); log(d.waOn ? "WhatsApp messages are ON." : "WhatsApp messages are OFF.");
+};
 $("#auto").onclick = async () => {
   const want = !state.auto;
   if (want && !confirm("Turn on auto-booking? Every new Shopify order will be booked on TCS and fulfilled automatically. Orders with a missing phone or unknown city will still wait here.")) return;
@@ -185,11 +224,11 @@ async function waCall(body) {
   try {
     const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const d = await r.json();
-    $("#waOut").textContent = r.ok ? JSON.stringify(d.phone || d, null, 2) + (d.register ? "\n\n✅ Registered" : "") : "❌ " + (d.error || r.status);
+    $("#waOut").textContent = r.ok ? JSON.stringify(d.phone || d, null, 2) + (d.register ? "\\n\\n✅ Registered" : "") : "❌ " + (d.error || r.status);
   } catch (e) { $("#waOut").textContent = "❌ " + e.message; }
 }
 $("#waStatus").onclick = () => waCall({ action: "wa_status" });
-$("#waReg").onclick = () => { const pin = $("#waPin").value.trim(); if (!/^\d{6}$/.test(pin)) return ($("#waOut").textContent = "Enter the 6-digit PIN"); $("#waPin").value = ""; waCall({ action: "wa_register", pin }); };
+$("#waReg").onclick = () => { const pin = $("#waPin").value.trim(); if (!/^\\d{6}$/.test(pin)) return ($("#waOut").textContent = "Enter the 6-digit PIN"); $("#waPin").value = ""; waCall({ action: "wa_register", pin }); };
 load();
 </script>
 </body></html>`;
