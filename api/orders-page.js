@@ -100,13 +100,14 @@ tbody tr:hover td{background:color-mix(in srgb,var(--soft) 45%,transparent)}
 .store-house{background:var(--house-soft);color:var(--house)}
 .store-herbs{background:var(--herbs-soft);color:var(--herbs)}
 .chip{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:2px 7px;margin:0 4px 4px 0}
-.chip.ok{background:var(--pine-soft);color:var(--pine)}
+.chip.ok{background:var(--pine);color:var(--pine-ink);font-weight:700}
 .chip.bad{background:var(--rust-soft);color:var(--rust)}
 .chip.wait{background:var(--soft);color:var(--mute)}
 .flag{color:var(--rust);font-weight:700;font-size:12px}
 .prepaid{color:var(--pine);font-weight:700;font-size:12px}
 .link{border:0;background:none;color:var(--pine);padding:0;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-.link.danger{color:var(--rust);margin-top:6px;font-weight:600}
+.link.danger{color:var(--mute);margin-top:6px;font-weight:500;font-size:12px}
+.link.danger:hover{color:var(--rust)}
 .link:disabled{opacity:.5;cursor:default}
 select{max-width:180px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
 select.bad,select.fuzzy{border:2px solid var(--rust)}
@@ -278,7 +279,7 @@ function renderWaiting() {
       '<td class="status">' + waChip(o) +
         (o.processing ? '<span class="chip wait">Booking…</span>' : "") + (o.failed ? '<span class="chip bad">Last push failed</span>' : "") +
         other.map(i => '<span class="chip bad">' + esc(i) + "</span>").join("") + (!o.city_code ? '<span class="chip bad">Pick city</span>' : "") +
-        (o.processing ? "" : '<div><button class="link danger" data-cancel="' + esc(o.id) + '" data-name="' + esc(o.name) + '">Cancel &amp; restock</button></div>') + "</td>" +
+        (o.processing || o.wa === "confirmed" ? "" : '<div><button class="link danger" data-cancel="' + esc(o.id) + '" data-name="' + esc(o.name) + '">Cancel &amp; restock</button></div>') + "</td>" +
       "</tr>";
   }).join("") : '<tr><td colspan="7" class="empty">No orders waiting. New orders from your stores appear here.</td></tr>';
   document.querySelectorAll("select[data-id]").forEach(s => s.onchange = () => { s.classList.toggle("bad", !s.value); s.classList.remove("fuzzy"); const f = s.parentElement.querySelector(".flag"); if (f) f.remove(); renderSummaryOnly(); });
