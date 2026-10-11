@@ -29,6 +29,9 @@ export default async function handler(req, res) {
       const r = await sync.pushOrder(body.id, { cityCode: code || undefined, cityName: name || undefined, force: !!body.force });
       return res.status(200).json(r);
     }
+    if (body.action === "cancel_fake") {
+      return res.status(200).json(await sync.cancelFakeOrder(body.id));
+    }
     if (body.action === "problems") {
       return res.status(200).json({ problems: await notify.listProblems() });
     }

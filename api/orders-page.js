@@ -106,6 +106,8 @@ tbody tr:hover td{background:color-mix(in srgb,var(--soft) 45%,transparent)}
 .flag{color:var(--rust);font-weight:700;font-size:12px}
 .prepaid{color:var(--pine);font-weight:700;font-size:12px}
 .link{border:0;background:none;color:var(--pine);padding:0;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.link.danger{color:var(--rust);margin-top:6px;font-weight:600}
+.link:disabled{opacity:.5;cursor:default}
 select{max-width:180px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
 select.bad,select.fuzzy{border:2px solid var(--rust)}
 
@@ -275,7 +277,8 @@ function renderWaiting() {
       "<td>" + esc(o.products) + '<div class="sub">' + esc(o.payment) + "</div></td>" +
       '<td class="status">' + waChip(o) +
         (o.processing ? '<span class="chip wait">Booking…</span>' : "") + (o.failed ? '<span class="chip bad">Last push failed</span>' : "") +
-        other.map(i => '<span class="chip bad">' + esc(i) + "</span>").join("") + (!o.city_code ? '<span class="chip bad">Pick city</span>' : "") + "</td>" +
+        other.map(i => '<span class="chip bad">' + esc(i) + "</span>").join("") + (!o.city_code ? '<span class="chip bad">Pick city</span>' : "") +
+        (o.processing ? "" : '<div><button class="link danger" data-cancel="' + esc(o.id) + '" data-name="' + esc(o.name) + '">Cancel &amp; restock</button></div>') + "</td>" +
       "</tr>";
   }).join("") : '<tr><td colspan="7" class="empty">No orders waiting. New orders from your stores appear here.</td></tr>';
   document.querySelectorAll("select[data-id]").forEach(s => s.onchange = () => { s.classList.toggle("bad", !s.value); s.classList.remove("fuzzy"); const f = s.parentElement.querySelector(".flag"); if (f) f.remove(); renderSummaryOnly(); });
@@ -284,6 +287,16 @@ function renderWaiting() {
     b.disabled = true; b.textContent = "Sending…";
     try { const d = await post({ action: "wa_confirm_send", id: b.dataset.conf }); b.outerHTML = d.sent ? '<span class="chip wait">Awaiting reply</span>' : '<span class="chip bad">' + esc(d.error || d.skipped || "Not sent") + "</span>"; }
     catch (e) { b.textContent = "Couldn't send: " + e.message; }
+  });
+  document.querySelectorAll("[data-cancel]").forEach(b => b.onclick = async () => {
+    if (!confirm("Cancel order " + b.dataset.name + " as a FAKE order?\n\nStock goes back to inventory, the customer is not emailed, and this can't be undone.")) return;
+    b.disabled = true; b.textContent = "Cancelling…";
+    try {
+      const d = await post({ action: "cancel_fake", id: b.dataset.cancel });
+      if (!d.ok) throw new Error(d.error || "Not cancelled");
+      state.pending = state.pending.filter(x => x.id !== b.dataset.cancel);
+      renderWaiting(); log("Order " + (d.name || b.dataset.name) + " cancelled as fake order and restocked.");
+    } catch (e) { b.disabled = false; b.textContent = "Cancel & restock"; log("Couldn't cancel " + b.dataset.name + ": " + e.message); }
   });
   updateSel();
 }
