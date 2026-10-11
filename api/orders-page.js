@@ -155,6 +155,9 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
   <section class="panel" id="p-waiting">
     <div class="toolbar">
       <div class="stats" id="summary"></div>
+      <select id="storeFilter" aria-label="Show orders from" hidden>
+        <option value="all">All stores</option><option value="house">Chitral House</option><option value="herbs">Chitral Herbs</option>
+      </select>
       <label class="check" id="onlyConfWrap" hidden><input type="checkbox" id="onlyConf" checked> Only confirmed</label>
       <button class="btn" id="pushSel" disabled>Push selected</button>
       <button class="btn primary" id="pushAll">Push all ready</button>
@@ -270,6 +273,15 @@ $("#webSw").onclick = async () => {
 };
 
 /* ---------- waiting to book ---------- */
+let storeFilter = "all";
+try { storeFilter = localStorage.getItem("tcsStoreFilter") || "all"; } catch (e) {}
+$("#storeFilter").value = storeFilter;
+$("#storeFilter").onchange = () => {
+  storeFilter = $("#storeFilter").value;
+  try { localStorage.setItem("tcsStoreFilter", storeFilter); } catch (e) {}
+  $("#all").checked = false; renderWaiting();
+};
+function visiblePending() { return storeFilter === "all" ? state.pending : state.pending.filter(o => o.store === storeFilter); }
 const cityVal = (code, name) => code ? code + "|" + name : "";
 function cityOptions(sel) {
   return '<option value="">Pick city</option>' + state.cities.map(c => { const v = cityVal(c.code, c.name); return '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("");
@@ -294,10 +306,11 @@ function waChip(o) {
 function renderWaiting() {
   setSwitch($("#auto"), state.auto); setSwitch($("#waSw"), state.waOn);
   $("#onlyConfWrap").hidden = !state.waOn;
-  const p = state.pending;
+  const p = visiblePending();
   const readyN = p.filter(ready).length;
   const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
-  $("#cWaiting").textContent = p.length;
+  $("#cWaiting").textContent = state.pending.length;
+  $("#storeFilter").hidden = !(state.stores && state.stores.length > 1);
   $("#summary").innerHTML = "<strong>" + readyN + "</strong> ready to push · " + (p.length - readyN) + " waiting on confirmation or details · " + rs(cod) + " COD";
   $("#pending").innerHTML = p.length ? p.map(o => {
     const other = o.issues.filter(i => !i.startsWith("City"));
@@ -315,7 +328,7 @@ function renderWaiting() {
         other.map(i => '<span class="chip bad">' + esc(i) + "</span>").join("") + (!o.city_code ? '<span class="chip bad">Pick city</span>' : "") +
         (o.processing || o.wa === "confirmed" ? "" : '<div><button class="link danger" data-cancel="' + esc(o.id) + '" data-name="' + esc(o.name) + '">Cancel &amp; restock</button></div>') + "</td>" +
       "</tr>";
-  }).join("") : '<tr><td colspan="7" class="empty">No orders waiting. New orders from your stores appear here.</td></tr>';
+  }).join("") : '<tr><td colspan="7" class="empty">' + (storeFilter !== "all" && state.pending.length ? "No orders waiting from " + esc($("#storeFilter").selectedOptions[0].text) + "." : "No orders waiting. New orders from your stores appear here.") + "</td></tr>";
   document.querySelectorAll("select[data-id]").forEach(s => s.onchange = () => { s.classList.toggle("bad", !s.value); s.classList.remove("fuzzy"); const f = s.parentElement.querySelector(".flag"); if (f) f.remove(); renderSummaryOnly(); });
   document.querySelectorAll(".sel").forEach(c => c.onchange = updateSel);
   document.querySelectorAll("[data-conf]").forEach(b => b.onclick = async () => {
@@ -339,7 +352,7 @@ function renderWaiting() {
   updateSel();
 }
 function renderSummaryOnly() {
-  const p = state.pending; const readyN = p.filter(ready).length; const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
+  const p = visiblePending(); const readyN = p.filter(ready).length; const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
   $("#summary").innerHTML = "<strong>" + readyN + "</strong> ready to push · " + (p.length - readyN) + " waiting on confirmation or details · " + rs(cod) + " COD";
 }
 $("#onlyConf").onchange = renderSummaryOnly;
@@ -366,7 +379,7 @@ async function push(ids) {
   setTimeout(loadAll, fail ? 4000 : 1500);
 }
 $("#pushSel").onclick = () => push([...document.querySelectorAll(".sel:checked")].map(c => c.value));
-$("#pushAll").onclick = () => push(state.pending.filter(ready).map(o => o.id));
+$("#pushAll").onclick = () => push(visiblePending().filter(ready).map(o => o.id));
 
 /* ---------- booked (last 2 days) ---------- */
 function renderBooked() {
