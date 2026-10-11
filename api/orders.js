@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const [pending, booked, cities, auto, waOn] = await Promise.all([
-        sync.listPending(), sync.listRecentBooked(30), sync.cityOptions(), sync.isAutoOn(), notify.isOn(),
+        sync.listPending(), sync.listRecentBooked(2), sync.cityOptions(), sync.isAutoOn(), notify.isOn(),
       ]);
       return res.status(200).json({ auto, waOn, pending, booked, cities, stores: stores().map((s) => s.label), storeErrors: sync.listPending.errors || [] });
     }

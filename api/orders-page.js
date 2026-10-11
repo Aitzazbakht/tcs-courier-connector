@@ -10,262 +10,368 @@ export default function handler(req, res) {
   res.status(200).send(PAGE.replace("__KEY__", JSON.stringify(key)));
 }
 
-const PAGE = `<!doctype html>
+// String.raw keeps backslashes in the browser script exactly as written.
+const PAGE = String.raw`<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>TCS Orders · Chitral House</title>
+<title>TCS Orders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a66;--line:#e4e2dc;--accent:#14532d;--accent-ink:#fff;--warn:#9a3412;--warn-bg:#fff4ed;--ok:#166534;--ok-bg:#ecfdf3;--chip:#f0eee8}
-@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1e1e1c;--ink:#ecebe7;--mute:#a09f9a;--line:#33322f;--accent:#4ade80;--accent-ink:#0b1a10;--warn:#fdba74;--warn-bg:#2a1a10;--ok:#86efac;--ok-bg:#0f2417;--chip:#2a2a27}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:14px 16px}
-.wrap{max-width:1200px;margin:0 auto}
-.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
-h1{font-size:18px;margin:0}h1 small{color:var(--mute);font-weight:400;font-size:13px;margin-left:6px}
-.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:8px;cursor:pointer}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
-button:disabled{opacity:.5;cursor:not-allowed}
-.toggle{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
-.switch{position:relative;width:38px;height:22px;border-radius:999px;background:var(--line);border:0;padding:0}
-.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
-.switch.on{background:var(--accent)}.switch.on::after{left:19px}
-main{padding:16px}
-.summary{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
-.pill{background:var(--chip);border-radius:999px;padding:4px 10px;font-size:13px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:20px}
-.card h2{font-size:15px;margin:0;padding:12px 14px;border-bottom:1px solid var(--line)}
+:root{
+  --bg:#F2F4F3; --surface:#FFFFFF; --ink:#1C2826; --mute:#67736F; --line:#DCE2DF; --soft:#EAEEEC;
+  --pine:#2E6A4E; --pine-ink:#FFFFFF; --pine-soft:#E3EFE8;
+  --rust:#B0502A; --rust-soft:#FBEDE6;
+  --house:#1F5F8B; --house-soft:#E2EEF6; --herbs:#8A5A12; --herbs-soft:#F7EDD9;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#121816; --surface:#1A2220; --ink:#E6ECE9; --mute:#93A09B; --line:#2C3633; --soft:#222B29;
+  --pine:#6FC39A; --pine-ink:#0D1A14; --pine-soft:#1C3229;
+  --rust:#F0946B; --rust-soft:#33221A;
+  --house:#8CC4EA; --house-soft:#1A2B37; --herbs:#E5BE7A; --herbs-soft:#33291A;
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+a{color:var(--pine)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+
+/* header */
+header{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 0 10px}
+.brand{font-weight:800;font-size:17px;letter-spacing:-.01em;margin-right:auto}
+.brand span{color:var(--mute);font-weight:500;font-size:13px;margin-left:8px}
+.ctrl{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:5px 6px 5px 12px;background:var(--surface);cursor:pointer;white-space:nowrap}
+.ctrl:hover{border-color:var(--mute)}
+.switch{width:34px;height:20px;border-radius:999px;background:var(--line);position:relative;transition:background .15s;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.ctrl[aria-checked="true"] .switch{background:var(--pine)}
+.ctrl[aria-checked="true"] .switch::after{left:17px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--mute)}
+.btn.primary{background:var(--pine);border-color:var(--pine);color:var(--pine-ink);font-weight:700}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.icon-btn{width:34px;height:34px;padding:0;display:grid;place-items:center;border-radius:50%}
+
+/* tabs — the one bold element */
+nav.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-bottom:-1px}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:10px 16px 12px;cursor:pointer;color:var(--mute);border-bottom:3px solid transparent;display:flex;align-items:baseline;gap:10px;white-space:nowrap;font-weight:600}
+.tab b{font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.02em;line-height:1}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pine)}
+.tab[aria-selected="true"] b{color:var(--pine)}
+.tab.alert b{color:var(--rust)}
+
+#log{min-height:20px;font-size:13px;color:var(--mute);padding:8px 0 0}
+
+/* WhatsApp setup popover */
+#waPanel{display:none;position:absolute;right:20px;top:58px;width:min(380px,calc(100vw - 40px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 12px 32px rgba(28,40,38,.14);z-index:20}
+#waPanel.open{display:block}
+#waPanel h3{margin:0 0 4px;font-size:15px}
+#waPanel p{margin:0 0 12px;color:var(--mute);font-size:13px}
+#waPanel .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+#waPanel input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:130px;background:var(--surface)}
+#waOut{white-space:pre-wrap;font-size:12px;color:var(--mute);margin:8px 0 0;max-height:220px;overflow:auto}
+
+/* panels */
+main{padding:18px 0 40px}
+.panel[hidden]{display:none}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.stats{margin-right:auto;color:var(--mute)}
+.stats strong{color:var(--ink);font-weight:700}
+.check{display:flex;align-items:center;gap:6px;color:var(--mute);cursor:pointer;white-space:nowrap}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .scroll{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:900px}
-th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.03em;background:var(--card)}
+table{width:100%;border-collapse:collapse;min-width:920px}
+th{font-size:12px;font-weight:600;color:var(--mute);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
+td{padding:11px 12px;border-bottom:1px solid var(--soft);vertical-align:top}
 tr:last-child td{border-bottom:0}
-td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.muted{color:var(--mute);font-size:12px}
-.issue{color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:2px 6px;font-size:12px;display:inline-block;margin-top:3px}
-.res-ok{color:var(--ok);background:var(--ok-bg);border-radius:6px;padding:2px 6px;font-size:12px;display:inline-block}
-select{font:inherit;max-width:170px;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
-select.bad{border-color:var(--warn)}
-.store{font-size:11px;font-weight:600;border-radius:5px;padding:1px 5px;margin-left:4px;white-space:nowrap}
-.store-house{background:#e0f2fe;color:#075985}
-.store-herbs{background:#fef3c7;color:#92400e}
-.wa{border-radius:6px;padding:2px 6px;font-size:12px;display:inline-block;font-weight:600;margin-bottom:3px}
-.wa-confirmed{color:var(--ok);background:var(--ok-bg)}
-.wa-cancelled{color:#dc2626;background:var(--warn-bg)}
-.wa-sent{color:var(--mute);background:var(--chip)}
-.linkbtn{border:0;background:none;color:var(--accent);padding:0;font-size:12px;cursor:pointer;text-decoration:underline}
-.prepaid{color:var(--ok);font-weight:700;font-size:12px}
-.check{color:#dc2626;font-weight:700;font-size:12px;margin-left:4px}
-select.fuzzy{border:2px solid #dc2626}
-a{color:var(--accent)}
-#log{font-size:13px;color:var(--mute);min-height:18px}
-.empty{padding:24px;text-align:center;color:var(--mute)}
-@media (max-width:640px){h1{font-size:16px}header{padding:12px 16px}}
+tbody tr:hover td{background:color-mix(in srgb,var(--soft) 45%,transparent)}
+.num{text-align:right;white-space:nowrap}
+.sub{color:var(--mute);font-size:12.5px}
+.order{font-weight:700}
+.empty{padding:48px 16px;text-align:center;color:var(--mute)}
+.note{color:var(--mute);font-size:13px;margin:0 0 12px}
+
+.badge{display:inline-block;white-space:nowrap;font-size:11px;font-weight:700;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.store-house{background:var(--house-soft);color:var(--house)}
+.store-herbs{background:var(--herbs-soft);color:var(--herbs)}
+.chip{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:2px 7px;margin:0 4px 4px 0}
+.chip.ok{background:var(--pine-soft);color:var(--pine)}
+.chip.bad{background:var(--rust-soft);color:var(--rust)}
+.chip.wait{background:var(--soft);color:var(--mute)}
+.flag{color:var(--rust);font-weight:700;font-size:12px}
+.prepaid{color:var(--pine);font-weight:700;font-size:12px}
+.link{border:0;background:none;color:var(--pine);padding:0;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+select{max-width:180px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
+select.bad,select.fuzzy{border:2px solid var(--rust)}
+
+@media (max-width:640px){
+  .wrap{padding:0 14px}
+  .brand span{display:none}
+  .tab{padding:10px 12px 12px}
+  .tab b{font-size:19px}
+  #waPanel{right:14px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head>
 <body>
-<header><div class="wrap top">
-  <h1>TCS Orders <small>Chitral House</small></h1>
-  <div class="actions">
-    <div class="toggle"><span>WhatsApp messages</span><button id="waSw" class="switch" aria-label="WhatsApp messages" role="switch"></button></div>
-    <div class="toggle"><span>Auto-book new orders</span><button id="auto" class="switch" aria-label="Auto-book" role="switch"></button></div>
-    <label class="toggle" id="onlyConfWrap" style="display:none"><input type="checkbox" id="onlyConf" checked> Push only confirmed</label>
-    <button id="refresh">Refresh</button>
-    <button id="pushSel" class="primary" disabled>Push selected</button>
-    <button id="pushAll" class="primary">Push all ready</button>
+<header><div class="wrap" style="position:relative">
+  <div class="bar">
+    <div class="brand">TCS Orders<span id="storeNames">Chitral House</span></div>
+    <button class="ctrl" id="waSw" role="switch" aria-checked="false">WhatsApp messages <span class="switch"></span></button>
+    <button class="ctrl" id="auto" role="switch" aria-checked="false">Auto-book <span class="switch"></span></button>
+    <button class="btn" id="waOpen" aria-expanded="false" aria-controls="waPanel">WhatsApp setup</button>
+    <button class="btn icon-btn" id="refresh" title="Refresh" aria-label="Refresh">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+    </button>
   </div>
-</div><div class="wrap" id="log"></div></header>
+  <div id="waPanel" role="dialog" aria-label="WhatsApp setup">
+    <h3>WhatsApp setup</h3>
+    <p>Only needed when setting up or changing the WhatsApp number.</p>
+    <div class="row"><button class="btn" id="waStatus">Check number status</button><button class="btn" id="waTpl">Check templates</button></div>
+    <div class="row"><input id="waPin" type="password" inputmode="numeric" maxlength="6" placeholder="6-digit PIN"><button class="btn primary" id="waReg">Register number</button></div>
+    <pre id="waOut"></pre>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="waiting" aria-selected="true">Waiting to book <b id="cWaiting">–</b></button>
+    <button class="tab" role="tab" data-tab="problems" aria-selected="false">Delivery problems <b id="cProblems">–</b></button>
+    <button class="tab" role="tab" data-tab="booked" aria-selected="false">Booked, last 2 days <b id="cBooked">–</b></button>
+  </nav>
+</div></header>
+
 <main class="wrap">
-  <details class="card" id="wa" style="padding:0 14px 12px"><summary style="padding:12px 0;cursor:pointer;font-weight:600">WhatsApp setup</summary>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-      <button id="waStatus">Check number status</button>
-      <input id="waPin" type="password" inputmode="numeric" maxlength="6" placeholder="6-digit PIN" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;width:130px;background:var(--card);color:var(--ink)">
-      <button id="waReg" class="primary">Register number</button>
+  <div id="log" aria-live="polite"></div>
+
+  <section class="panel" id="p-waiting">
+    <div class="toolbar">
+      <div class="stats" id="summary"></div>
+      <label class="check" id="onlyConfWrap" hidden><input type="checkbox" id="onlyConf" checked> Only confirmed</label>
+      <button class="btn" id="pushSel" disabled>Push selected</button>
+      <button class="btn primary" id="pushAll">Push all ready</button>
     </div>
-    <pre id="waOut" style="white-space:pre-wrap;font-size:12px;color:var(--mute);margin:10px 0 0"></pre>
-  </details>
-  <div class="summary" id="summary"></div>
-  <div class="card"><h2>Waiting to book</h2><div class="scroll"><table>
-    <thead><tr><th><input type="checkbox" id="all"></th><th>Order</th><th>Customer</th><th>City</th><th class="num">COD</th><th>Products</th><th>Status</th></tr></thead>
-    <tbody id="pending"><tr><td colspan="7" class="empty">Loading orders…</td></tr></tbody></table></div></div>
-  <div class="card"><h2>Delivery problems <span class="muted" id="probCount" style="font-weight:400"></span></h2>
-    <div class="muted" style="padding:8px 14px 0">Parcels where TCS reported a failed attempt (refused, not home, address not found). Call the customer or TCS, then click <b>Done</b>.</div>
-    <div class="scroll"><table>
-    <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>TCS latest update</th><th>Customer reply</th><th></th></tr></thead>
-    <tbody id="problems"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table></div></div>
-  <div class="card"><h2>Recently booked</h2><div class="scroll"><table>
-    <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>Shopify</th><th>Label</th></tr></thead>
-    <tbody id="booked"></tbody></table></div></div>
+    <div class="sheet"><div class="scroll"><table>
+      <thead><tr><th style="width:34px"><input type="checkbox" id="all" aria-label="Select all"></th><th>Order</th><th>Customer</th><th>City</th><th class="num">COD</th><th>Products</th><th>Status</th></tr></thead>
+      <tbody id="pending"><tr><td colspan="7" class="empty">Loading orders…</td></tr></tbody>
+    </table></div></div>
+  </section>
+
+  <section class="panel" id="p-problems" hidden>
+    <p class="note">TCS couldn't deliver these parcels (refused, nobody home, address not found). Call the customer or TCS, then mark it done.</p>
+    <div class="sheet"><div class="scroll"><table>
+      <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>TCS latest update</th><th>Customer reply</th><th></th></tr></thead>
+      <tbody id="problems"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+    </table></div></div>
+  </section>
+
+  <section class="panel" id="p-booked" hidden>
+    <p class="note">Orders sent to TCS in the last 2 days. Older bookings are in the TCS portal.</p>
+    <div class="sheet"><div class="scroll"><table>
+      <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>Booked</th><th>Label</th></tr></thead>
+      <tbody id="booked"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+    </table></div></div>
+  </section>
 </main>
+
 <script>
 const KEY = __KEY__;
 const API = "/api/orders?key=" + encodeURIComponent(KEY);
-let state = { pending: [], booked: [], cities: [], auto: false };
+let state = { pending: [], booked: [], cities: [], auto: false, waOn: false, stores: [] };
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-const log = (m) => { $("#log").textContent = m; };
+const log = (m) => { $("#log").textContent = m || ""; };
 const rs = (n) => "Rs " + Number(n || 0).toLocaleString("en-PK");
-const when = (d) => new Date(d).toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const when = (d) => d ? new Date(d).toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+const post = (body) => fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error || r.status); return d; });
 
-async function load() {
-  log("Loading…");
-  try {
-    const r = await fetch(API); const d = await r.json();
-    if (!r.ok) throw new Error(d.error || r.status);
-    state = d; render(); log((d.storeErrors || []).map(e => "⚠️ " + e.store + ": " + e.error).join("  ·  "));
-  } catch (e) { log("Couldn't load: " + e.message); $("#pending").innerHTML = '<tr><td colspan="7" class="empty">' + esc(e.message) + '</td></tr>'; }
+/* ---------- tabs ---------- */
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
+  document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "p-" + name);
+  try { history.replaceState(null, "", "#" + name); } catch (e) {}
 }
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
+showTab(["waiting", "problems", "booked"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
 
+/* ---------- WhatsApp setup popover ---------- */
+$("#waOpen").onclick = (e) => { e.stopPropagation(); const open = $("#waPanel").classList.toggle("open"); $("#waOpen").setAttribute("aria-expanded", String(open)); };
+document.addEventListener("click", (e) => { if (!$("#waPanel").contains(e.target) && e.target !== $("#waOpen")) { $("#waPanel").classList.remove("open"); $("#waOpen").setAttribute("aria-expanded", "false"); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#waPanel").classList.remove("open"); });
+async function waCall(body, fmt) {
+  $("#waOut").textContent = "Working…";
+  try { const d = await post(body); $("#waOut").textContent = fmt ? fmt(d) : JSON.stringify(d.phone || d, null, 2); }
+  catch (e) { $("#waOut").textContent = "Couldn't complete: " + e.message; }
+}
+$("#waStatus").onclick = () => waCall({ action: "wa_status" }, (d) => {
+  const p = d.phone || {};
+  return [p.verified_name + "  " + p.display_phone_number, "Status: " + p.status, "Display name: " + p.name_status, "Quality: " + p.quality_rating].join("\n");
+});
+$("#waTpl").onclick = () => waCall({ action: "wa_templates" }, (d) => (d.templates || []).filter(t => t.name.startsWith("ch_")).map(t => t.name + ": " + t.status).join("\n"));
+$("#waReg").onclick = () => {
+  const pin = $("#waPin").value.trim();
+  if (!/^\d{6}$/.test(pin)) return ($("#waOut").textContent = "Enter the 6-digit PIN.");
+  $("#waPin").value = "";
+  waCall({ action: "wa_register", pin }, (d) => d.register ? "Number registered." : JSON.stringify(d, null, 2));
+};
+
+/* ---------- switches ---------- */
+function setSwitch(el, on) { el.setAttribute("aria-checked", String(!!on)); }
+$("#waSw").onclick = async () => {
+  const want = !state.waOn;
+  if (want && !confirm("Turn on WhatsApp messages? Customers get order confirmations, dispatch updates and delivery updates.")) return;
+  try { const d = await post({ action: "wa_toggle", value: want }); state.waOn = d.waOn; renderWaiting(); log(d.waOn ? "WhatsApp messages turned on." : "WhatsApp messages turned off."); }
+  catch (e) { log("Couldn't change WhatsApp messages: " + e.message); }
+};
+$("#auto").onclick = async () => {
+  const want = !state.auto;
+  if (want && !confirm("Turn on auto-book? New orders are booked on TCS automatically" + (state.waOn ? " once the customer confirms on WhatsApp." : " as soon as they come in."))) return;
+  try { const d = await post({ action: "auto", value: want }); state.auto = d.auto; renderWaiting(); log(d.auto ? "Auto-book turned on." : "Auto-book turned off."); }
+  catch (e) { log("Couldn't change auto-book: " + e.message); }
+};
+
+/* ---------- waiting to book ---------- */
 const cityVal = (code, name) => code ? code + "|" + name : "";
 function cityOptions(sel) {
-  return '<option value="">— pick city —</option>' + state.cities.map(c => { const v = cityVal(c.code, c.name); return '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("");
+  return '<option value="">Pick city</option>' + state.cities.map(c => { const v = cityVal(c.code, c.name); return '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("");
 }
-
+function cityFor(o) { const s = document.querySelector('select[data-id="' + CSS.escape(o.id) + '"]'); return s ? s.value : cityVal(o.city_code, o.city_name); }
 function ready(o) {
-  const c = cityFor(o);
-  if (o.processing || !c || o.issues.filter(i => !i.startsWith("City")).length) return false;
+  if (o.processing || !cityFor(o) || o.issues.filter(i => !i.startsWith("City")).length) return false;
   if (o.wa === "cancelled") return false;
-  if (state.waOn && $("#onlyConf") && $("#onlyConf").checked && o.wa !== "confirmed") return false;
+  if (state.waOn && $("#onlyConf").checked && o.wa !== "confirmed") return false;
   return true;
 }
-function cityFor(o) { const s = document.querySelector('select[data-id="' + o.id + '"]'); return s ? s.value : cityVal(o.city_code, o.city_name); }
-
 function storeBadge(o) {
-  if (!state.stores || state.stores.length < 2) return '';
-  return ' <span class="store store-' + esc(o.store) + '">' + esc(o.storeLabel || o.store) + '</span>';
+  if (!state.stores || state.stores.length < 2 || !o.store) return "";
+  return '<span class="badge store-' + esc(o.store) + '">' + esc(o.storeLabel || o.store) + "</span>";
 }
 function waChip(o) {
-  if (o.wa === "confirmed") return '<span class="wa wa-confirmed">✅ Confirmed</span><br>';
-  if (o.wa === "cancelled") return '<span class="wa wa-cancelled">❌ Customer cancelled</span><br>';
-  if (o.wa === "sent") return '<span class="wa wa-sent">⏳ Awaiting reply</span><br>';
-  return state.waOn ? '<button class="linkbtn" data-conf="' + o.id + '">Send WhatsApp confirmation</button><br>' : '';
+  if (o.wa === "confirmed") return '<span class="chip ok">Confirmed</span>';
+  if (o.wa === "cancelled") return '<span class="chip bad">Customer cancelled</span>';
+  if (o.wa === "sent") return '<span class="chip wait">Awaiting reply</span>';
+  return state.waOn ? '<button class="link" data-conf="' + esc(o.id) + '">Send confirmation</button>' : "";
 }
-function render() {
-  $("#auto").classList.toggle("on", !!state.auto);
-  $("#waSw").classList.toggle("on", !!state.waOn);
-  $("#onlyConfWrap").style.display = state.waOn ? "" : "none";
+function renderWaiting() {
+  setSwitch($("#auto"), state.auto); setSwitch($("#waSw"), state.waOn);
+  $("#onlyConfWrap").hidden = !state.waOn;
   const p = state.pending;
-  const readyN = p.filter(o => ready(o)).length;
-  const total = p.reduce((s, o) => s + (o.cod || 0), 0);
-  $("#summary").innerHTML = '<span class="pill">' + p.length + ' waiting</span><span class="pill">' + readyN + ' ready</span><span class="pill">' + (p.length - readyN) + ' need attention</span><span class="pill">COD ' + rs(total) + '</span>';
+  const readyN = p.filter(ready).length;
+  const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
+  $("#cWaiting").textContent = p.length;
+  $("#summary").innerHTML = "<strong>" + readyN + "</strong> ready to push · " + (p.length - readyN) + " waiting on confirmation or details · " + rs(cod) + " COD";
   $("#pending").innerHTML = p.length ? p.map(o => {
     const other = o.issues.filter(i => !i.startsWith("City"));
-    const fuzzy = o.city_match && !["exact","alias","manual"].includes(o.city_match);
-    return '<tr data-row="' + o.id + '">' +
-      '<td><input type="checkbox" class="sel" value="' + o.id + '"' + (o.processing ? " disabled" : "") + '></td>' +
-      '<td><b>' + esc(o.name) + '</b>' + storeBadge(o) + '<div class="muted">' + when(o.createdAt) + '</div></td>' +
-      '<td>' + esc(o.customer) + '<div class="muted">' + esc(o.phone) + '</div><div class="muted">' + esc(o.address) + '</div></td>' +
-      '<td><select data-id="' + o.id + '" class="' + (o.city_code ? (fuzzy ? "fuzzy" : "") : "bad") + '">' + cityOptions(cityVal(o.city_code, o.city_name)) + '</select>' +
-        '<div class="muted">typed: ' + esc(o.city_input) + (fuzzy ? ' <b class="check">CHECK CITY</b>' : '') + '</div></td>' +
-      '<td class="num">' + (o.prepaid ? '<b class="prepaid">PREPAID</b><div class="muted">Rs 0</div>' : rs(o.cod)) + '</td>' +
-      '<td>' + esc(o.products) + '<div class="muted">' + esc(o.payment) + '</div></td>' +
-      '<td class="status">' + waChip(o) + (o.processing ? '<span class="issue">Booking in progress</span>' : '') + (o.failed ? '<span class="issue">Last attempt failed</span>' : '') +
-        other.map(i => '<span class="issue">' + esc(i) + '</span>').join(" ") + (!o.city_code ? '<span class="issue">Pick city</span>' : '') + '</td>' +
-    '</tr>';
-  }).join("") : '<tr><td colspan="7" class="empty">No unfulfilled orders waiting. </td></tr>';
-  $("#booked").innerHTML = state.booked.length ? state.booked.map(b =>
-    '<tr><td><b>' + esc(b.name) + '</b>' + storeBadge(b) + '<div class="muted">' + when(b.createdAt) + '</div></td><td>' + esc(b.customer) + '</td>' +
-    '<td>' + (b.cn ? '<a href="https://www.tcsexpress.com/track/' + b.cn + '" target="_blank" rel="noopener">' + b.cn + '</a>' : '—') + '</td>' +
-    '<td>' + esc(String(b.fulfillment || "").toLowerCase()) + '</td>' +
-    '<td>' + (b.cn ? '<a href="/label/' + encodeURIComponent(KEY) + '/' + b.cn + '" target="_blank">PDF</a>' : '') + '</td></tr>').join("")
-    : '<tr><td colspan="5" class="empty">Nothing booked from here yet.</td></tr>';
-  document.querySelectorAll("select[data-id]").forEach(s => s.onchange = () => {
-    s.classList.toggle("bad", !s.value); s.classList.remove("fuzzy");
-    const c = s.parentElement.querySelector(".check"); if (c) c.remove();
-  });
+    const fuzzy = o.city_match && !["exact", "alias", "manual"].includes(o.city_match);
+    return '<tr data-row="' + esc(o.id) + '">' +
+      '<td><input type="checkbox" class="sel" value="' + esc(o.id) + '"' + (o.processing ? " disabled" : "") + ' aria-label="Select ' + esc(o.name) + '"></td>' +
+      '<td><span class="order">' + esc(o.name) + "</span>" + storeBadge(o) + '<div class="sub">' + when(o.createdAt) + "</div></td>" +
+      "<td>" + esc(o.customer) + '<div class="sub">' + esc(o.phone) + '</div><div class="sub">' + esc(o.address) + "</div></td>" +
+      '<td><select data-id="' + esc(o.id) + '" class="' + (o.city_code ? (fuzzy ? "fuzzy" : "") : "bad") + '" aria-label="TCS city">' + cityOptions(cityVal(o.city_code, o.city_name)) + "</select>" +
+        '<div class="sub">Typed: ' + esc(o.city_input) + (fuzzy ? ' <span class="flag">Check city</span>' : "") + "</div></td>" +
+      '<td class="num">' + (o.prepaid ? '<span class="prepaid">Prepaid</span>' : rs(o.cod)) + "</td>" +
+      "<td>" + esc(o.products) + '<div class="sub">' + esc(o.payment) + "</div></td>" +
+      '<td class="status">' + waChip(o) +
+        (o.processing ? '<span class="chip wait">Booking…</span>' : "") + (o.failed ? '<span class="chip bad">Last push failed</span>' : "") +
+        other.map(i => '<span class="chip bad">' + esc(i) + "</span>").join("") + (!o.city_code ? '<span class="chip bad">Pick city</span>' : "") + "</td>" +
+      "</tr>";
+  }).join("") : '<tr><td colspan="7" class="empty">No orders waiting. New orders from your stores appear here.</td></tr>';
+  document.querySelectorAll("select[data-id]").forEach(s => s.onchange = () => { s.classList.toggle("bad", !s.value); s.classList.remove("fuzzy"); const f = s.parentElement.querySelector(".flag"); if (f) f.remove(); renderSummaryOnly(); });
   document.querySelectorAll(".sel").forEach(c => c.onchange = updateSel);
   document.querySelectorAll("[data-conf]").forEach(b => b.onclick = async () => {
     b.disabled = true; b.textContent = "Sending…";
-    try {
-      const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "wa_confirm_send", id: b.dataset.conf }) });
-      const d = await r.json();
-      b.outerHTML = d.sent ? '<span class="wa wa-sent">⏳ Awaiting reply</span>' : '<span class="issue">' + esc(d.error || d.skipped || "Not sent") + '</span>';
-    } catch (e) { b.textContent = "Failed: " + e.message; }
+    try { const d = await post({ action: "wa_confirm_send", id: b.dataset.conf }); b.outerHTML = d.sent ? '<span class="chip wait">Awaiting reply</span>' : '<span class="chip bad">' + esc(d.error || d.skipped || "Not sent") + "</span>"; }
+    catch (e) { b.textContent = "Couldn't send: " + e.message; }
   });
-  if ($("#onlyConf")) $("#onlyConf").onchange = render;
   updateSel();
 }
-
+function renderSummaryOnly() {
+  const p = state.pending; const readyN = p.filter(ready).length; const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
+  $("#summary").innerHTML = "<strong>" + readyN + "</strong> ready to push · " + (p.length - readyN) + " waiting on confirmation or details · " + rs(cod) + " COD";
+}
+$("#onlyConf").onchange = renderSummaryOnly;
 function updateSel() { $("#pushSel").disabled = !document.querySelectorAll(".sel:checked").length; }
 $("#all").onchange = (e) => { document.querySelectorAll(".sel:not(:disabled)").forEach(c => c.checked = e.target.checked); updateSel(); };
 
 async function push(ids) {
-  if (!ids.length) return;
-  if (!confirm("Book " + ids.length + " order(s) on TCS and mark them fulfilled + paid in Shopify? Customers will get a tracking message.")) return;
-  ["#pushSel","#pushAll","#refresh"].forEach(s => $(s).disabled = true);
+  if (!ids.length) return log("Nothing ready to push.");
+  if (!confirm("Book " + ids.length + " order(s) on TCS? They'll be marked fulfilled and paid in Shopify, and customers get their tracking number.")) return;
+  ["#pushSel", "#pushAll", "#refresh"].forEach(s => $(s).disabled = true);
   let ok = 0, fail = 0;
   for (let i = 0; i < ids.length; i++) {
     const id = ids[i]; const o = state.pending.find(x => x.id === id);
-    log("Booking " + (i + 1) + " of " + ids.length + " — " + (o ? o.name : id) + "…");
-    const cell = document.querySelector('tr[data-row="' + id + '"] .status');
+    log("Booking " + (i + 1) + " of " + ids.length + ": " + (o ? o.name : id));
+    const cell = document.querySelector('tr[data-row="' + CSS.escape(id) + '"] .status');
     try {
-      const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "push", id, city: cityFor(o) }) });
-      const d = await r.json();
-      if (d.ok) { ok++; if (cell) cell.innerHTML = '<span class="res-ok">' + (d.cn ? "CN " + d.cn : esc(d.skipped || "Done")) + '</span>' + (d.warning ? ' <span class="issue">' + esc(d.warning) + '</span>' : ''); }
-      else { fail++; if (cell) cell.innerHTML = '<span class="issue">' + esc(d.error || "Failed") + '</span>'; }
-    } catch (e) { fail++; if (cell) cell.innerHTML = '<span class="issue">' + esc(e.message) + '</span>'; }
+      const d = await post({ action: "push", id, city: cityFor(o) });
+      if (d.ok) { ok++; if (cell) cell.innerHTML = '<span class="chip ok">' + (d.cn ? "Booked · CN " + esc(d.cn) : esc(d.skipped || "Done")) + "</span>" + (d.warning ? '<span class="chip bad">' + esc(d.warning) + "</span>" : ""); }
+      else { fail++; if (cell) cell.innerHTML = '<span class="chip bad">' + esc(d.error || "Failed") + "</span>"; }
+    } catch (e) { fail++; if (cell) cell.innerHTML = '<span class="chip bad">' + esc(e.message) + "</span>"; }
   }
-  log("Done: " + ok + " booked" + (fail ? ", " + fail + " failed (see red notes)" : "") + ". Refreshing…");
-  ["#pushSel","#pushAll","#refresh"].forEach(s => $(s).disabled = false);
-  setTimeout(load, fail ? 4000 : 1500);
+  log(ok + " booked" + (fail ? ", " + fail + " failed (see the red notes)" : "") + ". Refreshing…");
+  ["#pushSel", "#pushAll", "#refresh"].forEach(s => $(s).disabled = false);
+  setTimeout(loadAll, fail ? 4000 : 1500);
+}
+$("#pushSel").onclick = () => push([...document.querySelectorAll(".sel:checked")].map(c => c.value));
+$("#pushAll").onclick = () => push(state.pending.filter(ready).map(o => o.id));
+
+/* ---------- booked (last 2 days) ---------- */
+function renderBooked() {
+  const b = state.booked || [];
+  $("#cBooked").textContent = b.length;
+  $("#booked").innerHTML = b.length ? b.map(x =>
+    '<tr><td><span class="order">' + esc(x.name) + "</span>" + storeBadge(x) + "</td>" +
+    "<td>" + esc(x.customer) + '<div class="sub">' + esc(x.city) + "</div></td>" +
+    "<td>" + (x.cn ? '<a href="https://www.tcsexpress.com/track/' + esc(x.cn) + '" target="_blank" rel="noopener">' + esc(x.cn) + "</a>" : "–") + "</td>" +
+    "<td>" + when(x.bookedAt) + "</td>" +
+    "<td>" + (x.cn ? '<a href="/label/' + encodeURIComponent(KEY) + "/" + esc(x.cn) + '" target="_blank">Print label</a>' : "") + "</td></tr>").join("")
+    : '<tr><td colspan="5" class="empty">Nothing booked in the last 2 days.</td></tr>';
 }
 
-$("#pushSel").onclick = () => push([...document.querySelectorAll(".sel:checked")].map(c => c.value));
-$("#pushAll").onclick = () => push(state.pending.filter(o => ready(o)).map(o => o.id));
-$("#refresh").onclick = () => { load(); loadProblems(); };
-$("#waSw").onclick = async () => {
-  const want = !state.waOn;
-  if (want && !confirm("Turn on WhatsApp messages? New orders get a confirmation message, pushed orders get a 'dispatched' message, and customers get out-for-delivery / delivery-problem updates.")) return;
-  log("Saving…");
-  const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "wa_toggle", value: want }) });
-  const d = await r.json();
-  if (!r.ok) return log("Couldn't change WhatsApp setting: " + d.error);
-  state.waOn = d.waOn; render(); log(d.waOn ? "WhatsApp messages are ON." : "WhatsApp messages are OFF.");
-};
-$("#auto").onclick = async () => {
-  const want = !state.auto;
-  if (want && !confirm("Turn on auto-booking? Every new Shopify order will be booked on TCS and fulfilled automatically. Orders with a missing phone or unknown city will still wait here.")) return;
-  log("Saving…");
-  const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "auto", value: want }) });
-  const d = await r.json();
-  if (!r.ok) return log("Couldn't change auto mode: " + d.error);
-  state.auto = d.auto; render(); log(d.auto ? "Auto-booking is ON." : "Auto-booking is OFF.");
-};
-async function waCall(body) {
-  $("#waOut").textContent = "Working…";
-  try {
-    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    const d = await r.json();
-    $("#waOut").textContent = r.ok ? JSON.stringify(d.phone || d, null, 2) + (d.register ? "\\n\\n✅ Registered" : "") : "❌ " + (d.error || r.status);
-  } catch (e) { $("#waOut").textContent = "❌ " + e.message; }
-}
-$("#waStatus").onclick = () => waCall({ action: "wa_status" });
-$("#waReg").onclick = () => { const pin = $("#waPin").value.trim(); if (!/^\\d{6}$/.test(pin)) return ($("#waOut").textContent = "Enter the 6-digit PIN"); $("#waPin").value = ""; waCall({ action: "wa_register", pin }); };
+/* ---------- delivery problems ---------- */
 async function loadProblems() {
   try {
-    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "problems" }) });
-    const d = await r.json();
+    const d = await post({ action: "problems" });
     const list = (d.problems || []).filter(p => !p.error);
-    $("#probCount").textContent = list.length ? "(" + list.length + ")" : "";
-    const replyChip = (p) => p.reply === "retry" ? '<span class="wa wa-confirmed">🔁 Wants delivery again</span>'
-      : p.reply === "cancel" ? '<span class="wa wa-cancelled">❌ Wants to cancel</span>'
-      : p.reply === "asked" ? '<span class="wa wa-sent">⏳ Asked, no reply</span>' : '<span class="muted">Not messaged</span>';
+    $("#cProblems").textContent = list.length;
+    document.querySelector('.tab[data-tab="problems"]').classList.toggle("alert", list.length > 0);
+    const reply = (p) => p.reply === "retry" ? '<span class="chip ok">Wants delivery again</span>'
+      : p.reply === "cancel" ? '<span class="chip bad">Wants to cancel</span>'
+      : p.reply === "asked" ? '<span class="chip wait">Asked, no reply</span>' : '<span class="sub">Not messaged</span>';
     $("#problems").innerHTML = list.length ? list.map(p =>
-      '<tr><td><b>' + esc(p.name) + '</b>' + storeBadge(p) + '<div class="muted">' + esc(p.city) + ' · Rs ' + esc(p.cod) + '</div></td>' +
-      '<td>' + esc(p.customer) + '<div class="muted"><a href="tel:' + esc(p.phone) + '">' + esc(p.phone) + '</a></div></td>' +
-      '<td><a href="https://www.tcsexpress.com/track/' + esc(p.cn) + '" target="_blank" rel="noopener">' + esc(p.cn) + '</a></td>' +
-      '<td>' + esc(p.status) + '<div class="muted">' + esc(p.when) + '</div></td>' +
-      '<td>' + replyChip(p) + '</td>' +
-      '<td><button class="linkbtn" data-handled="' + esc(p.id) + '">Done</button></td></tr>').join("")
-      : '<tr><td colspan="6" class="empty">No delivery problems right now. 🎉</td></tr>';
+      '<tr><td><span class="order">' + esc(p.name) + "</span>" + storeBadge(p) + '<div class="sub">' + esc(p.city) + " · Rs " + esc(p.cod) + "</div></td>" +
+      "<td>" + esc(p.customer) + '<div class="sub"><a href="tel:' + esc(p.phone) + '">' + esc(p.phone) + "</a></div></td>" +
+      '<td><a href="https://www.tcsexpress.com/track/' + esc(p.cn) + '" target="_blank" rel="noopener">' + esc(p.cn) + "</a></td>" +
+      "<td>" + esc(p.status) + '<div class="sub">' + esc(p.when) + "</div></td>" +
+      "<td>" + reply(p) + "</td>" +
+      '<td><button class="btn" data-handled="' + esc(p.id) + '">Mark done</button></td></tr>').join("")
+      : '<tr><td colspan="6" class="empty">No delivery problems right now.</td></tr>';
     document.querySelectorAll("[data-handled]").forEach(b => b.onclick = async () => {
-      b.disabled = true; b.textContent = "…";
-      await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "problem_handled", id: b.dataset.handled }) });
-      b.closest("tr").remove();
+      b.disabled = true;
+      try { await post({ action: "problem_handled", id: b.dataset.handled }); b.closest("tr").remove(); $("#cProblems").textContent = Math.max(0, Number($("#cProblems").textContent) - 1); }
+      catch (e) { b.disabled = false; log("Couldn't mark done: " + e.message); }
     });
-  } catch (e) { $("#problems").innerHTML = '<tr><td colspan="6" class="empty">Could not load: ' + esc(e.message) + '</td></tr>'; }
+  } catch (e) { $("#problems").innerHTML = '<tr><td colspan="6" class="empty">Couldn\'t load delivery problems: ' + esc(e.message) + "</td></tr>"; }
 }
-load();
-loadProblems();
+
+/* ---------- load ---------- */
+async function load() {
+  try {
+    const r = await fetch(API); const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.status);
+    state = d;
+    $("#storeNames").textContent = (d.stores || []).join(" + ");
+    renderWaiting(); renderBooked();
+    log((d.storeErrors || []).map(e => e.store + ": " + e.error).join("  ·  "));
+  } catch (e) {
+    log("Couldn't load orders: " + e.message);
+    $("#pending").innerHTML = '<tr><td colspan="7" class="empty">Couldn\'t load orders. Check your connection and refresh.</td></tr>';
+  }
+}
+function loadAll() { load(); loadProblems(); }
+$("#refresh").onclick = loadAll;
+loadAll();
 </script>
 </body></html>`;
