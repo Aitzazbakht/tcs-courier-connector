@@ -136,6 +136,7 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
     <h3>WhatsApp setup</h3>
     <p>Only needed when setting up or changing the WhatsApp number.</p>
     <div class="row"><button class="btn" id="waStatus">Check number status</button><button class="btn" id="waTpl">Check templates</button></div>
+    <div class="row"><button class="btn" id="waTplNew">Submit new templates</button><button class="btn" id="codFix">Fix "Rs 0" messages</button></div>
     <div class="row"><input id="waPin" type="password" inputmode="numeric" maxlength="6" placeholder="6-digit PIN"><button class="btn primary" id="waReg">Register number</button></div>
     <pre id="waOut"></pre>
   </div>
@@ -213,6 +214,20 @@ $("#waStatus").onclick = () => waCall({ action: "wa_status" }, (d) => {
   return [p.verified_name + "  " + p.display_phone_number, "Status: " + p.status, "Display name: " + p.name_status, "Quality: " + p.quality_rating].join("\n");
 });
 $("#waTpl").onclick = () => waCall({ action: "wa_templates" }, (d) => (d.templates || []).filter(t => t.name.startsWith("ch_")).map(t => t.name + ": " + t.status).join("\n"));
+$("#waTplNew").onclick = () => waCall({ action: "wa_templates_create" }, (d) => (d.templates || []).map(t => t.name + ": " + (t.ok ? "submitted (" + (t.status || "pending") + ")" : /exist|duplicate|already/i.test(t.error) ? "already exists" : t.error)).join("\n"));
+$("#codFix").onclick = async () => {
+  $("#waOut").textContent = "Checking…";
+  try {
+    const d = await post({ action: "cod_fix" });
+    const list = d.rows.map(r => r.error ? r.store + ": " + r.error : r.name + " " + r.customer + " · Rs " + r.cod.toLocaleString("en-PK") + " · " + r.action).join("\n");
+    $("#waOut").textContent = d.affected + " customer(s) got the wrong Rs 0 message.\n" + list;
+    if (!d.toSend) return;
+    if (!confirm("Send the correction message to " + d.toSend + " customer(s) with the correct COD amount?")) return;
+    $("#waOut").textContent = "Sending…";
+    const r = await post({ action: "cod_fix", send: true });
+    $("#waOut").textContent = r.rows.map(x => x.error ? x.store + ": " + x.error : x.name + " " + x.customer + " · Rs " + x.cod.toLocaleString("en-PK") + " · " + x.action).join("\n");
+  } catch (e) { $("#waOut").textContent = "Couldn't complete: " + e.message; }
+};
 $("#waReg").onclick = () => {
   const pin = $("#waPin").value.trim();
   if (!/^\d{6}$/.test(pin)) return ($("#waOut").textContent = "Enter the 6-digit PIN.");

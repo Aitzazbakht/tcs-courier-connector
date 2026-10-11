@@ -66,6 +66,9 @@ export default async function handler(req, res) {
     if (body.action === "wa_tracking_run") {
       return res.status(200).json(await notify.runTracking({ dryRun: !!body.dryRun }));
     }
+    if (body.action === "cod_fix") {
+      return res.status(200).json(await notify.codCorrection({ send: body.send === true }));
+    }
     if (body.action === "wa_templates_create") {
       return res.status(200).json({ ok: true, templates: await wa.createTemplates() });
     }
