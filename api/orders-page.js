@@ -112,6 +112,10 @@ tbody tr:hover td{background:color-mix(in srgb,var(--soft) 45%,transparent)}
 select{max-width:180px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
 select.bad,select.fuzzy{border:2px solid var(--rust)}
 
+#tip{position:fixed;z-index:60;max-width:300px;background:var(--ink);color:var(--surface);font-size:12.5px;line-height:1.45;font-weight:500;padding:8px 11px;border-radius:8px;pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+#tip.on{opacity:1;transform:none}
+[data-tip]{cursor:help}
+button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.tab[data-tip]{cursor:pointer}
 @media (max-width:640px){
   .wrap{padding:0 14px}
   .brand span{display:none}
@@ -127,9 +131,9 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
     <div class="brand">TCS Orders<span id="storeNames">Chitral House</span></div>
     <button class="ctrl" id="waSw" role="switch" aria-checked="false">WhatsApp messages <span class="switch"></span></button>
     <button class="ctrl" id="auto" role="switch" aria-checked="false">Auto-book <span class="switch"></span></button>
-    <button class="ctrl" id="webSw" role="switch" aria-checked="true" title="Hide checkout on devices of fake buyers">Website blocking <span class="switch"></span></button>
+    <button class="ctrl" id="webSw" role="switch" aria-checked="true">Website blocking <span class="switch"></span></button>
     <button class="btn" id="waOpen" aria-expanded="false" aria-controls="waPanel">WhatsApp setup</button>
-    <button class="btn icon-btn" id="refresh" title="Refresh" aria-label="Refresh">
+    <button class="btn icon-btn" id="refresh" aria-label="Refresh">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
     </button>
   </div>
@@ -194,6 +198,7 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
     </table></div></div>
   </section>
 </main>
+<div id="tip" role="tooltip"></div>
 
 <script>
 const KEY = __KEY__;
@@ -446,6 +451,91 @@ async function loadProblems() {
     });
   } catch (e) { $("#problems").innerHTML = '<tr><td colspan="6" class="empty">Couldn\'t load delivery problems: ' + esc(e.message) + "</td></tr>"; }
 }
+
+
+/* ---------- hover help (for customer support) ---------- */
+const CHIP_TIPS = {
+  "Confirmed": "The customer tapped \"Confirm order\" on WhatsApp. Safe to book.",
+  "Awaiting reply": "The WhatsApp confirmation was sent, but the customer hasn't replied yet. Call them if it's urgent.",
+  "Customer cancelled": "The customer tapped \"Cancel order\" on WhatsApp. Push all ready skips it. Use Cancel & restock to cancel it in Shopify.",
+  "Booking…": "This order is being booked on TCS right now. Wait a moment and refresh.",
+  "Last push failed": "The last attempt to book this on TCS failed. Fix the problem shown and push it again.",
+  "Pick city": "TCS needs a city from its own list. Choose it in the City box before booking.",
+  "Wants delivery again": "The customer tapped \"Deliver again\" on WhatsApp. Ask TCS to attempt delivery again.",
+  "Wants to cancel": "The customer tapped \"Cancel order\" on WhatsApp after a failed delivery. Arrange the return with TCS.",
+  "Asked, no reply": "We sent the \"couldn't deliver\" WhatsApp message, but the customer hasn't replied. Call them.",
+};
+const TIPS = [
+  ["#waSw", "ON: customers automatically get WhatsApp messages: order confirmation, dispatched with tracking number, out for delivery, and delivery problems. OFF: no messages are sent."],
+  ["#auto", "ON: orders are booked on TCS automatically. With WhatsApp messages on, this happens only after the customer confirms. OFF: nothing is booked until you press Push."],
+  ["#webSw", "ON: phones/browsers that placed a fake order see \"Order on WhatsApp\" instead of Buy now and Checkout on the website. OFF: nobody is blocked."],
+  ["#waOpen", "Check the WhatsApp number and message templates. Only needed when setting up or if messages stop working."],
+  ["#refresh", "Reload the latest orders from both stores."],
+  ['.tab[data-tab="waiting"]', "New orders not yet booked on TCS. Check details, then push them to TCS."],
+  ['.tab[data-tab="problems"]', "Parcels TCS couldn't deliver (refused, not home, wrong address). Call the customer, then press Mark done."],
+  ['.tab[data-tab="booked"]', "Orders booked on TCS in the last 2 days, with tracking number and label. Older ones are in the TCS portal."],
+  ['.tab[data-tab="blocked"]', "Devices blocked on the website after a fake order. Unblock someone here if they should be allowed to order again."],
+  ["#storeFilter", "Show orders from one store or both. Push all ready only books the orders shown."],
+  ["#onlyConfWrap", "Ticked: Push all ready only books orders the customer confirmed on WhatsApp. Unticked: it also books orders still awaiting a reply."],
+  ["#pushSel", "Book only the ticked orders on TCS. Each gets marked fulfilled and paid in Shopify, and the customer receives the tracking number."],
+  ["#pushAll", "Book every order counted as \"ready\" (city chosen, details OK and confirmed) on TCS in one go. You'll be asked to confirm first."],
+  ["#all", "Tick or untick all orders shown."],
+  ["#pending .sel", "Tick to include this order in Push selected."],
+  ["#pending select[data-id]", "TCS city for this parcel. A red border means check it: the city the customer typed didn't match exactly."],
+  ["#pending .flag", "The city was matched by a spelling guess. Make sure it's the right city before booking."],
+  [".prepaid", "Already paid. Booked with COD Rs 0, so the rider collects nothing."],
+  ["#pending td.num", "Cash on delivery: the amount the TCS rider collects from the customer."],
+  [".badge.store-house", "Order from the Chitral House store."],
+  [".badge.store-herbs", "Order from the Chitral Herbs store."],
+  ["[data-conf]", "Send the WhatsApp confirmation message (Confirm / Cancel buttons) to this customer now."],
+  ["[data-cancel]", "Use for fake orders only. Cancels the order in Shopify, puts the stock back, doesn't notify the customer, and blocks their device on the website. Can't be undone."],
+  ["[data-handled]", "Press after you've dealt with it (called the customer or TCS). It disappears from this list."],
+  ['a[href*="tcsexpress.com/track"]', "Open live TCS tracking for this parcel."],
+  ['a[href*="/label/"]', "Open the TCS airway bill (label) PDF to print and stick on the parcel."],
+  ['a[href^="tel:"]', "Tap to call the customer."],
+  ["[data-unblock]", "Let this person order on the website again. It takes effect on their next page load."],
+  ["#blkSearch", "Find a blocked person by order number, name or phone number."],
+  ["#p-blocked th:nth-child(4)", "How many times this blocked device came back to the website and was stopped."],
+  ["#p-problems th:nth-child(5)", "What the customer answered on WhatsApp after TCS couldn't deliver."],
+  ["#waStatus", "Shows whether the WhatsApp number is connected and its quality rating."],
+  ["#waTpl", "Shows whether each WhatsApp message template is approved by Meta."],
+  ["#waTplNew", "Sends any new message templates to Meta for approval. Existing ones are not changed."],
+  ["#codFix", "Lists customers who got the wrong \"Rs 0\" message and lets you send them a correction. Nothing is sent until you confirm."],
+  ["#waReg", "Only for first-time setup: connects the WhatsApp number using its 6-digit PIN."],
+];
+function chipTip(el) {
+  const t = el.textContent.trim();
+  if (CHIP_TIPS[t]) return CHIP_TIPS[t];
+  if (t.startsWith("Booked")) return "Booked on TCS. The order is fulfilled in Shopify and the customer got the tracking number.";
+  if (el.classList.contains("bad") && el.closest("#pending")) return "This has to be fixed before the order can be booked. Edit the order in Shopify, then refresh.";
+  return "";
+}
+function applyTips(root) {
+  for (const [sel, text] of TIPS) root.querySelectorAll(sel).forEach(el => { if (!el.dataset.tip) el.dataset.tip = text; });
+  root.querySelectorAll(".chip").forEach(el => { const t = chipTip(el); if (t) el.dataset.tip = t; });
+  root.querySelectorAll('.sub').forEach(el => { if (!el.dataset.tip && /^Typed:/.test(el.textContent)) el.dataset.tip = "The city exactly as the customer typed it at checkout."; });
+}
+(function () {
+  const tip = $("#tip"); let cur = null, timer = null;
+  function place(el) {
+    const r = el.getBoundingClientRect(); tip.style.left = "0px"; tip.style.top = "0px";
+    const w = tip.offsetWidth, h = tip.offsetHeight, vw = innerWidth, vh = innerHeight;
+    let x = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), vw - w - 8);
+    let y = r.bottom + 8; if (y + h > vh - 8) y = Math.max(8, r.top - h - 8);
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function show(el) { cur = el; clearTimeout(timer); timer = setTimeout(() => { if (cur !== el) return; tip.textContent = el.dataset.tip; place(el); tip.classList.add("on"); }, 350); }
+  function hide() { cur = null; clearTimeout(timer); tip.classList.remove("on"); }
+  document.addEventListener("mouseover", (e) => { const el = e.target.closest && e.target.closest("[data-tip]"); if (el === cur) return; if (el) show(el); else hide(); });
+  document.addEventListener("focusin", (e) => { const el = e.target.closest && e.target.closest("[data-tip]"); if (el && e.target.matches(":focus-visible")) show(el); });
+  document.addEventListener("focusout", hide);
+  document.addEventListener("mousedown", hide);
+  addEventListener("scroll", hide, true);
+  applyTips(document);
+  let q = false;
+  new MutationObserver(() => { if (q) return; q = true; requestAnimationFrame(() => { q = false; applyTips(document); }); })
+    .observe(document.body, { childList: true, subtree: true });
+})();
 
 /* ---------- load ---------- */
 async function load() {
