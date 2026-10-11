@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   const url = new URL(req.url, "http://x");
   if (url.searchParams.get("js")) {
     res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=600, s-maxage=3600");
+    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
     res.setHeader("Access-Control-Allow-Origin", "*");
     return res.status(200).send(SCRIPT);
   }
@@ -68,16 +68,18 @@ const SCRIPT = String.raw`(function () {
   wa = ls("_chd_w") || "";
   if (ls(BK) === "1") { document.documentElement.classList.add("ch-blk"); state = "blocked"; }
 
-  /* ask the server once per visit; any error = not blocked */
-  var asked = ss("_chd_s");
-  if (asked === "ok" && state !== "blocked") state = "ok";
-  else {
+  /* ask the server on every page load (and when the page is restored from the back button);
+     any error = not blocked. Visits are counted once per browser session. */
+  function ask() {
+    var counted = ss("_chd_h");
     var t = setTimeout(function () { if (state === "pending") setBlocked(false); }, 4000);
-    fetch(base + "/api/guard?d=" + id + "&h=" + (asked ? "0" : "1"), { credentials: "omit" })
+    fetch(base + "/api/guard?d=" + id + "&h=" + (counted ? "0" : "1"), { credentials: "omit", cache: "no-store" })
       .then(function (r) { return r.json(); })
-      .then(function (d) { clearTimeout(t); if (d.wa) { wa = d.wa; ls("_chd_w", wa); } ss("_chd_s", d.b ? "b" : "ok"); setBlocked(!!d.b); })
+      .then(function (d) { clearTimeout(t); if (d.wa) { wa = d.wa; ls("_chd_w", wa); } if (d.b) ss("_chd_h", "1"); setBlocked(!!d.b); })
       .catch(function () { clearTimeout(t); if (state === "pending") setBlocked(false); });
   }
+  ask();
+  window.addEventListener("pageshow", function (e) { if (e.persisted) ask(); });
 
   /* a click on checkout / buy now while blocked, or before the answer arrives */
   document.addEventListener("click", function (e) {
