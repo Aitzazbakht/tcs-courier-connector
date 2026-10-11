@@ -4,6 +4,7 @@ import * as sync from "../lib/sync.js";
 import * as shop from "../lib/shopify.js";
 import * as wa from "../lib/whatsapp.js";
 import * as notify from "../lib/notify.js";
+import * as guard from "../lib/guard.js";
 import { stores, withStore, splitId } from "../lib/store.js";
 
 const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
@@ -16,10 +17,11 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     if (req.method === "GET") {
-      const [pending, booked, cities, auto, waOn] = await Promise.all([
+      const [pending, booked, cities, auto, waOn, blocked] = await Promise.all([
         sync.listPending(), sync.listRecentBooked(2), sync.cityOptions(), sync.isAutoOn(), notify.isOn(),
+        guard.list().catch(() => ({ on: true, rows: [] })),
       ]);
-      return res.status(200).json({ auto, waOn, pending, booked, cities, stores: stores().map((s) => s.label), storeErrors: sync.listPending.errors || [] });
+      return res.status(200).json({ auto, waOn, webBlock: blocked.on, blocked: blocked.rows, pending, booked, cities, stores: stores().map((s) => s.label), storeErrors: sync.listPending.errors || [] });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Use GET or POST" });
     const body = JSON.parse((await rawBody(req)).toString("utf8") || "{}");
@@ -28,6 +30,15 @@ export default async function handler(req, res) {
       const [code, name] = String(body.city || body.city_code || "").split("|");
       const r = await sync.pushOrder(body.id, { cityCode: code || undefined, cityName: name || undefined, force: !!body.force });
       return res.status(200).json(r);
+    }
+    if (body.action === "blocked_list") {
+      return res.status(200).json(await guard.list());
+    }
+    if (body.action === "unblock") {
+      return res.status(200).json(await guard.unblock(Array.isArray(body.ids) ? body.ids : []));
+    }
+    if (body.action === "web_block") {
+      return res.status(200).json({ webBlock: await guard.setOn(body.value === true) });
     }
     if (body.action === "cancel_fake") {
       return res.status(200).json(await sync.cancelFakeOrder(body.id));

@@ -17,12 +17,19 @@
     },
     "api/cron-tracking.js": {
       "maxDuration": 60
+    },
+    "api/guard.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
     {
       "source": "/",
       "destination": "/api/app"
+    },
+    {
+      "source": "/g.js",
+      "destination": "/api/guard?js=1"
     },
     {
       "source": "/orders/:key",

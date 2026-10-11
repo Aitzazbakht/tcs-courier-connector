@@ -127,6 +127,7 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
     <div class="brand">TCS Orders<span id="storeNames">Chitral House</span></div>
     <button class="ctrl" id="waSw" role="switch" aria-checked="false">WhatsApp messages <span class="switch"></span></button>
     <button class="ctrl" id="auto" role="switch" aria-checked="false">Auto-book <span class="switch"></span></button>
+    <button class="ctrl" id="webSw" role="switch" aria-checked="true" title="Hide checkout on devices of fake buyers">Website blocking <span class="switch"></span></button>
     <button class="btn" id="waOpen" aria-expanded="false" aria-controls="waPanel">WhatsApp setup</button>
     <button class="btn icon-btn" id="refresh" title="Refresh" aria-label="Refresh">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
@@ -144,6 +145,7 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
     <button class="tab" role="tab" data-tab="waiting" aria-selected="true">Waiting to book <b id="cWaiting">–</b></button>
     <button class="tab" role="tab" data-tab="problems" aria-selected="false">Delivery problems <b id="cProblems">–</b></button>
     <button class="tab" role="tab" data-tab="booked" aria-selected="false">Booked, last 2 days <b id="cBooked">–</b></button>
+    <button class="tab" role="tab" data-tab="blocked" aria-selected="false">Blocked <b id="cBlocked">–</b></button>
   </nav>
 </div></header>
 
@@ -178,6 +180,16 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
       <tbody id="booked"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
     </table></div></div>
   </section>
+  <section class="panel" id="p-blocked" hidden>
+    <div class="toolbar">
+      <p class="note" style="margin:0;margin-right:auto">Devices that placed a fake order. On these devices the website shows "Order on WhatsApp" instead of Buy now and Checkout.</p>
+      <input id="blkSearch" type="search" placeholder="Search order, name or phone" aria-label="Search blocked" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:220px;background:var(--surface)">
+    </div>
+    <div class="sheet"><div class="scroll"><table>
+      <thead><tr><th>Order</th><th>Customer</th><th>Blocked on</th><th>Blocked visits</th><th></th></tr></thead>
+      <tbody id="blocked"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+    </table></div></div>
+  </section>
 </main>
 
 <script>
@@ -198,7 +210,7 @@ function showTab(name) {
   try { history.replaceState(null, "", "#" + name); } catch (e) {}
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
-showTab(["waiting", "problems", "booked"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
+showTab(["waiting", "problems", "booked", "blocked"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
 
 /* ---------- WhatsApp setup popover ---------- */
 $("#waOpen").onclick = (e) => { e.stopPropagation(); const open = $("#waPanel").classList.toggle("open"); $("#waOpen").setAttribute("aria-expanded", String(open)); };
@@ -248,6 +260,13 @@ $("#auto").onclick = async () => {
   if (want && !confirm("Turn on auto-book? New orders are booked on TCS automatically" + (state.waOn ? " once the customer confirms on WhatsApp." : " as soon as they come in."))) return;
   try { const d = await post({ action: "auto", value: want }); state.auto = d.auto; renderWaiting(); log(d.auto ? "Auto-book turned on." : "Auto-book turned off."); }
   catch (e) { log("Couldn't change auto-book: " + e.message); }
+};
+
+$("#webSw").onclick = async () => {
+  const want = !state.webBlock;
+  if (!want && !confirm("Turn off website blocking? Blocked devices will be able to check out again until you turn it back on.")) return;
+  try { const d = await post({ action: "web_block", value: want }); state.webBlock = d.webBlock; setSwitch($("#webSw"), d.webBlock); log(d.webBlock ? "Website blocking turned on." : "Website blocking turned off. Nobody is blocked on the website now."); }
+  catch (e) { log("Couldn't change website blocking: " + e.message); }
 };
 
 /* ---------- waiting to book ---------- */
@@ -311,7 +330,10 @@ function renderWaiting() {
       const d = await post({ action: "cancel_fake", id: b.dataset.cancel });
       if (!d.ok) throw new Error(d.error || "Not cancelled");
       state.pending = state.pending.filter(x => x.id !== b.dataset.cancel);
-      renderWaiting(); log("Order " + (d.name || b.dataset.name) + " cancelled as fake order and restocked.");
+      renderWaiting();
+      const blk = d.block && d.block.blocked ? " Their device is now blocked on the website." : "";
+      log("Order " + (d.name || b.dataset.name) + " cancelled as fake order and restocked." + blk);
+      if (blk) post({ action: "blocked_list" }).then(r => { state.blocked = r.rows; renderBlocked(); }).catch(() => {});
     } catch (e) { b.disabled = false; b.textContent = "Cancel & restock"; log("Couldn't cancel " + b.dataset.name + ": " + e.message); }
   });
   updateSel();
@@ -359,6 +381,33 @@ function renderBooked() {
     : '<tr><td colspan="5" class="empty">Nothing booked in the last 2 days.</td></tr>';
 }
 
+/* ---------- blocked devices ---------- */
+function renderBlocked() {
+  const all = state.blocked || [];
+  $("#cBlocked").textContent = all.length;
+  setSwitch($("#webSw"), state.webBlock !== false);
+  const q = ($("#blkSearch").value || "").toLowerCase().replace(/[\s#-]/g, "");
+  const qd = q.replace(/\D/g, "").replace(/^(92|0)/, "");
+  const rows = q ? all.filter(x => (x.order + x.name + x.phone + x.city).toLowerCase().replace(/[\s#-]/g, "").includes(q)
+    || (qd.length >= 6 && String(x.phone).replace(/\D/g, "").includes(qd))) : all;
+  $("#blocked").innerHTML = rows.length ? rows.map(x =>
+    '<tr><td><span class="order">' + esc(x.order) + "</span>" + storeBadge({ store: x.store, storeLabel: x.storeLabel }) +
+      '<div class="sub">' + (x.ids.length > 1 ? x.ids.length + " devices" : "1 device") + "</div></td>" +
+    "<td>" + esc(x.name) + '<div class="sub">' + esc(x.phone) + (x.city ? " · " + esc(x.city) : "") + "</div></td>" +
+    "<td>" + when(x.at) + "</td>" +
+    "<td>" + (x.hits || 0) + (x.last ? '<div class="sub">last ' + when(x.last) + "</div>" : "") + "</td>" +
+    '<td><button class="btn" data-unblock="' + esc(x.key) + '">Unblock</button></td></tr>').join("")
+    : '<tr><td colspan="5" class="empty">' + (q ? "No blocked device matches your search." : "No blocked devices. When you cancel a fake website order, its device appears here.") + "</td></tr>";
+  document.querySelectorAll("[data-unblock]").forEach(b => b.onclick = async () => {
+    const x = all.find(r => r.key === b.dataset.unblock); if (!x) return;
+    if (!confirm("Unblock " + x.name + " (" + x.order + ")? They can check out on the website again.")) return;
+    b.disabled = true;
+    try { await post({ action: "unblock", ids: x.ids }); state.blocked = all.filter(r => r !== x); renderBlocked(); log(x.order + " unblocked."); }
+    catch (e) { b.disabled = false; log("Couldn't unblock: " + e.message); }
+  });
+}
+$("#blkSearch").oninput = renderBlocked;
+
 /* ---------- delivery problems ---------- */
 async function loadProblems() {
   try {
@@ -392,7 +441,7 @@ async function load() {
     if (!r.ok) throw new Error(d.error || r.status);
     state = d;
     $("#storeNames").textContent = (d.stores || []).join(" + ");
-    renderWaiting(); renderBooked();
+    renderWaiting(); renderBooked(); renderBlocked();
     log((d.storeErrors || []).map(e => e.store + ": " + e.error).join("  ·  "));
   } catch (e) {
     log("Couldn't load orders: " + e.message);
