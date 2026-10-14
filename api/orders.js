@@ -1,6 +1,7 @@
 // JSON API behind the orders page. /api/orders?key=<CONNECTOR_KEY>
 import { keyOk, rawBody, publicBase } from "../lib/auth.js";
 import * as sync from "../lib/sync.js";
+import * as tcs from "../lib/tcs.js";
 import * as shop from "../lib/shopify.js";
 import * as wa from "../lib/whatsapp.js";
 import * as notify from "../lib/notify.js";
@@ -17,6 +18,11 @@ export default async function handler(req, res) {
   if (!keyOk(url.searchParams.get("key"))) return res.status(403).json({ error: "Forbidden" });
   res.setHeader("Cache-Control", "no-store");
   try {
+    if (req.method === "GET" && url.searchParams.get("explore")) {
+      // Read-only peek at TCS inquiry/report/setup endpoints, e.g. ?key=..&explore=/ecom/api/report/loadsheetlogs&fromdate=2026-10-01&todate=2026-10-07
+      const params = Object.fromEntries([...url.searchParams].filter(([k]) => !["key", "explore"].includes(k)));
+      return res.status(200).json(await tcs.exploreGet(url.searchParams.get("explore"), params));
+    }
     if (req.method === "GET") {
       const [pending, booked, cities, auto, waOn, blocked] = await Promise.all([
         sync.listPending(), sync.listRecentBooked(2), sync.cityOptions(), sync.isAutoOn(), notify.isOn(),
