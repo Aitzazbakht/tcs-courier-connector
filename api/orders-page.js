@@ -582,7 +582,7 @@ function renderReport() {
     card("", "In process", t.inProcess, esc(statusLine(d.inProcessStatus)) || "Nothing on the way") +
     card("main", "Delivered amount", rs(t.deliveredAmount), pc(t.deliveredAmountPct) + " of delivered + returned amount" + (t.deliveredNoAmount ? " · " + t.deliveredNoAmount + " delivered parcels have no amount yet, not counted" : "")) +
     card("ret", "Returned amount", rs(t.returnedAmount), "real order value of " + (t.returned - (t.returnedNoAmount || 0)) + " returned parcels" + (t.returnedNoAmount ? " · " + t.returnedNoAmount + " with no amount found, not counted" : "")) +
-    card("", "Booked", t.booked, esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : ""));
+    card("", "Booked", t.booked, esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (t.notPicked ? " · " + t.notPicked + " booked but not picked up yet, left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : ""));
   renderCharts();
   renderCities();
 }
