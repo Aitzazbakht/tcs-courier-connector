@@ -270,7 +270,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       </tr></thead>
       <tbody id="repBody"><tr><td colspan="9" class="empty">Open this tab to load the report.</td></tr></tbody>
     </table></div></div>
-    <p class="note" style="margin-top:12px" id="repNote">Parcels are picked by the date they were booked with TCS. TCS only lists a parcel in its payment data once it has finished, so parcels still on the way are added by tracking the orders booked through this app (booked here since 7 Oct). Parcels booked in the TCS portal by hand, or before that, can't be found while they are still on the way, so the TCS portal dashboard can show more in-process parcels than this page. Delivered % is delivered ÷ (delivered + returned), so unfinished parcels don't count against you. Returned includes parcels on their way back. Cancelled bookings are left out. Delivered amount is the COD value of delivered parcels (what TCS paid, or worked out from its tax record for parcels not yet settled, about ±25 per parcel). TCS doesn't report the COD value of returned parcels, so each one is matched to its Shopify order (by TCS tag, or by customer name, city and date) and the real order value is used. Returned parcels that can't be matched are not counted in Returned amount. Amount delivered % is delivered amount ÷ (delivered + returned amount).</p>
+    <p class="note" style="margin-top:12px" id="repNote">Parcels are picked by the date they were booked with TCS. TCS only lists a parcel in its payment data once it has finished, so parcels still on the way are taken from the TCS load sheets and tracked one by one. Delivered % is delivered ÷ (delivered + returned), so unfinished parcels don't count against you. Returned includes parcels on their way back. Cancelled bookings are left out. Delivered amount is the COD value of delivered parcels (what TCS paid, or worked out from its tax record for parcels not yet settled, about ±25 per parcel). Amounts come from the TCS load sheets, which list every parcel handed to TCS with its COD value, including returned and still-on-the-way parcels (if a load sheet is missing, the matching Shopify order value is used). Parcels with no amount are not counted in the amount figures. Amount delivered % is delivered amount ÷ (delivered + returned amount).</p>
   </section>
 </main>
 <div id="tip" role="tooltip"></div>
@@ -581,7 +581,7 @@ function renderReport() {
     card("ret", "Returned", t.returned, pc(t.returnedPctClosed) + " of finished parcels") +
     card("", "In process", t.inProcess, esc(statusLine(d.inProcessStatus)) || "Nothing on the way") +
     card("main", "Delivered amount", rs(t.deliveredAmount), pc(t.deliveredAmountPct) + " of delivered + returned amount" + (t.deliveredNoAmount ? " · " + t.deliveredNoAmount + " delivered parcels have no amount yet, not counted" : "")) +
-    card("ret", "Returned amount", rs(t.returnedAmount), "real order value of " + (t.returned - (t.returnedNoAmount || 0)) + " returned parcels" + (t.returnedNoAmount ? " · " + t.returnedNoAmount + " not matched to a Shopify order, not counted" : "")) +
+    card("ret", "Returned amount", rs(t.returnedAmount), "real order value of " + (t.returned - (t.returnedNoAmount || 0)) + " returned parcels" + (t.returnedNoAmount ? " · " + t.returnedNoAmount + " with no amount found, not counted" : "")) +
     card("", "Booked", t.booked, esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : ""));
   renderCharts();
   renderCities();
@@ -744,7 +744,7 @@ const TIPS = [
   ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Ranges of 3 months or more can take up to a minute."],
   ["#p-delivery th:nth-child(8)", "Delivered ÷ (delivered + returned) by number of parcels. Parcels still on the way are left out until they finish."],
   ["#p-delivery th:nth-child(6)", "COD value of the delivered parcels in this city."],
-  ["#p-delivery th:nth-child(7)", "Real order value of returned parcels, read from the Shopify order. * means some returned parcels in that city couldn't be matched to an order and are not counted."],
+  ["#p-delivery th:nth-child(7)", "Real order value of returned parcels, read from the Shopify order. * means some returned parcels in that city have no amount and are not counted."],
   ["#p-delivery th:nth-child(9)", "Delivered amount ÷ (delivered + returned amount). Shows how much money, not just how many parcels, came back."],
   ["#waStatus", "Shows whether the WhatsApp number is connected and its quality rating."],
   ["#waTpl", "Shows whether each WhatsApp message template is approved by Meta."],
