@@ -222,8 +222,8 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <label class="field">To <input type="date" id="repTo"></label>
       <button class="btn primary" id="repRun">Show report</button>
       <span style="display:flex;gap:6px;flex-wrap:wrap" id="repPresets">
-        <button class="btn" data-preset="30d">Last 30 days</button>
-        <button class="btn on" data-preset="3m">Last 3 months</button>
+        <button class="btn on" data-preset="30d">Last 30 days</button>
+        <button class="btn" data-preset="3m">Last 3 months</button>
         <button class="btn" data-preset="6m">Last 6 months</button>
       </span>
       <label class="field" style="margin-left:auto"><input type="search" id="repSearch" placeholder="Search city" aria-label="Search city"></label>
@@ -253,7 +253,7 @@ const when = (d) => d ? new Date(d).toLocaleString("en-PK", { day: "numeric", mo
 const post = (body) => fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error || r.status); return d; });
 
 /* ---------- delivery report: state and default dates (set up before the tabs run) ---------- */
-let rep = { data: null, loading: false, sort: "booked", dir: -1, preset: "3m" };
+let rep = { data: null, loading: false, sort: "booked", dir: -1, preset: "30d" };
 const pad2 = (n) => String(n).padStart(2, "0");
 const isoLocal = (d) => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
 function presetRange(kind) {
@@ -266,7 +266,7 @@ function applyPreset(kind) {
   $("#repFrom").value = f; $("#repTo").value = t; rep.preset = kind;
   document.querySelectorAll("[data-preset]").forEach(b => b.classList.toggle("on", b.dataset.preset === kind));
 }
-applyPreset("3m");
+applyPreset("30d");
 function ensureReport() { if (!rep.data && !rep.loading) runReport(); }
 
 /* ---------- tabs ---------- */
@@ -521,7 +521,7 @@ async function runReport() {
   if (from > to) return log("The From date is after the To date.");
   rep.loading = true; $("#repRun").disabled = true; log("");
   $("#repCards").innerHTML = "";
-  $("#repBody").innerHTML = '<tr><td colspan="6" class="empty">Pulling parcels from TCS… this can take up to a minute for 3 months.</td></tr>';
+  $("#repBody").innerHTML = '<tr><td colspan="6" class="empty">Pulling parcels from TCS… this can take up to a minute for longer ranges.</td></tr>';
   try {
     rep.data = await post({ action: "delivery_report", from, to });
     renderReport();
@@ -627,7 +627,7 @@ const TIPS = [
   ["#p-blocked th:nth-child(4)", "How many times this blocked device came back to the website and was stopped."],
   ["#p-problems th:nth-child(5)", "What the customer answered on WhatsApp after TCS couldn't deliver."],
   ['.tab[data-tab="delivery"]', "How many of your TCS parcels were delivered or returned, city by city, for any date range you pick."],
-  ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Three months can take up to a minute."],
+  ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Ranges of 3 months or more can take up to a minute."],
   ["#p-delivery th:nth-child(6)", "Delivered ÷ (delivered + returned). Parcels still on the way are left out until they finish."],
   ["#waStatus", "Shows whether the WhatsApp number is connected and its quality rating."],
   ["#waTpl", "Shows whether each WhatsApp message template is approved by Meta."],
