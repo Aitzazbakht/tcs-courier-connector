@@ -599,10 +599,10 @@ function donutChart(t) {
   let off = 0;
   const arcs = parts.filter(p => p[1]).map(p => {
     const len = CIRC * p[1] / tot, draw = Math.max(0.5, len - (parts.filter(q => q[1]).length > 1 ? 2.5 : 0));
-    const el = '<circle cx="70" cy="70" r="52" fill="none" stroke="' + p[2] + '" stroke-width="18" stroke-dasharray="' + draw.toFixed(2) + " " + (CIRC - draw).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 70 70)"></circle>';
+    const el = '<circle cx="70" cy="70" r="52" fill="none" stroke="' + p[2] + '" stroke-width="18" stroke-dasharray="' + draw.toFixed(2) + " " + (CIRC - draw).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 70 70)" data-tip="' + esc(p[0] + ": " + p[1].toLocaleString("en-PK") + " parcels (" + (100 * p[1] / tot).toFixed(1) + "% of " + tot.toLocaleString("en-PK") + ")") + '"></circle>';
     off += len; return el;
   }).join("");
-  const legend = parts.map(p => '<div><i style="background:' + p[2] + '"></i>' + p[0] + "<b>" + p[1].toLocaleString("en-PK") + '</b><span class="sub">' + (100 * p[1] / tot).toFixed(1) + "%</span></div>").join("");
+  const legend = parts.map(p => '<div data-tip="' + esc(p[0] + ": " + p[1].toLocaleString("en-PK") + " parcels (" + (100 * p[1] / tot).toFixed(1) + "%)") + '"><i style="background:' + p[2] + '"></i>' + p[0] + "<b>" + p[1].toLocaleString("en-PK") + '</b><span class="sub">' + (100 * p[1] / tot).toFixed(1) + "%</span></div>").join("");
   return '<div class="chart"><h3>Parcel status</h3><p class="cap">Share of all ' + tot.toLocaleString("en-PK") + " parcels booked in this range</p>" +
     '<div class="donutwrap"><svg width="150" height="150" viewBox="0 0 140 140" role="img" aria-label="Delivered, returned and in process share">' +
     '<circle cx="70" cy="70" r="52" fill="none" stroke="var(--soft)" stroke-width="18"></circle>' + arcs +
@@ -610,7 +610,7 @@ function donutChart(t) {
     '<div class="legend">' + legend + "</div></div></div>";
 }
 function rateBars(title, cap, list, cls, avg) {
-  const rows = list.map(c => '<div class="hb"><span class="hl" title="' + esc(c.city) + '">' + esc(c.city) + '</span><div class="ht"><i class="' + cls + '" style="width:' + c.deliveredPctClosed + '%"></i>' +
+  const rows = list.map(c => '<div class="hb" data-tip="' + esc(c.city + ": " + c.deliveredPctClosed + "% delivered. " + c.delivered + " delivered, " + c.returned + " returned (" + c.closed + " finished)" + (c.inProcess ? ", " + c.inProcess + " still in process" : "") + (c.deliveredAmount ? ". Delivered " + rs(c.deliveredAmount) + ", returned " + rs(c.returnedAmount) : "")) + '"><span class="hl" title="' + esc(c.city) + '">' + esc(c.city) + '</span><div class="ht"><i class="' + cls + '" style="width:' + c.deliveredPctClosed + '%"></i>' +
     (avg != null ? '<b class="avg" style="left:' + avg + '%"></b>' : "") + '</div><span class="hv">' + c.deliveredPctClosed + '%<small> · ' + c.delivered + "/" + c.closed + "</small></span></div>").join("");
   return '<div class="chart"><h3>' + title + '</h3><p class="cap">' + cap + "</p>" + (rows || '<p class="sub">Not enough cities with ' + MIN_FINISHED + " or more finished parcels yet.</p>") + "</div>";
 }
@@ -618,8 +618,8 @@ function volumeChart(cities) {
   const top = cities.filter(c => c.booked).slice(0, 10);
   if (!top.length) return "";
   const max = Math.max(...top.map(c => c.booked));
-  const rows = top.map(c => '<div class="hb"><span class="hl" title="' + esc(c.city) + '">' + esc(c.city) + '</span><div><div class="stk" style="width:' + Math.max(4, 100 * c.booked / max) + '%">' +
-    (c.delivered ? '<i class="c-del" style="flex:' + c.delivered + '"></i>' : "") + (c.returned ? '<i class="c-ret" style="flex:' + c.returned + '"></i>' : "") + (c.inProcess ? '<i class="c-pro" style="flex:' + c.inProcess + '"></i>' : "") +
+  const rows = top.map(c => '<div class="hb" data-tip="' + esc(c.city + ": " + c.booked + " booked. " + c.delivered + " delivered, " + c.returned + " returned, " + c.inProcess + " in process" + (c.deliveredPctClosed == null ? "" : ". " + c.deliveredPctClosed + "% delivered")) + '"><span class="hl" title="' + esc(c.city) + '">' + esc(c.city) + '</span><div><div class="stk" style="width:' + Math.max(4, 100 * c.booked / max) + '%">' +
+    (c.delivered ? '<i class="c-del" style="flex:' + c.delivered + '" data-tip="' + esc(c.city + " · Delivered: " + c.delivered) + '"></i>' : "") + (c.returned ? '<i class="c-ret" style="flex:' + c.returned + '" data-tip="' + esc(c.city + " · Returned: " + c.returned) + '"></i>' : "") + (c.inProcess ? '<i class="c-pro" style="flex:' + c.inProcess + '" data-tip="' + esc(c.city + " · In process: " + c.inProcess) + '"></i>' : "") +
     '</div></div><span class="hv">' + c.booked + "<small> · " + (c.deliveredPctClosed == null ? "–" : c.deliveredPctClosed + "%") + "</small></span></div>").join("");
   return '<div class="chart"><h3>Busiest cities</h3><p class="cap">Top ' + top.length + ' cities by parcels booked, split by outcome. Right side: parcels · delivered %</p>' + rows +
     '<div class="key"><span><i class="c-del"></i>Delivered</span><span><i class="c-ret"></i>Returned</span><span><i class="c-pro"></i>In process</span></div></div>';
@@ -640,7 +640,9 @@ function dayBars(title, cap, days, series) {
     const x0 = L + i * pw + (pw - bw * series.length) / 2;
     const dt = new Date(d.day + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
     series.forEach((s, j) => { const v = d[s.k] || 0, h = (H - T - B) * v / max;
-      bars += '<rect class="' + s.cls + '" x="' + (x0 + j * bw).toFixed(1) + '" y="' + y(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1.5"><title>' + dt + " · " + s.name + ": " + v + "</title></rect>"; });
+      bars += '<rect class="' + s.cls + '" x="' + (x0 + j * bw).toFixed(1) + '" y="' + y(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1.5"></rect>'; });
+    const all = series.map(s => s.name + ": " + (d[s.k] || 0)).join(" · ");
+    bars += '<rect x="' + (L + i * pw).toFixed(1) + '" y="' + T + '" width="' + pw.toFixed(1) + '" height="' + (H - T - B) + '" fill="transparent" data-tip="' + esc(dt + " — " + all) + '"></rect>';
     if (i % step === 0) lab += '<text x="' + (L + i * pw + pw / 2).toFixed(1) + '" y="' + (H - B + 16) + '" text-anchor="middle">' + dt + "</text>";
   });
   const key = series.length > 1 ? '<div class="key">' + series.map(s => '<span><i class="' + s.cls.replace("f-", "c-") + '" style="' + (s.cls === "f-pro" ? "background:#5b7fd6" : "") + '"></i>' + s.name + "</span>").join("") + "</div>" : "";
@@ -652,7 +654,7 @@ function stuckChart(d) {
   if (!e.length) return "";
   const issues = new Set(d.issueLabels || []);
   const max = e[0][1], tot = e.reduce((a, x) => a + x[1], 0);
-  const rows = e.map(x => '<div class="hb sw"><span class="hl" title="' + esc(x[0]) + '">' + esc(x[0]) + '</span><div class="ht"><i class="' + (issues.has(x[0]) ? "c-ret" : "c-pro") + '" style="width:' + Math.max(2, 100 * x[1] / max) + '%"></i></div><span class="hv">' + x[1] + "<small> · " + Math.round(100 * x[1] / tot) + "%</small></span></div>").join("");
+  const rows = e.map(x => '<div class="hb sw" data-tip="' + esc(x[0] + ": " + x[1] + " parcels (" + Math.round(100 * x[1] / tot) + "% of in-process)") + '"><span class="hl" title="' + esc(x[0]) + '">' + esc(x[0]) + '</span><div class="ht"><i class="' + (issues.has(x[0]) ? "c-ret" : "c-pro") + '" style="width:' + Math.max(2, 100 * x[1] / max) + '%"></i></div><span class="hv">' + x[1] + "<small> · " + Math.round(100 * x[1] / tot) + "%</small></span></div>").join("");
   return '<div class="chart wide"><h3>Where in-process parcels are stuck</h3><p class="cap">Latest TCS status of the ' + tot + ' parcels not yet delivered or returned. Red = something needs attention (failed attempt, address or phone problem, hold).</p>' + rows +
     '<div class="key"><span><i class="c-ret"></i>Problem</span><span><i class="c-pro"></i>Normal movement</span></div></div>';
 }
