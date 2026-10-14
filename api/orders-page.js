@@ -584,7 +584,7 @@ function renderReport() {
     card("ret", "Undelivered", t.undelivered || 0, "failed attempt or address / phone problem (part of in process)") +
     card("main", "Delivered amount", rs(t.deliveredAmount), pc(t.deliveredAmountPct) + " of delivered + returned amount" + (t.deliveredNoAmount ? " · " + t.deliveredNoAmount + " delivered parcels have no amount yet, not counted" : "")) +
     card("ret", "Returned amount", rs(t.returnedAmount), "real order value of " + (t.returned - (t.returnedNoAmount || 0)) + " returned parcels" + (t.returnedNoAmount ? " · " + t.returnedNoAmount + " with no amount found, not counted" : "")) +
-    card("", "Booked", t.booked, esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (t.notPicked ? " · " + t.notPicked + " booked but not picked up yet, left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : ""));
+    card("", "Booked", t.booked, "<strong>" + rs(t.bookedAmount) + "</strong> booked amount · " + esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (t.notPicked ? " · " + t.notPicked + " booked but not picked up yet, left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : ""));
   renderCharts();
   renderCities();
 }
@@ -618,7 +618,7 @@ function volumeChart(cities) {
   const top = cities.filter(c => c.booked).slice(0, 10);
   if (!top.length) return "";
   const max = Math.max(...top.map(c => c.booked));
-  const rows = top.map(c => '<div class="hb" data-tip="' + esc(c.city + ": " + c.booked + " booked. " + c.delivered + " delivered, " + c.returned + " returned, " + c.inProcess + " in process" + (c.deliveredPctClosed == null ? "" : ". " + c.deliveredPctClosed + "% delivered")) + '"><span class="hl" title="' + esc(c.city) + '">' + esc(c.city) + '</span><div><div class="stk" style="width:' + Math.max(4, 100 * c.booked / max) + '%">' +
+  const rows = top.map(c => '<div class="hb" data-tip="' + esc(c.city + ": " + c.booked + " booked (" + rs(c.bookedAmount) + "). " + c.delivered + " delivered, " + c.returned + " returned, " + c.inProcess + " in process" + (c.deliveredPctClosed == null ? "" : ". " + c.deliveredPctClosed + "% delivered")) + '"><span class="hl" title="' + esc(c.city) + '">' + esc(c.city) + '</span><div><div class="stk" style="width:' + Math.max(4, 100 * c.booked / max) + '%">' +
     (c.delivered ? '<i class="c-del" style="flex:' + c.delivered + '" data-tip="' + esc(c.city + " · Delivered: " + c.delivered) + '"></i>' : "") + (c.returned ? '<i class="c-ret" style="flex:' + c.returned + '" data-tip="' + esc(c.city + " · Returned: " + c.returned) + '"></i>' : "") + (c.inProcess ? '<i class="c-pro" style="flex:' + c.inProcess + '" data-tip="' + esc(c.city + " · In process: " + c.inProcess) + '"></i>' : "") +
     '</div></div><span class="hv">' + c.booked + "<small> · " + (c.deliveredPctClosed == null ? "–" : c.deliveredPctClosed + "%") + "</small></span></div>").join("");
   return '<div class="chart"><h3>Busiest cities</h3><p class="cap">Top ' + top.length + ' cities by parcels booked, split by outcome. Right side: parcels · delivered %</p>' + rows +
@@ -689,7 +689,7 @@ function renderCities() {
   });
   $("#repBody").innerHTML = rows.length ? rows.map(c =>
     "<tr><td>" + esc(c.city) + "</td>" +
-    '<td class="num">' + c.booked + "</td>" +
+    '<td class="num">' + c.booked + '<div class="sub">' + rs(c.bookedAmount) + "</div></td>" +
     '<td class="num">' + c.delivered + "</td>" +
     '<td class="num">' + (c.returned ? '<span class="flag">' + c.returned + "</span>" : 0) + "</td>" +
     '<td class="num">' + (c.inProcess ? '<span data-tip="' + esc(statusLine(c.status)) + '">' + c.inProcess + "</span>" : 0) + "</td>" +
