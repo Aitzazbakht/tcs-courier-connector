@@ -124,11 +124,36 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
 .field{display:flex;align-items:center;gap:6px;color:var(--mute);white-space:nowrap}
 .field input[type=date],.field input[type=search]{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--ink)}
 .btn.on{background:var(--pine-soft);border-color:var(--pine);font-weight:700}
-.t-sm{min-width:640px}
+.t-sm{min-width:1000px}
 th[data-sort]{cursor:pointer;user-select:none;white-space:nowrap}
 th[data-sort]:hover{color:var(--ink)}
 .meter{height:6px;background:var(--soft);border-radius:3px;margin-top:5px;overflow:hidden;min-width:90px}
 .meter i{display:block;height:100%;background:var(--pine)}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.chart h3{margin:0;font-size:14px;font-weight:700}
+.chart .cap{margin:2px 0 12px;color:var(--mute);font-size:12.5px}
+.donutwrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.donutwrap svg{flex:none}
+.legend{display:grid;gap:9px;font-size:13px;flex:1;min-width:150px}
+.legend div{display:flex;align-items:center;gap:8px}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none}
+.legend b{margin-left:auto;padding-left:14px;font-weight:700}
+.legend .sub{min-width:46px;text-align:right}
+.hb{display:grid;grid-template-columns:104px minmax(0,1fr) auto;align-items:center;gap:10px;margin:8px 0;font-size:13px}
+.hl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ht{position:relative;height:14px;background:var(--soft);border-radius:7px}
+.ht>i{display:block;height:100%;border-radius:7px}
+.ht .avg{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.5;border-radius:1px}
+.hv{white-space:nowrap;font-weight:700;min-width:96px;text-align:right}
+.hv small{color:var(--mute);font-weight:500}
+.stk{display:flex;height:14px;border-radius:7px;overflow:hidden;gap:1px}
+.stk i{display:block;height:100%;min-width:2px}
+.c-del{background:var(--pine)}.c-ret{background:var(--rust)}.c-pro{background:var(--house)}
+.key{display:flex;gap:14px;flex-wrap:wrap;color:var(--mute);font-size:12px;margin-top:10px}
+.key span{display:flex;align-items:center;gap:6px}
+.key i{width:10px;height:10px;border-radius:3px}
+@media (max-width:820px){.charts{grid-template-columns:minmax(0,1fr)}.hb{grid-template-columns:84px minmax(0,1fr) auto}}
 #tip{position:fixed;z-index:60;max-width:300px;background:var(--ink);color:var(--surface);font-size:12.5px;line-height:1.45;font-weight:500;padding:8px 11px;border-radius:8px;pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 #tip.on{opacity:1;transform:none}
 [data-tip]{cursor:help}
@@ -229,14 +254,17 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <label class="field" style="margin-left:auto"><input type="search" id="repSearch" placeholder="Search city" aria-label="Search city"></label>
     </div>
     <div class="cards" id="repCards"></div>
+    <div class="charts" id="repCharts"></div>
     <div class="sheet"><div class="scroll"><table class="t-sm">
       <thead><tr>
         <th data-sort="city">City</th><th class="num" data-sort="booked">Booked</th><th class="num" data-sort="delivered">Delivered</th>
-        <th class="num" data-sort="returned">Returned</th><th class="num" data-sort="inProcess">In process</th><th data-sort="deliveredPctClosed" style="min-width:150px">Delivered %</th>
+        <th class="num" data-sort="returned">Returned</th><th class="num" data-sort="inProcess">In process</th>
+        <th class="num" data-sort="deliveredAmount">Delivered amount</th><th class="num" data-sort="returnedAmount">Returned amount ≈</th>
+        <th data-sort="deliveredPctClosed" style="min-width:150px">Delivered %</th><th class="num" data-sort="deliveredAmountPct">Amount delivered %</th>
       </tr></thead>
-      <tbody id="repBody"><tr><td colspan="6" class="empty">Open this tab to load the report.</td></tr></tbody>
+      <tbody id="repBody"><tr><td colspan="9" class="empty">Open this tab to load the report.</td></tr></tbody>
     </table></div></div>
-    <p class="note" style="margin-top:12px" id="repNote">Parcels are picked by the date they were booked with TCS. TCS only lists a parcel in its payment data once it has finished, so parcels still on the way are added by tracking the orders booked through this app (booked here since 7 Oct). Parcels booked in the TCS portal by hand, or before that, can't be found while they are still on the way, so the TCS portal dashboard can show more in-process parcels than this page. Delivered % is delivered ÷ (delivered + returned), so unfinished parcels don't count against you. Returned includes parcels on their way back. Cancelled bookings are left out.</p>
+    <p class="note" style="margin-top:12px" id="repNote">Parcels are picked by the date they were booked with TCS. TCS only lists a parcel in its payment data once it has finished, so parcels still on the way are added by tracking the orders booked through this app (booked here since 7 Oct). Parcels booked in the TCS portal by hand, or before that, can't be found while they are still on the way, so the TCS portal dashboard can show more in-process parcels than this page. Delivered % is delivered ÷ (delivered + returned), so unfinished parcels don't count against you. Returned includes parcels on their way back. Cancelled bookings are left out. Delivered amount is the COD value of delivered parcels (what TCS paid, or worked out from its tax record for parcels not yet settled, about ±25 per parcel). TCS doesn't report the COD value of returned parcels, so Returned amount ≈ is estimated at the average COD of delivered parcels (exact for parcels booked through this app since 7 Oct). Amount delivered % is delivered amount ÷ (delivered + returned amount).</p>
   </section>
 </main>
 <div id="tip" role="tooltip"></div>
@@ -520,16 +548,16 @@ async function runReport() {
   if (!from || !to) return log("Pick both dates.");
   if (from > to) return log("The From date is after the To date.");
   rep.loading = true; $("#repRun").disabled = true; log("");
-  $("#repCards").innerHTML = "";
-  $("#repBody").innerHTML = '<tr><td colspan="6" class="empty">Pulling parcels from TCS… this can take up to a minute for longer ranges.</td></tr>';
+  $("#repCards").innerHTML = ""; $("#repCharts").innerHTML = "";
+  $("#repBody").innerHTML = '<tr><td colspan="9" class="empty">Pulling parcels from TCS… this can take up to a minute for longer ranges.</td></tr>';
   try {
     rep.data = await post({ action: "delivery_report", from, to });
     renderReport();
     if (rep.data.partial) log("Some of the range couldn't be loaded from TCS, so these numbers are incomplete: " + rep.data.warnings.join("  ·  "));
   } catch (e) {
     rep.data = null;
-    $("#cDelivery").textContent = "–";
-    $("#repBody").innerHTML = '<tr><td colspan="6" class="empty">Couldn\'t load the report: ' + esc(e.message) + "</td></tr>";
+    $("#cDelivery").textContent = "–"; $("#repCharts").innerHTML = "";
+    $("#repBody").innerHTML = '<tr><td colspan="9" class="empty">Couldn\'t load the report: ' + esc(e.message) + "</td></tr>";
   } finally { rep.loading = false; $("#repRun").disabled = false; }
 }
 function statusLine(map) {
@@ -540,14 +568,66 @@ function renderReport() {
   const d = rep.data; if (!d) return;
   const t = d.totals;
   $("#cDelivery").textContent = t.deliveredPctClosed == null ? "–" : Math.round(t.deliveredPctClosed) + "%";
+  const card = (cls, k, v, sub) => '<div class="card ' + cls + '"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="s">' + sub + "</div></div>";
   $("#repCards").innerHTML =
-    '<div class="card main"><div class="k">Delivered %</div><div class="v">' + pc(t.deliveredPctClosed) + '</div><div class="s">of ' + t.closed + " finished parcels</div></div>" +
-    '<div class="card"><div class="k">Delivered</div><div class="v">' + t.delivered + '</div><div class="s">' + pc(t.deliveredPctBooked) + " of all booked</div></div>" +
-    '<div class="card ret"><div class="k">Returned</div><div class="v">' + t.returned + '</div><div class="s">' + pc(t.returnedPctClosed) + " of finished parcels</div></div>" +
-    '<div class="card"><div class="k">In process</div><div class="v">' + t.inProcess + '</div><div class="s">' + (esc(statusLine(d.inProcessStatus)) || "Nothing on the way") + "</div></div>" +
-    '<div class="card"><div class="k">Booked</div><div class="v">' + t.booked + '</div><div class="s">' + esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : "") + "</div></div>";
+    card("main", "Delivered %", pc(t.deliveredPctClosed), "of " + t.closed + " finished parcels") +
+    card("", "Delivered", t.delivered, pc(t.deliveredPctBooked) + " of all booked") +
+    card("ret", "Returned", t.returned, pc(t.returnedPctClosed) + " of finished parcels") +
+    card("", "In process", t.inProcess, esc(statusLine(d.inProcessStatus)) || "Nothing on the way") +
+    card("main", "Delivered amount", rs(t.deliveredAmount), pc(t.deliveredAmountPct) + " of delivered + returned amount") +
+    card("ret", "Returned amount" + (t.returnedEstimated ? " ≈" : ""), rs(t.returnedAmount), t.returnedEstimated ? "estimated at " + rs(d.avgCod) + " per returned parcel" : "exact COD of returned parcels") +
+    card("", "Booked", t.booked, esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : ""));
+  renderCharts();
   renderCities();
 }
+
+/* ---------- charts (plain SVG/CSS, no libraries) ---------- */
+const MIN_FINISHED = 8; // a city needs this many delivered + returned parcels to be ranked best/lowest
+const CIRC = 2 * Math.PI * 52;
+function donutChart(t) {
+  const parts = [["Delivered", t.delivered, "var(--pine)"], ["Returned", t.returned, "var(--rust)"], ["In process", t.inProcess, "var(--house)"]];
+  const tot = parts.reduce((x, p) => x + p[1], 0);
+  if (!tot) return "";
+  let off = 0;
+  const arcs = parts.filter(p => p[1]).map(p => {
+    const len = CIRC * p[1] / tot, draw = Math.max(0.5, len - (parts.filter(q => q[1]).length > 1 ? 2.5 : 0));
+    const el = '<circle cx="70" cy="70" r="52" fill="none" stroke="' + p[2] + '" stroke-width="18" stroke-dasharray="' + draw.toFixed(2) + " " + (CIRC - draw).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 70 70)"></circle>';
+    off += len; return el;
+  }).join("");
+  const legend = parts.map(p => '<div><i style="background:' + p[2] + '"></i>' + p[0] + "<b>" + p[1].toLocaleString("en-PK") + '</b><span class="sub">' + (100 * p[1] / tot).toFixed(1) + "%</span></div>").join("");
+  return '<div class="chart"><h3>Parcel status</h3><p class="cap">Share of all ' + tot.toLocaleString("en-PK") + " parcels booked in this range</p>" +
+    '<div class="donutwrap"><svg width="150" height="150" viewBox="0 0 140 140" role="img" aria-label="Delivered, returned and in process share">' +
+    '<circle cx="70" cy="70" r="52" fill="none" stroke="var(--soft)" stroke-width="18"></circle>' + arcs +
+    '<text x="70" y="68" text-anchor="middle" font-size="22" font-weight="800" fill="currentColor">' + tot.toLocaleString("en-PK") + '</text><text x="70" y="86" text-anchor="middle" font-size="11" fill="var(--mute)">parcels</text></svg>' +
+    '<div class="legend">' + legend + "</div></div></div>";
+}
+function rateBars(title, cap, list, cls, avg) {
+  const rows = list.map(c => '<div class="hb"><span class="hl" title="' + esc(c.city) + '">' + esc(c.city) + '</span><div class="ht"><i class="' + cls + '" style="width:' + c.deliveredPctClosed + '%"></i>' +
+    (avg != null ? '<b class="avg" style="left:' + avg + '%"></b>' : "") + '</div><span class="hv">' + c.deliveredPctClosed + '%<small> · ' + c.delivered + "/" + c.closed + "</small></span></div>").join("");
+  return '<div class="chart"><h3>' + title + '</h3><p class="cap">' + cap + "</p>" + (rows || '<p class="sub">Not enough cities with ' + MIN_FINISHED + " or more finished parcels yet.</p>") + "</div>";
+}
+function volumeChart(cities) {
+  const top = cities.filter(c => c.booked).slice(0, 10);
+  if (!top.length) return "";
+  const max = Math.max(...top.map(c => c.booked));
+  const rows = top.map(c => '<div class="hb"><span class="hl" title="' + esc(c.city) + '">' + esc(c.city) + '</span><div><div class="stk" style="width:' + Math.max(4, 100 * c.booked / max) + '%">' +
+    (c.delivered ? '<i class="c-del" style="flex:' + c.delivered + '"></i>' : "") + (c.returned ? '<i class="c-ret" style="flex:' + c.returned + '"></i>' : "") + (c.inProcess ? '<i class="c-pro" style="flex:' + c.inProcess + '"></i>' : "") +
+    '</div></div><span class="hv">' + c.booked + "<small> · " + (c.deliveredPctClosed == null ? "–" : c.deliveredPctClosed + "%") + "</small></span></div>").join("");
+  return '<div class="chart"><h3>Busiest cities</h3><p class="cap">Top ' + top.length + ' cities by parcels booked, split by outcome. Right side: parcels · delivered %</p>' + rows +
+    '<div class="key"><span><i class="c-del"></i>Delivered</span><span><i class="c-ret"></i>Returned</span><span><i class="c-pro"></i>In process</span></div></div>';
+}
+function renderCharts() {
+  const d = rep.data; if (!d) return;
+  const q = d.cities.filter(c => c.closed >= MIN_FINISHED && c.deliveredPctClosed != null)
+    .sort((a, b) => b.deliveredPctClosed - a.deliveredPctClosed || b.closed - a.closed);
+  const n = Math.min(7, Math.floor(q.length / 2));
+  const best = q.slice(0, n), worst = q.slice(q.length - n).reverse();
+  const avg = d.totals.deliveredPctClosed;
+  const cap = "Cities with " + MIN_FINISHED + "+ finished parcels. Line = overall " + pc(avg) + ". Right side: rate · delivered/finished";
+  $("#repCharts").innerHTML = donutChart(d.totals) + volumeChart(d.cities) +
+    rateBars("Highest delivery rate", cap, best, "c-del", avg) + rateBars("Lowest delivery rate", cap, worst, "c-ret", avg);
+}
+
 function renderCities() {
   const d = rep.data; if (!d) return;
   const q = ($("#repSearch").value || "").trim().toLowerCase();
@@ -568,9 +648,12 @@ function renderCities() {
     '<td class="num">' + c.delivered + "</td>" +
     '<td class="num">' + (c.returned ? '<span class="flag">' + c.returned + "</span>" : 0) + "</td>" +
     '<td class="num">' + (c.inProcess ? '<span data-tip="' + esc(statusLine(c.status)) + '">' + c.inProcess + "</span>" : 0) + "</td>" +
+    '<td class="num">' + rs(c.deliveredAmount) + "</td>" +
+    '<td class="num">' + (c.returned ? (c.returnedEstimated ? "≈ " : "") + rs(c.returnedAmount) : "–") + "</td>" +
     "<td>" + (c.deliveredPctClosed == null ? '<span class="sub">None finished yet</span>' : "<strong>" + c.deliveredPctClosed + "%</strong>" +
-      '<div class="meter"><i style="width:' + c.deliveredPctClosed + '%"></i></div>') + "</td></tr>").join("")
-    : '<tr><td colspan="6" class="empty">' + (q ? "No city matches your search." : "No parcels booked in this date range.") + "</td></tr>";
+      '<div class="meter"><i style="width:' + c.deliveredPctClosed + '%"></i></div>') + "</td>" +
+    '<td class="num">' + (c.deliveredAmountPct == null ? "–" : "<strong>" + c.deliveredAmountPct + "%</strong>") + "</td></tr>").join("")
+    : '<tr><td colspan="9" class="empty">' + (q ? "No city matches your search." : "No parcels booked in this date range.") + "</td></tr>";
 }
 document.querySelectorAll("th[data-sort]").forEach(th => th.onclick = () => {
   const k = th.dataset.sort;
@@ -628,7 +711,10 @@ const TIPS = [
   ["#p-problems th:nth-child(5)", "What the customer answered on WhatsApp after TCS couldn't deliver."],
   ['.tab[data-tab="delivery"]', "How many of your TCS parcels were delivered or returned, city by city, for any date range you pick."],
   ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Ranges of 3 months or more can take up to a minute."],
-  ["#p-delivery th:nth-child(6)", "Delivered ÷ (delivered + returned). Parcels still on the way are left out until they finish."],
+  ["#p-delivery th:nth-child(8)", "Delivered ÷ (delivered + returned) by number of parcels. Parcels still on the way are left out until they finish."],
+  ["#p-delivery th:nth-child(6)", "COD value of the delivered parcels in this city."],
+  ["#p-delivery th:nth-child(7)", "COD value of returned parcels. TCS doesn't report it, so it is estimated at the average delivered COD (exact for parcels booked through this app since 7 Oct)."],
+  ["#p-delivery th:nth-child(9)", "Delivered amount ÷ (delivered + returned amount). Shows how much money, not just how many parcels, came back."],
   ["#waStatus", "Shows whether the WhatsApp number is connected and its quality rating."],
   ["#waTpl", "Shows whether each WhatsApp message template is approved by Meta."],
   ["#waTplNew", "Sends any new message templates to Meta for approval. Existing ones are not changed."],
