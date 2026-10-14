@@ -258,15 +258,17 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
         <button class="btn" data-preset="3m">Last 3 months</button>
         <button class="btn" data-preset="6m">Last 6 months</button>
       </span>
-      <label class="field" style="margin-left:auto"><input type="search" id="repSearch" placeholder="Search city" aria-label="Search city"></label>
     </div>
     <div class="cards" id="repCards"></div>
     <div class="charts" id="repCharts"></div>
+    <div class="toolbar" style="justify-content:flex-end">
+      <label class="field"><input type="search" id="repSearch" placeholder="Search city" aria-label="Search city"></label>
+    </div>
     <div class="sheet"><div class="scroll"><table class="t-sm">
       <thead><tr>
         <th data-sort="city">City</th><th class="num" data-sort="booked">Booked</th><th class="num" data-sort="delivered">Delivered</th>
         <th class="num" data-sort="returned">Returned</th><th class="num" data-sort="inProcess">In process</th>
-        <th class="num" data-sort="deliveredAmount">Delivered amount</th><th class="num" data-sort="returnedAmount">Returned amount ≈</th>
+        <th class="num" data-sort="deliveredAmount">Delivered amount</th><th class="num" data-sort="returnedAmount">Returned amount</th>
         <th data-sort="deliveredPctClosed" style="min-width:150px">Delivered %</th><th class="num" data-sort="deliveredAmountPct">Amount delivered %</th>
       </tr></thead>
       <tbody id="repBody"><tr><td colspan="9" class="empty">Open this tab to load the report.</td></tr></tbody>
