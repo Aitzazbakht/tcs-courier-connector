@@ -140,6 +140,7 @@ th[data-sort]:hover{color:var(--ink)}
 .legend i{width:10px;height:10px;border-radius:3px;flex:none}
 .legend b{margin-left:auto;padding-left:14px;font-weight:700}
 .legend .sub{min-width:46px;text-align:right}
+.hb.sw{grid-template-columns:200px minmax(0,1fr) auto}
 .hb{display:grid;grid-template-columns:104px minmax(0,1fr) auto;align-items:center;gap:10px;margin:8px 0;font-size:13px}
 .hl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ht{position:relative;height:14px;background:var(--soft);border-radius:7px}
@@ -159,7 +160,7 @@ th[data-sort]:hover{color:var(--ink)}
 .sv .g{stroke:var(--line);stroke-width:1}
 .f-bk{fill:var(--house)}.f-del{fill:var(--pine)}.f-ret{fill:var(--rust)}.f-pro{fill:#5b7fd6}
 .sv rect:hover{opacity:.75}
-@media (max-width:820px){.charts{grid-template-columns:minmax(0,1fr)}.hb{grid-template-columns:84px minmax(0,1fr) auto}}
+@media (max-width:820px){.hb.sw{grid-template-columns:120px minmax(0,1fr) auto}.charts{grid-template-columns:minmax(0,1fr)}.hb{grid-template-columns:84px minmax(0,1fr) auto}}
 #tip{position:fixed;z-index:60;max-width:300px;background:var(--ink);color:var(--surface);font-size:12.5px;line-height:1.45;font-weight:500;padding:8px 11px;border-radius:8px;pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 #tip.on{opacity:1;transform:none}
 [data-tip]{cursor:help}
@@ -580,6 +581,7 @@ function renderReport() {
     card("", "Delivered", t.delivered, pc(t.deliveredPctBooked) + " of all booked") +
     card("ret", "Returned", t.returned, pc(t.returnedPctClosed) + " of finished parcels") +
     card("", "In process", t.inProcess, esc(statusLine(d.inProcessStatus)) || "Nothing on the way") +
+    card("ret", "Undelivered", t.undelivered || 0, "failed attempt or address / phone problem (part of in process)") +
     card("main", "Delivered amount", rs(t.deliveredAmount), pc(t.deliveredAmountPct) + " of delivered + returned amount" + (t.deliveredNoAmount ? " · " + t.deliveredNoAmount + " delivered parcels have no amount yet, not counted" : "")) +
     card("ret", "Returned amount", rs(t.returnedAmount), "real order value of " + (t.returned - (t.returnedNoAmount || 0)) + " returned parcels" + (t.returnedNoAmount ? " · " + t.returnedNoAmount + " with no amount found, not counted" : "")) +
     card("", "Booked", t.booked, esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (t.notPicked ? " · " + t.notPicked + " booked but not picked up yet, left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : ""));
@@ -644,6 +646,16 @@ function dayBars(title, cap, days, series) {
   const key = series.length > 1 ? '<div class="key">' + series.map(s => '<span><i class="' + s.cls.replace("f-", "c-") + '" style="' + (s.cls === "f-pro" ? "background:#5b7fd6" : "") + '"></i>' + s.name + "</span>").join("") + "</div>" : "";
   return '<div class="chart wide"><h3>' + title + '</h3><p class="cap">' + cap + '</p><svg class="sv" viewBox="0 0 ' + W + " " + H + '" role="img">' + g + bars + lab + "</svg>" + key + "</div>";
 }
+
+function stuckChart(d) {
+  const e = Object.entries(d.inProcessStatus || {}).sort((a, b) => b[1] - a[1]);
+  if (!e.length) return "";
+  const issues = new Set(d.issueLabels || []);
+  const max = e[0][1], tot = e.reduce((a, x) => a + x[1], 0);
+  const rows = e.map(x => '<div class="hb sw"><span class="hl" title="' + esc(x[0]) + '">' + esc(x[0]) + '</span><div class="ht"><i class="' + (issues.has(x[0]) ? "c-ret" : "c-pro") + '" style="width:' + Math.max(2, 100 * x[1] / max) + '%"></i></div><span class="hv">' + x[1] + "<small> · " + Math.round(100 * x[1] / tot) + "%</small></span></div>").join("");
+  return '<div class="chart wide"><h3>Where in-process parcels are stuck</h3><p class="cap">Latest TCS status of the ' + tot + ' parcels not yet delivered or returned. Red = something needs attention (failed attempt, address or phone problem, hold).</p>' + rows +
+    '<div class="key"><span><i class="c-ret"></i>Problem</span><span><i class="c-pro"></i>Normal movement</span></div></div>';
+}
 function renderCharts() {
   const d = rep.data; if (!d) return;
   const q = d.cities.filter(c => c.closed >= MIN_FINISHED && c.deliveredPctClosed != null)
@@ -655,7 +667,7 @@ function renderCharts() {
   const dl = d.daily || [];
   $("#repCharts").innerHTML = dayBars("Booked shipments", "Parcels booked with TCS each day (cancelled left out). Hover a bar for the exact count.", dl, [{ k: "booked", name: "Booked", cls: "f-bk" }]) +
     dayBars("In-process, delivered and returned shipments", "Where the parcels booked each day ended up. Hover a bar for the exact count.", dl, [{ k: "inProcess", name: "In process", cls: "f-pro" }, { k: "delivered", name: "Delivered", cls: "f-del" }, { k: "returned", name: "Returned", cls: "f-ret" }]) +
-    donutChart(d.totals) + volumeChart(d.cities) +
+    stuckChart(d) + donutChart(d.totals) + volumeChart(d.cities) +
     rateBars("Highest delivery rate", cap, best, "c-del", avg) + rateBars("Lowest delivery rate", cap, worst, "c-ret", avg);
 }
 
