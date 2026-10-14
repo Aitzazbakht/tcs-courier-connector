@@ -236,7 +236,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       </tr></thead>
       <tbody id="repBody"><tr><td colspan="6" class="empty">Open this tab to load the report.</td></tr></tbody>
     </table></div></div>
-    <p class="note" style="margin-top:12px" id="repNote">Parcels are picked by the date they were booked with TCS. Delivered % is delivered ÷ (delivered + returned), so parcels still on the way don't count against you until they finish. Returned includes parcels on their way back. Cancelled bookings are left out.</p>
+    <p class="note" style="margin-top:12px" id="repNote">Parcels are picked by the date they were booked with TCS. TCS only lists a parcel in its payment data once it has finished, so parcels still on the way are added by tracking the orders booked through this app (booked here since 7 Oct). Parcels booked in the TCS portal by hand, or before that, can't be found while they are still on the way, so the TCS portal dashboard can show more in-process parcels than this page. Delivered % is delivered ÷ (delivered + returned), so unfinished parcels don't count against you. Returned includes parcels on their way back. Cancelled bookings are left out.</p>
   </section>
 </main>
 <div id="tip" role="tooltip"></div>
@@ -545,7 +545,7 @@ function renderReport() {
     '<div class="card"><div class="k">Delivered</div><div class="v">' + t.delivered + '</div><div class="s">' + pc(t.deliveredPctBooked) + " of all booked</div></div>" +
     '<div class="card ret"><div class="k">Returned</div><div class="v">' + t.returned + '</div><div class="s">' + pc(t.returnedPctClosed) + " of finished parcels</div></div>" +
     '<div class="card"><div class="k">In process</div><div class="v">' + t.inProcess + '</div><div class="s">' + (esc(statusLine(d.inProcessStatus)) || "Nothing on the way") + "</div></div>" +
-    '<div class="card"><div class="k">Booked</div><div class="v">' + t.booked + '</div><div class="s">' + esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + "</div></div>";
+    '<div class="card"><div class="k">Booked</div><div class="v">' + t.booked + '</div><div class="s">' + esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : "") + "</div></div>";
   renderCities();
 }
 function renderCities() {
