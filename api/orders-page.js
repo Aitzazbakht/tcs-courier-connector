@@ -153,6 +153,12 @@ th[data-sort]:hover{color:var(--ink)}
 .key{display:flex;gap:14px;flex-wrap:wrap;color:var(--mute);font-size:12px;margin-top:10px}
 .key span{display:flex;align-items:center;gap:6px}
 .key i{width:10px;height:10px;border-radius:3px}
+.chart.wide{grid-column:1/-1}
+.sv{width:100%;height:auto;display:block;overflow:visible}
+.sv text{font-size:11px;fill:var(--mute)}
+.sv .g{stroke:var(--line);stroke-width:1}
+.f-bk{fill:var(--house)}.f-del{fill:var(--pine)}.f-ret{fill:var(--rust)}.f-pro{fill:#5b7fd6}
+.sv rect:hover{opacity:.75}
 @media (max-width:820px){.charts{grid-template-columns:minmax(0,1fr)}.hb{grid-template-columns:84px minmax(0,1fr) auto}}
 #tip{position:fixed;z-index:60;max-width:300px;background:var(--ink);color:var(--surface);font-size:12.5px;line-height:1.45;font-weight:500;padding:8px 11px;border-radius:8px;pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 #tip.on{opacity:1;transform:none}
@@ -264,7 +270,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       </tr></thead>
       <tbody id="repBody"><tr><td colspan="9" class="empty">Open this tab to load the report.</td></tr></tbody>
     </table></div></div>
-    <p class="note" style="margin-top:12px" id="repNote">Parcels are picked by the date they were booked with TCS. TCS only lists a parcel in its payment data once it has finished, so parcels still on the way are added by tracking the orders booked through this app (booked here since 7 Oct). Parcels booked in the TCS portal by hand, or before that, can't be found while they are still on the way, so the TCS portal dashboard can show more in-process parcels than this page. Delivered % is delivered ÷ (delivered + returned), so unfinished parcels don't count against you. Returned includes parcels on their way back. Cancelled bookings are left out. Delivered amount is the COD value of delivered parcels (what TCS paid, or worked out from its tax record for parcels not yet settled, about ±25 per parcel). TCS doesn't report the COD value of returned parcels, so Returned amount ≈ is estimated at the average COD of delivered parcels (exact for parcels booked through this app since 7 Oct). Amount delivered % is delivered amount ÷ (delivered + returned amount).</p>
+    <p class="note" style="margin-top:12px" id="repNote">Parcels are picked by the date they were booked with TCS. TCS only lists a parcel in its payment data once it has finished, so parcels still on the way are added by tracking the orders booked through this app (booked here since 7 Oct). Parcels booked in the TCS portal by hand, or before that, can't be found while they are still on the way, so the TCS portal dashboard can show more in-process parcels than this page. Delivered % is delivered ÷ (delivered + returned), so unfinished parcels don't count against you. Returned includes parcels on their way back. Cancelled bookings are left out. Delivered amount is the COD value of delivered parcels (what TCS paid, or worked out from its tax record for parcels not yet settled, about ±25 per parcel). TCS doesn't report the COD value of returned parcels, so each one is matched to its Shopify order (by TCS tag, or by customer name, city and date) and the real order value is used. Returned parcels that can't be matched are not counted in Returned amount. Amount delivered % is delivered amount ÷ (delivered + returned amount).</p>
   </section>
 </main>
 <div id="tip" role="tooltip"></div>
@@ -575,7 +581,7 @@ function renderReport() {
     card("ret", "Returned", t.returned, pc(t.returnedPctClosed) + " of finished parcels") +
     card("", "In process", t.inProcess, esc(statusLine(d.inProcessStatus)) || "Nothing on the way") +
     card("main", "Delivered amount", rs(t.deliveredAmount), pc(t.deliveredAmountPct) + " of delivered + returned amount") +
-    card("ret", "Returned amount" + (t.returnedEstimated ? " ≈" : ""), rs(t.returnedAmount), t.returnedEstimated ? "estimated at " + rs(d.avgCod) + " per returned parcel" : "exact COD of returned parcels") +
+    card("ret", "Returned amount", rs(t.returnedAmount), "real order value of " + (d.returnMatch ? d.returnMatch.matched : 0) + " returned parcels" + (d.returnMatch && d.returnMatch.unmatched ? " · " + d.returnMatch.unmatched + " not matched to a Shopify order, not counted" : "")) +
     card("", "Booked", t.booked, esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : ""));
   renderCharts();
   renderCities();
@@ -616,6 +622,28 @@ function volumeChart(cities) {
   return '<div class="chart"><h3>Busiest cities</h3><p class="cap">Top ' + top.length + ' cities by parcels booked, split by outcome. Right side: parcels · delivered %</p>' + rows +
     '<div class="key"><span><i class="c-del"></i>Delivered</span><span><i class="c-ret"></i>Returned</span><span><i class="c-pro"></i>In process</span></div></div>';
 }
+
+function niceMax(m) { if (m <= 5) return 5; const p = Math.pow(10, Math.floor(Math.log10(m))); const f = m / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+function dayBars(title, cap, days, series) {
+  if (!days.length) return "";
+  const W = 760, H = 230, L = 34, B = 34, T = 8, R = 6;
+  const max = niceMax(Math.max(1, ...days.map(d => Math.max(...series.map(s => d[s.k] || 0)))));
+  const pw = (W - L - R) / days.length, bw = Math.max(1.5, Math.min(26, pw * 0.8 / series.length));
+  const y = v => T + (H - T - B) * (1 - v / max);
+  let g = "";
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4; g += '<line class="g" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + Math.round(v) + "</text>"; }
+  const step = Math.max(1, Math.ceil(days.length / 14));
+  let bars = "", lab = "";
+  days.forEach((d, i) => {
+    const x0 = L + i * pw + (pw - bw * series.length) / 2;
+    const dt = new Date(d.day + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+    series.forEach((s, j) => { const v = d[s.k] || 0, h = (H - T - B) * v / max;
+      bars += '<rect class="' + s.cls + '" x="' + (x0 + j * bw).toFixed(1) + '" y="' + y(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1.5"><title>' + dt + " · " + s.name + ": " + v + "</title></rect>"; });
+    if (i % step === 0) lab += '<text x="' + (L + i * pw + pw / 2).toFixed(1) + '" y="' + (H - B + 16) + '" text-anchor="middle">' + dt + "</text>";
+  });
+  const key = series.length > 1 ? '<div class="key">' + series.map(s => '<span><i class="' + s.cls.replace("f-", "c-") + '" style="' + (s.cls === "f-pro" ? "background:#5b7fd6" : "") + '"></i>' + s.name + "</span>").join("") + "</div>" : "";
+  return '<div class="chart wide"><h3>' + title + '</h3><p class="cap">' + cap + '</p><svg class="sv" viewBox="0 0 ' + W + " " + H + '" role="img">' + g + bars + lab + "</svg>" + key + "</div>";
+}
 function renderCharts() {
   const d = rep.data; if (!d) return;
   const q = d.cities.filter(c => c.closed >= MIN_FINISHED && c.deliveredPctClosed != null)
@@ -624,7 +652,10 @@ function renderCharts() {
   const best = q.slice(0, n), worst = q.slice(q.length - n).reverse();
   const avg = d.totals.deliveredPctClosed;
   const cap = "Cities with " + MIN_FINISHED + "+ finished parcels. Line = overall " + pc(avg) + ". Right side: rate · delivered/finished";
-  $("#repCharts").innerHTML = donutChart(d.totals) + volumeChart(d.cities) +
+  const dl = d.daily || [];
+  $("#repCharts").innerHTML = dayBars("Booked shipments", "Parcels booked with TCS each day (cancelled left out). Hover a bar for the exact count.", dl, [{ k: "booked", name: "Booked", cls: "f-bk" }]) +
+    dayBars("In-process, delivered and returned shipments", "Where the parcels booked each day ended up. Hover a bar for the exact count.", dl, [{ k: "inProcess", name: "In process", cls: "f-pro" }, { k: "delivered", name: "Delivered", cls: "f-del" }, { k: "returned", name: "Returned", cls: "f-ret" }]) +
+    donutChart(d.totals) + volumeChart(d.cities) +
     rateBars("Highest delivery rate", cap, best, "c-del", avg) + rateBars("Lowest delivery rate", cap, worst, "c-ret", avg);
 }
 
@@ -649,7 +680,7 @@ function renderCities() {
     '<td class="num">' + (c.returned ? '<span class="flag">' + c.returned + "</span>" : 0) + "</td>" +
     '<td class="num">' + (c.inProcess ? '<span data-tip="' + esc(statusLine(c.status)) + '">' + c.inProcess + "</span>" : 0) + "</td>" +
     '<td class="num">' + rs(c.deliveredAmount) + "</td>" +
-    '<td class="num">' + (c.returned ? (c.returnedEstimated ? "≈ " : "") + rs(c.returnedAmount) : "–") + "</td>" +
+    '<td class="num">' + (c.returned ? rs(c.returnedAmount) + (c.returnedNoAmount ? ' <span class="sub" data-tip="' + c.returnedNoAmount + ' returned parcel(s) not matched to a Shopify order">*</span>' : "") : "–") + "</td>" +
     "<td>" + (c.deliveredPctClosed == null ? '<span class="sub">None finished yet</span>' : "<strong>" + c.deliveredPctClosed + "%</strong>" +
       '<div class="meter"><i style="width:' + c.deliveredPctClosed + '%"></i></div>') + "</td>" +
     '<td class="num">' + (c.deliveredAmountPct == null ? "–" : "<strong>" + c.deliveredAmountPct + "%</strong>") + "</td></tr>").join("")
@@ -713,7 +744,7 @@ const TIPS = [
   ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Ranges of 3 months or more can take up to a minute."],
   ["#p-delivery th:nth-child(8)", "Delivered ÷ (delivered + returned) by number of parcels. Parcels still on the way are left out until they finish."],
   ["#p-delivery th:nth-child(6)", "COD value of the delivered parcels in this city."],
-  ["#p-delivery th:nth-child(7)", "COD value of returned parcels. TCS doesn't report it, so it is estimated at the average delivered COD (exact for parcels booked through this app since 7 Oct)."],
+  ["#p-delivery th:nth-child(7)", "Real order value of returned parcels, read from the Shopify order. * means some returned parcels in that city couldn't be matched to an order and are not counted."],
   ["#p-delivery th:nth-child(9)", "Delivered amount ÷ (delivered + returned amount). Shows how much money, not just how many parcels, came back."],
   ["#waStatus", "Shows whether the WhatsApp number is connected and its quality rating."],
   ["#waTpl", "Shows whether each WhatsApp message template is approved by Meta."],
