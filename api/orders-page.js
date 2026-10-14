@@ -112,6 +112,23 @@ tbody tr:hover td{background:color-mix(in srgb,var(--soft) 45%,transparent)}
 select{max-width:180px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
 select.bad,select.fuzzy{border:2px solid var(--rust)}
 
+/* delivery report */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.card .k{font-size:12px;color:var(--mute);font-weight:600}
+.card .v{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.25}
+.card .s{font-size:12.5px;color:var(--mute)}
+.card.main{border-color:var(--pine)}
+.card.main .v{color:var(--pine)}
+.card.ret .v{color:var(--rust)}
+.field{display:flex;align-items:center;gap:6px;color:var(--mute);white-space:nowrap}
+.field input[type=date],.field input[type=search]{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--ink)}
+.btn.on{background:var(--pine-soft);border-color:var(--pine);font-weight:700}
+.t-sm{min-width:640px}
+th[data-sort]{cursor:pointer;user-select:none;white-space:nowrap}
+th[data-sort]:hover{color:var(--ink)}
+.meter{height:6px;background:var(--soft);border-radius:3px;margin-top:5px;overflow:hidden;min-width:90px}
+.meter i{display:block;height:100%;background:var(--pine)}
 #tip{position:fixed;z-index:60;max-width:300px;background:var(--ink);color:var(--surface);font-size:12.5px;line-height:1.45;font-weight:500;padding:8px 11px;border-radius:8px;pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 #tip.on{opacity:1;transform:none}
 [data-tip]{cursor:help}
@@ -150,6 +167,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     <button class="tab" role="tab" data-tab="problems" aria-selected="false">Delivery problems <b id="cProblems">–</b></button>
     <button class="tab" role="tab" data-tab="booked" aria-selected="false">Booked, last 2 days <b id="cBooked">–</b></button>
     <button class="tab" role="tab" data-tab="blocked" aria-selected="false">Blocked <b id="cBlocked">–</b></button>
+    <button class="tab" role="tab" data-tab="delivery" aria-selected="false">Delivery report <b id="cDelivery">–</b></button>
   </nav>
 </div></header>
 
@@ -197,6 +215,29 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <tbody id="blocked"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
     </table></div></div>
   </section>
+
+  <section class="panel" id="p-delivery" hidden>
+    <div class="toolbar">
+      <label class="field">From <input type="date" id="repFrom"></label>
+      <label class="field">To <input type="date" id="repTo"></label>
+      <button class="btn primary" id="repRun">Show report</button>
+      <span style="display:flex;gap:6px;flex-wrap:wrap" id="repPresets">
+        <button class="btn" data-preset="30d">Last 30 days</button>
+        <button class="btn on" data-preset="3m">Last 3 months</button>
+        <button class="btn" data-preset="6m">Last 6 months</button>
+      </span>
+      <label class="field" style="margin-left:auto"><input type="search" id="repSearch" placeholder="Search city" aria-label="Search city"></label>
+    </div>
+    <div class="cards" id="repCards"></div>
+    <div class="sheet"><div class="scroll"><table class="t-sm">
+      <thead><tr>
+        <th data-sort="city">City</th><th class="num" data-sort="booked">Booked</th><th class="num" data-sort="delivered">Delivered</th>
+        <th class="num" data-sort="returned">Returned</th><th class="num" data-sort="inProcess">In process</th><th data-sort="deliveredPctClosed" style="min-width:150px">Delivered %</th>
+      </tr></thead>
+      <tbody id="repBody"><tr><td colspan="6" class="empty">Open this tab to load the report.</td></tr></tbody>
+    </table></div></div>
+    <p class="note" style="margin-top:12px" id="repNote">Parcels are picked by the date they were booked with TCS. Delivered % is delivered ÷ (delivered + returned), so parcels still on the way don't count against you until they finish. Returned includes parcels on their way back. Cancelled bookings are left out.</p>
+  </section>
 </main>
 <div id="tip" role="tooltip"></div>
 
@@ -211,14 +252,32 @@ const rs = (n) => "Rs " + Number(n || 0).toLocaleString("en-PK");
 const when = (d) => d ? new Date(d).toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
 const post = (body) => fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error || r.status); return d; });
 
+/* ---------- delivery report: state and default dates (set up before the tabs run) ---------- */
+let rep = { data: null, loading: false, sort: "booked", dir: -1, preset: "3m" };
+const pad2 = (n) => String(n).padStart(2, "0");
+const isoLocal = (d) => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+function presetRange(kind) {
+  const to = new Date(), from = new Date();
+  if (kind === "30d") from.setDate(from.getDate() - 29); else from.setMonth(from.getMonth() - (kind === "6m" ? 6 : 3));
+  return [isoLocal(from), isoLocal(to)];
+}
+function applyPreset(kind) {
+  const [f, t] = presetRange(kind);
+  $("#repFrom").value = f; $("#repTo").value = t; rep.preset = kind;
+  document.querySelectorAll("[data-preset]").forEach(b => b.classList.toggle("on", b.dataset.preset === kind));
+}
+applyPreset("3m");
+function ensureReport() { if (!rep.data && !rep.loading) runReport(); }
+
 /* ---------- tabs ---------- */
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
   document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "p-" + name);
   try { history.replaceState(null, "", "#" + name); } catch (e) {}
+  if (name === "delivery") ensureReport();
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
-showTab(["waiting", "problems", "booked", "blocked"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
+showTab(["waiting", "problems", "booked", "blocked", "delivery"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
 
 /* ---------- WhatsApp setup popover ---------- */
 $("#waOpen").onclick = (e) => { e.stopPropagation(); const open = $("#waPanel").classList.toggle("open"); $("#waOpen").setAttribute("aria-expanded", String(open)); };
@@ -453,6 +512,76 @@ async function loadProblems() {
 }
 
 
+/* ---------- delivery report ---------- */
+const pc = (v) => v == null ? "–" : v + "%";
+async function runReport() {
+  if (rep.loading) return;
+  const from = $("#repFrom").value, to = $("#repTo").value;
+  if (!from || !to) return log("Pick both dates.");
+  if (from > to) return log("The From date is after the To date.");
+  rep.loading = true; $("#repRun").disabled = true; log("");
+  $("#repCards").innerHTML = "";
+  $("#repBody").innerHTML = '<tr><td colspan="6" class="empty">Pulling parcels from TCS… this can take up to a minute for 3 months.</td></tr>';
+  try {
+    rep.data = await post({ action: "delivery_report", from, to });
+    renderReport();
+    if (rep.data.partial) log("Some of the range couldn't be loaded from TCS, so these numbers are incomplete: " + rep.data.warnings.join("  ·  "));
+  } catch (e) {
+    rep.data = null;
+    $("#cDelivery").textContent = "–";
+    $("#repBody").innerHTML = '<tr><td colspan="6" class="empty">Couldn\'t load the report: ' + esc(e.message) + "</td></tr>";
+  } finally { rep.loading = false; $("#repRun").disabled = false; }
+}
+function statusLine(map) {
+  const e = Object.entries(map || {}).sort((a, b) => b[1] - a[1]);
+  return e.map(([k, v]) => v + " " + k.toLowerCase()).join(" · ");
+}
+function renderReport() {
+  const d = rep.data; if (!d) return;
+  const t = d.totals;
+  $("#cDelivery").textContent = t.deliveredPctClosed == null ? "–" : Math.round(t.deliveredPctClosed) + "%";
+  $("#repCards").innerHTML =
+    '<div class="card main"><div class="k">Delivered %</div><div class="v">' + pc(t.deliveredPctClosed) + '</div><div class="s">of ' + t.closed + " finished parcels</div></div>" +
+    '<div class="card"><div class="k">Delivered</div><div class="v">' + t.delivered + '</div><div class="s">' + pc(t.deliveredPctBooked) + " of all booked</div></div>" +
+    '<div class="card ret"><div class="k">Returned</div><div class="v">' + t.returned + '</div><div class="s">' + pc(t.returnedPctClosed) + " of finished parcels</div></div>" +
+    '<div class="card"><div class="k">In process</div><div class="v">' + t.inProcess + '</div><div class="s">' + (esc(statusLine(d.inProcessStatus)) || "Nothing on the way") + "</div></div>" +
+    '<div class="card"><div class="k">Booked</div><div class="v">' + t.booked + '</div><div class="s">' + esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + "</div></div>";
+  renderCities();
+}
+function renderCities() {
+  const d = rep.data; if (!d) return;
+  const q = ($("#repSearch").value || "").trim().toLowerCase();
+  let rows = d.cities.filter(c => c.booked && (!q || c.city.toLowerCase().includes(q)));
+  const k = rep.sort, dir = rep.dir;
+  rows = rows.slice().sort((a, b) => {
+    if (k === "city") return dir * a.city.localeCompare(b.city);
+    const av = a[k] == null ? -1 : a[k], bv = b[k] == null ? -1 : b[k];
+    return (av - bv) * dir || b.booked - a.booked || a.city.localeCompare(b.city);
+  });
+  document.querySelectorAll("th[data-sort]").forEach(th => {
+    const base = th.textContent.replace(/\s*[▲▼]$/, "");
+    th.textContent = base + (th.dataset.sort === k ? (dir > 0 ? " ▲" : " ▼") : "");
+  });
+  $("#repBody").innerHTML = rows.length ? rows.map(c =>
+    "<tr><td>" + esc(c.city) + "</td>" +
+    '<td class="num">' + c.booked + "</td>" +
+    '<td class="num">' + c.delivered + "</td>" +
+    '<td class="num">' + (c.returned ? '<span class="flag">' + c.returned + "</span>" : 0) + "</td>" +
+    '<td class="num">' + (c.inProcess ? '<span data-tip="' + esc(statusLine(c.status)) + '">' + c.inProcess + "</span>" : 0) + "</td>" +
+    "<td>" + (c.deliveredPctClosed == null ? '<span class="sub">None finished yet</span>' : "<strong>" + c.deliveredPctClosed + "%</strong>" +
+      '<div class="meter"><i style="width:' + c.deliveredPctClosed + '%"></i></div>') + "</td></tr>").join("")
+    : '<tr><td colspan="6" class="empty">' + (q ? "No city matches your search." : "No parcels booked in this date range.") + "</td></tr>";
+}
+document.querySelectorAll("th[data-sort]").forEach(th => th.onclick = () => {
+  const k = th.dataset.sort;
+  if (rep.sort === k) rep.dir = -rep.dir; else { rep.sort = k; rep.dir = k === "city" ? 1 : -1; }
+  renderCities();
+});
+document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => { applyPreset(b.dataset.preset); runReport(); });
+["#repFrom", "#repTo"].forEach(s => $(s).onchange = () => document.querySelectorAll("[data-preset]").forEach(b => b.classList.remove("on")));
+$("#repRun").onclick = runReport;
+$("#repSearch").oninput = renderCities;
+
 /* ---------- hover help (for customer support) ---------- */
 const CHIP_TIPS = {
   "Confirmed": "The customer tapped \"Confirm order\" on WhatsApp. Safe to book.",
@@ -497,6 +626,9 @@ const TIPS = [
   ["#blkSearch", "Find a blocked person by order number, name or phone number."],
   ["#p-blocked th:nth-child(4)", "How many times this blocked device came back to the website and was stopped."],
   ["#p-problems th:nth-child(5)", "What the customer answered on WhatsApp after TCS couldn't deliver."],
+  ['.tab[data-tab="delivery"]', "How many of your TCS parcels were delivered or returned, city by city, for any date range you pick."],
+  ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Three months can take up to a minute."],
+  ["#p-delivery th:nth-child(6)", "Delivered ÷ (delivered + returned). Parcels still on the way are left out until they finish."],
   ["#waStatus", "Shows whether the WhatsApp number is connected and its quality rating."],
   ["#waTpl", "Shows whether each WhatsApp message template is approved by Meta."],
   ["#waTplNew", "Sends any new message templates to Meta for approval. Existing ones are not changed."],

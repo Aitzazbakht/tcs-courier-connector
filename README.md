@@ -21,6 +21,10 @@ No dependencies. Runs as one serverless function on Vercel.
 | `book_shipment` | Book a COD shipment (preview first, then confirm) |
 | `cancel_shipment` | Cancel before pickup (preview first, then confirm) |
 
+## Orders page: Delivery report tab
+
+The orders page (`/orders/<CONNECTOR_KEY>`) has a **Delivery report** tab next to **Blocked**. Pick a From/To date (or Last 30 days / 3 months / 6 months) and it pulls the parcels booked in that range from TCS and shows, overall and city by city: booked, delivered, returned and still in process. Delivered % is delivered ÷ (delivered + returned). Ranges up to about 6 months are fetched in monthly windows because TCS handles roughly 31 days per request.
+
 ## Deploy (about 10 minutes)
 
 1. Put this folder in a new **private** GitHub repo.

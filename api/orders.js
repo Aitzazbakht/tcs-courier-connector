@@ -5,6 +5,7 @@ import * as shop from "../lib/shopify.js";
 import * as wa from "../lib/whatsapp.js";
 import * as notify from "../lib/notify.js";
 import * as guard from "../lib/guard.js";
+import { deliveryReport } from "../lib/report.js";
 import { stores, withStore, splitId } from "../lib/store.js";
 
 const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
@@ -42,6 +43,9 @@ export default async function handler(req, res) {
     }
     if (body.action === "cancel_fake") {
       return res.status(200).json(await sync.cancelFakeOrder(body.id));
+    }
+    if (body.action === "delivery_report") {
+      return res.status(200).json(await deliveryReport(String(body.from || ""), String(body.to || "")));
     }
     if (body.action === "problems") {
       return res.status(200).json({ problems: await notify.listProblems() });
