@@ -123,6 +123,16 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
 .card.ret .v{color:var(--rust)}
 .field{display:flex;align-items:center;gap:6px;color:var(--mute);white-space:nowrap}
 .field input[type=date],.field input[type=search]{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;background:var(--surface);overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--mute);padding:7px 12px;cursor:pointer;white-space:nowrap;font:inherit;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button:hover{color:var(--ink);background:var(--soft)}
+.seg button.on{background:var(--pine-soft);color:var(--pine);font-weight:700}
+.daterange{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--pine);border-radius:9px;background:var(--surface);padding:3px 4px 3px 10px}
+.daterange input[type=date]{border:0;background:transparent;color:var(--ink);font:inherit;padding:4px 2px;outline:0}
+.daterange .arr{color:var(--mute)}
+.daterange:focus-within{box-shadow:0 0 0 3px var(--pine-soft)}
+@media (max-width:560px){.seg{width:100%}.seg button{flex:1;padding:7px 6px}.daterange{width:100%;justify-content:space-between}}
 .btn.on{background:var(--pine-soft);border-color:var(--pine);font-weight:700}
 .t-sm{min-width:1000px}
 th[data-sort]{cursor:pointer;user-select:none;white-space:nowrap}
@@ -212,11 +222,11 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <select id="storeFilter" aria-label="Show orders from" hidden>
         <option value="all">All stores</option><option value="house">Chitral House</option><option value="herbs">Chitral Herbs</option>
       </select>
-      <select id="dateFilter" aria-label="Order date">
-        <option value="all">All time</option><option value="today">Today</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="custom">Pick dates…</option>
-      </select>
-      <span id="dateCustom" style="display:flex;gap:6px;align-items:center" hidden>
-        <input type="date" id="wFrom" aria-label="From date"> to <input type="date" id="wTo" aria-label="To date">
+      <div class="seg" id="dateSeg" role="group" aria-label="Order date">
+        <button type="button" data-d="all" class="on">All time</button><button type="button" data-d="today">Today</button><button type="button" data-d="7d">7 days</button><button type="button" data-d="30d">30 days</button><button type="button" data-d="custom">Custom</button>
+      </div>
+      <span class="daterange" id="dateCustom" hidden>
+        <input type="date" id="wFrom" aria-label="From date"><span class="arr">→</span><input type="date" id="wTo" aria-label="To date">
       </span>
       <label class="check" id="onlyConfWrap" hidden><input type="checkbox" id="onlyConf" checked> Only confirmed</label>
       <button class="btn" id="pushSel" disabled>Push selected</button>
@@ -391,8 +401,9 @@ $("#storeFilter").onchange = () => {
 // Order date filter (Pakistan dates). Default: all time.
 const pkDay = (iso) => new Date(Date.parse(iso) + 5 * 3600e3).toISOString().slice(0, 10);
 const addDays = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
+let dateMode = "all";
 function dateRange() {
-  const m = $("#dateFilter").value, today = pkDay(new Date().toISOString());
+  const m = dateMode, today = pkDay(new Date().toISOString());
   if (m === "today") return [today, today];
   if (m === "7d") return [addDays(today, -6), today];
   if (m === "30d") return [addDays(today, -29), today];
@@ -403,7 +414,14 @@ function visiblePending() {
   const [a, b] = dateRange();
   return state.pending.filter(o => (storeFilter === "all" || o.store === storeFilter) && (!a || (o.createdAt && pkDay(o.createdAt) >= a)) && (!b || (o.createdAt && pkDay(o.createdAt) <= b)));
 }
-$("#dateFilter").onchange = () => { $("#dateCustom").hidden = $("#dateFilter").value !== "custom"; $("#all").checked = false; renderWaiting(); };
+$("#dateSeg").onclick = (e) => {
+  const b = e.target.closest && e.target.closest("button[data-d]"); if (!b) return;
+  dateMode = b.dataset.d;
+  document.querySelectorAll("#dateSeg button").forEach(x => x.classList.toggle("on", x === b));
+  $("#dateCustom").hidden = dateMode !== "custom";
+  if (dateMode === "custom" && !$("#wFrom").value && !$("#wTo").value) { const t = pkDay(new Date().toISOString()); $("#wFrom").value = addDays(t, -6); $("#wTo").value = t; }
+  $("#all").checked = false; renderWaiting();
+};
 $("#wFrom").onchange = $("#wTo").onchange = () => { $("#all").checked = false; renderWaiting(); };
 const cityVal = (code, name) => code ? code + "|" + name : "";
 function cityOptions(sel) {
@@ -426,6 +444,10 @@ function waChip(o) {
   if (o.wa === "sent") return '<span class="chip wait">Awaiting reply</span>';
   return state.waOn ? '<button class="link" data-conf="' + esc(o.id) + '">Send confirmation</button>' : "";
 }
+function summaryHtml(p, readyN, cod) {
+  return "<strong>" + readyN + "</strong> ready to push · " + (p.length - readyN) + " waiting on confirmation or details · " + rs(cod) + " COD" +
+    (p.length !== state.pending.length ? " · showing " + p.length + " of " + state.pending.length + " orders" : "");
+}
 function renderWaiting() {
   setSwitch($("#auto"), state.auto); setSwitch($("#waSw"), state.waOn);
   $("#onlyConfWrap").hidden = !state.waOn;
@@ -434,7 +456,7 @@ function renderWaiting() {
   const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
   $("#cWaiting").textContent = state.pending.length;
   $("#storeFilter").hidden = !(state.stores && state.stores.length > 1);
-  $("#summary").innerHTML = "<strong>" + readyN + "</strong> ready to push · " + (p.length - readyN) + " waiting on confirmation or details · " + rs(cod) + " COD";
+  $("#summary").innerHTML = summaryHtml(p, readyN, cod);
   $("#pending").innerHTML = p.length ? p.map(o => {
     const other = o.issues.filter(i => !i.startsWith("City"));
     const fuzzy = o.city_match && !["exact", "alias", "manual"].includes(o.city_match);
@@ -451,7 +473,7 @@ function renderWaiting() {
         other.map(i => '<span class="chip bad">' + esc(i) + "</span>").join("") + (!o.city_code ? '<span class="chip bad">Pick city</span>' : "") +
         (o.processing || o.wa === "confirmed" ? "" : '<div><button class="link danger" data-cancel="' + esc(o.id) + '" data-name="' + esc(o.name) + '">Cancel &amp; restock</button></div>') + "</td>" +
       "</tr>";
-  }).join("") : '<tr><td colspan="7" class="empty">' + ((storeFilter !== "all" || $("#dateFilter").value !== "all") && state.pending.length ? "No waiting orders match this " + (storeFilter !== "all" ? "store" : "date range") + (storeFilter !== "all" && $("#dateFilter").value !== "all" ? " and date range" : "") + "." : "No orders waiting. New orders from your stores appear here.") + "</td></tr>";
+  }).join("") : '<tr><td colspan="7" class="empty">' + ((storeFilter !== "all" || dateMode !== "all") && state.pending.length ? "No waiting orders match this " + (storeFilter !== "all" ? "store" : "date range") + (storeFilter !== "all" && dateMode !== "all" ? " and date range" : "") + "." : "No orders waiting. New orders from your stores appear here.") + "</td></tr>";
   document.querySelectorAll("select[data-id]").forEach(s => s.onchange = () => { s.classList.toggle("bad", !s.value); s.classList.remove("fuzzy"); const f = s.parentElement.querySelector(".flag"); if (f) f.remove(); renderSummaryOnly(); });
   document.querySelectorAll(".sel").forEach(c => c.onchange = updateSel);
   document.querySelectorAll("[data-conf]").forEach(b => b.onclick = async () => {
@@ -476,7 +498,7 @@ function renderWaiting() {
 }
 function renderSummaryOnly() {
   const p = visiblePending(); const readyN = p.filter(ready).length; const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
-  $("#summary").innerHTML = "<strong>" + readyN + "</strong> ready to push · " + (p.length - readyN) + " waiting on confirmation or details · " + rs(cod) + " COD";
+  $("#summary").innerHTML = summaryHtml(p, readyN, cod);
 }
 $("#onlyConf").onchange = renderSummaryOnly;
 function updateSel() { $("#pushSel").disabled = !document.querySelectorAll(".sel:checked").length; }
