@@ -212,6 +212,12 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <select id="storeFilter" aria-label="Show orders from" hidden>
         <option value="all">All stores</option><option value="house">Chitral House</option><option value="herbs">Chitral Herbs</option>
       </select>
+      <select id="dateFilter" aria-label="Order date">
+        <option value="all">All time</option><option value="today">Today</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="custom">Pick dates…</option>
+      </select>
+      <span id="dateCustom" style="display:flex;gap:6px;align-items:center" hidden>
+        <input type="date" id="wFrom" aria-label="From date"> to <input type="date" id="wTo" aria-label="To date">
+      </span>
       <label class="check" id="onlyConfWrap" hidden><input type="checkbox" id="onlyConf" checked> Only confirmed</label>
       <button class="btn" id="pushSel" disabled>Push selected</button>
       <button class="btn primary" id="pushAll">Push all ready</button>
@@ -382,7 +388,23 @@ $("#storeFilter").onchange = () => {
   try { localStorage.setItem("tcsStoreFilter", storeFilter); } catch (e) {}
   $("#all").checked = false; renderWaiting();
 };
-function visiblePending() { return storeFilter === "all" ? state.pending : state.pending.filter(o => o.store === storeFilter); }
+// Order date filter (Pakistan dates). Default: all time.
+const pkDay = (iso) => new Date(Date.parse(iso) + 5 * 3600e3).toISOString().slice(0, 10);
+const addDays = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
+function dateRange() {
+  const m = $("#dateFilter").value, today = pkDay(new Date().toISOString());
+  if (m === "today") return [today, today];
+  if (m === "7d") return [addDays(today, -6), today];
+  if (m === "30d") return [addDays(today, -29), today];
+  if (m === "custom") return [$("#wFrom").value || "", $("#wTo").value || ""];
+  return ["", ""];
+}
+function visiblePending() {
+  const [a, b] = dateRange();
+  return state.pending.filter(o => (storeFilter === "all" || o.store === storeFilter) && (!a || (o.createdAt && pkDay(o.createdAt) >= a)) && (!b || (o.createdAt && pkDay(o.createdAt) <= b)));
+}
+$("#dateFilter").onchange = () => { $("#dateCustom").hidden = $("#dateFilter").value !== "custom"; $("#all").checked = false; renderWaiting(); };
+$("#wFrom").onchange = $("#wTo").onchange = () => { $("#all").checked = false; renderWaiting(); };
 const cityVal = (code, name) => code ? code + "|" + name : "";
 function cityOptions(sel) {
   return '<option value="">Pick city</option>' + state.cities.map(c => { const v = cityVal(c.code, c.name); return '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("");
@@ -429,7 +451,7 @@ function renderWaiting() {
         other.map(i => '<span class="chip bad">' + esc(i) + "</span>").join("") + (!o.city_code ? '<span class="chip bad">Pick city</span>' : "") +
         (o.processing || o.wa === "confirmed" ? "" : '<div><button class="link danger" data-cancel="' + esc(o.id) + '" data-name="' + esc(o.name) + '">Cancel &amp; restock</button></div>') + "</td>" +
       "</tr>";
-  }).join("") : '<tr><td colspan="7" class="empty">' + (storeFilter !== "all" && state.pending.length ? "No orders waiting from " + esc($("#storeFilter").selectedOptions[0].text) + "." : "No orders waiting. New orders from your stores appear here.") + "</td></tr>";
+  }).join("") : '<tr><td colspan="7" class="empty">' + ((storeFilter !== "all" || $("#dateFilter").value !== "all") && state.pending.length ? "No waiting orders match this " + (storeFilter !== "all" ? "store" : "date range") + (storeFilter !== "all" && $("#dateFilter").value !== "all" ? " and date range" : "") + "." : "No orders waiting. New orders from your stores appear here.") + "</td></tr>";
   document.querySelectorAll("select[data-id]").forEach(s => s.onchange = () => { s.classList.toggle("bad", !s.value); s.classList.remove("fuzzy"); const f = s.parentElement.querySelector(".flag"); if (f) f.remove(); renderSummaryOnly(); });
   document.querySelectorAll(".sel").forEach(c => c.onchange = updateSel);
   document.querySelectorAll("[data-conf]").forEach(b => b.onclick = async () => {
