@@ -23,7 +23,7 @@ async function handleOrder(res, order, storeKey) {
     const gid = order.admin_graphql_api_id || `gid://shopify/Order/${order.id}`;
     const id = tagId(storeKey, gid);
     const [auto, waOn] = await Promise.all([sync.isAutoOn(), notify.isOn()]);
-    const isWhatsAppOrder = String(order.tags || "").split(/,\s*/).some((t) => /^whatsapp$/i.test(t));
+    const isWhatsAppOrder = shop.isChatOrder(order);
     if (waOn && !isWhatsAppOrder) {
       const full = await shop.getOrder(gid);
       const c = await notify.sendConfirm(full).catch((e) => ({ error: e.message }));
