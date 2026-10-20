@@ -258,10 +258,17 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   </section>
 
   <section class="panel" id="p-problems" hidden>
-    <p class="note">TCS couldn't deliver these parcels (refused, nobody home, address not found). Call the customer or TCS, then mark it done.</p>
+    <div class="toolbar">
+      <label class="field">Status <select id="prStatus"><option value="">All statuses</option></select></label>
+      <label class="field">Order date <input type="date" id="prDate"></label>
+      <button class="btn on" id="prAll" data-tip="Show orders from every date.">All dates</button>
+      <button class="btn" id="prRefresh" data-tip="Ask TCS again for every parcel instead of using the results saved in the last 15 minutes.">Refresh TCS status</button>
+      <span class="stats" id="prMeta" style="margin-left:auto"></span>
+    </div>
+    <p class="note">Every parcel still in process with TCS (not delivered, not returned), from both stores. Call the customer or TCS, then press Mark done.</p>
     <div class="sheet"><div class="scroll"><table>
-      <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>TCS latest update</th><th>Customer reply</th><th></th></tr></thead>
-      <tbody id="problems"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+      <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>Status</th><th>Details</th><th>Customer reply</th><th></th></tr></thead>
+      <tbody id="problems"><tr><td colspan="7" class="empty">Open this tab to load in-process parcels.</td></tr></tbody>
     </table></div></div>
   </section>
 
@@ -441,6 +448,7 @@ function showTab(name) {
   try { history.replaceState(null, "", "#" + name); } catch (e) {}
   if (name === "delivery") ensureReport();
   if (name === "total") ensureTotal();
+  if (name === "problems") ensureProblems();
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
 showTab(["waiting", "problems", "booked", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
@@ -679,31 +687,53 @@ function renderBlocked() {
 }
 $("#blkSearch").oninput = renderBlocked;
 
-/* ---------- delivery problems ---------- */
-async function loadProblems() {
+/* ---------- delivery problems: every in-process parcel ---------- */
+let pr = { data: null, loading: false };
+function ensureProblems() { if (!pr.data && !pr.loading) loadProblems(false); }
+async function loadProblems(refresh) {
+  if (pr.loading) return;
+  pr.loading = true; $("#prRefresh").disabled = true;
+  $("#problems").innerHTML = '<tr><td colspan="7" class="empty">Checking every in-process parcel with TCS… this can take up to a minute.</td></tr>';
   try {
-    const d = await post({ action: "problems" });
-    const list = (d.problems || []).filter(p => !p.error);
-    $("#cProblems").textContent = list.length;
-    document.querySelector('.tab[data-tab="problems"]').classList.toggle("alert", list.length > 0);
-    const reply = (p) => p.reply === "retry" ? '<span class="chip ok">Wants delivery again</span>'
-      : p.reply === "cancel" ? '<span class="chip bad">Wants to cancel</span>'
-      : p.reply === "asked" ? '<span class="chip wait">Asked, no reply</span>' : '<span class="sub">Not messaged</span>';
-    $("#problems").innerHTML = list.length ? list.map(p =>
-      '<tr><td><span class="order">' + esc(p.name) + "</span>" + storeBadge(p) + '<div class="sub">' + esc(p.city) + " · Rs " + esc(p.cod) + "</div></td>" +
-      "<td>" + esc(p.customer) + '<div class="sub"><a href="tel:' + esc(p.phone) + '">' + esc(p.phone) + "</a></div></td>" +
-      '<td><a href="https://www.tcsexpress.com/track/' + esc(p.cn) + '" target="_blank" rel="noopener">' + esc(p.cn) + "</a></td>" +
-      "<td>" + esc(p.status) + '<div class="sub">' + esc(p.when) + "</div></td>" +
-      "<td>" + reply(p) + "</td>" +
-      '<td><button class="btn" data-handled="' + esc(p.id) + '">Mark done</button></td></tr>').join("")
-      : '<tr><td colspan="6" class="empty">No delivery problems right now.</td></tr>';
-    document.querySelectorAll("[data-handled]").forEach(b => b.onclick = async () => {
-      b.disabled = true;
-      try { await post({ action: "problem_handled", id: b.dataset.handled }); b.closest("tr").remove(); $("#cProblems").textContent = Math.max(0, Number($("#cProblems").textContent) - 1); }
-      catch (e) { b.disabled = false; log("Couldn't mark done: " + e.message); }
-    });
-  } catch (e) { $("#problems").innerHTML = '<tr><td colspan="6" class="empty">Couldn\'t load delivery problems: ' + esc(e.message) + "</td></tr>"; }
+    pr.data = await post({ action: "in_process", refresh: !!refresh });
+    const sel = $("#prStatus"), keep = sel.value, counts = {};
+    pr.data.rows.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
+    sel.innerHTML = '<option value="">All statuses (' + pr.data.rows.length + ")</option>" + Object.keys(counts).sort((a, b) => counts[b] - counts[a]).map(k => '<option value="' + esc(k) + '">' + esc(k) + " (" + counts[k] + ")</option>").join("");
+    sel.value = counts[keep] ? keep : "";
+    $("#cProblems").textContent = pr.data.rows.length;
+    document.querySelector('.tab[data-tab="problems"]').classList.toggle("alert", pr.data.rows.some(r => r.issue && !r.handled));
+    $("#prMeta").textContent = pr.data.checked + " parcels checked with TCS, " + pr.data.reused + " reused from the last 15 minutes";
+    if (pr.data.warnings.length) log(pr.data.warnings.join("  ·  "));
+    renderProblems();
+  } catch (e) { pr.data = null; $("#problems").innerHTML = '<tr><td colspan="7" class="empty">Couldn\'t load delivery problems: ' + esc(e.message) + "</td></tr>"; }
+  finally { pr.loading = false; $("#prRefresh").disabled = false; }
 }
+function renderProblems() {
+  if (!pr.data) return;
+  const st = $("#prStatus").value, day = $("#prDate").value;
+  const list = pr.data.rows.filter(r => (!st || r.status === st) && (!day || pkDay(r.createdAt) === day));
+  const reply = (p) => p.reply === "retry" ? '<span class="chip ok">Wants delivery again</span>'
+    : p.reply === "cancel" ? '<span class="chip bad">Wants to cancel</span>'
+    : p.reply === "asked" ? '<span class="chip wait">Asked, no reply</span>' : '<span class="sub">Not messaged</span>';
+  $("#problems").innerHTML = list.length ? list.map(p =>
+    '<tr><td><span class="order">' + esc(p.name) + "</span>" + storeBadge(p) + '<div class="sub">' + esc(pkDay(p.createdAt)) + " · " + esc(p.city) + " · Rs " + esc(p.cod) + "</div></td>" +
+    "<td>" + esc(p.customer) + '<div class="sub"><a href="tel:' + esc(p.phone) + '">' + esc(p.phone) + "</a></div></td>" +
+    '<td><a href="https://www.tcsexpress.com/track/' + esc(p.cn) + '" target="_blank" rel="noopener">' + esc(p.cn) + "</a></td>" +
+    '<td><span class="chip ' + (p.issue ? "bad" : "wait") + '">' + esc(p.status) + "</span></td>" +
+    "<td>" + esc(p.latest) + '<div class="sub">' + esc(p.when) + (p.booked ? " · booked " + esc(p.booked) : "") + "</div>" + (p.events || []).map(e => '<div class="sub">' + esc(e) + "</div>").join("") + "</td>" +
+    "<td>" + reply(p) + "</td>" +
+    "<td>" + (p.handled ? '<span class="chip ok">Handled</span>' : '<button class="btn" data-handled="' + esc(p.id) + '">Mark done</button>') + "</td></tr>").join("")
+    : '<tr><td colspan="7" class="empty">No in-process parcels match.</td></tr>';
+  document.querySelectorAll("[data-handled]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { await post({ action: "problem_handled", id: b.dataset.handled }); const r = pr.data.rows.find(x => x.id === b.dataset.handled); if (r) r.handled = true; renderProblems(); }
+    catch (e) { b.disabled = false; log("Couldn't mark done: " + e.message); }
+  });
+}
+$("#prStatus").onchange = renderProblems;
+$("#prDate").onchange = () => { $("#prAll").classList.toggle("on", !$("#prDate").value); renderProblems(); };
+$("#prAll").onclick = () => { $("#prDate").value = ""; $("#prAll").classList.add("on"); renderProblems(); };
+$("#prRefresh").onclick = () => loadProblems(true);
 
 
 /* ---------- delivery report ---------- */
@@ -888,7 +918,7 @@ const TIPS = [
   ["#waOpen", "Check the WhatsApp number and message templates. Only needed when setting up or if messages stop working."],
   ["#refresh", "Reload the latest orders from both stores."],
   ['.tab[data-tab="waiting"]', "New orders not yet booked on TCS. Check details, then push them to TCS."],
-  ['.tab[data-tab="problems"]', "Parcels TCS couldn't deliver (refused, not home, wrong address). Call the customer, then press Mark done."],
+  ['.tab[data-tab="problems"]', "Every parcel still in process with TCS. Filter by status or order date, call the customer, then press Mark done."],
   ['.tab[data-tab="booked"]', "Orders booked on TCS in the last 2 days, with tracking number and label. Older ones are in the TCS portal."],
   ['.tab[data-tab="blocked"]', "Devices blocked on the website after a fake order. Unblock someone here if they should be allowed to order again."],
   ["#storeFilter", "Show orders from one store or both. Push all ready only books the orders shown."],
@@ -912,7 +942,6 @@ const TIPS = [
   ["[data-unblock]", "Let this person order on the website again. It takes effect on their next page load."],
   ["#blkSearch", "Find a blocked person by order number, name or phone number."],
   ["#p-blocked th:nth-child(4)", "How many times this blocked device came back to the website and was stopped."],
-  ["#p-problems th:nth-child(5)", "What the customer answered on WhatsApp after TCS couldn't deliver."],
   ['.tab[data-tab="delivery"]', "How many of your TCS parcels were delivered or returned, city by city, for any date range you pick."],
   ['.tab[data-tab="total"]', "The delivery ratio of every order placed on one day, from both stores: TCS parcels tracked live plus orders delivered by our own rider (from the courier sheet)."],
   ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Ranges of 3 months or more can take up to a minute."],
@@ -974,7 +1003,7 @@ async function load() {
     $("#pending").innerHTML = '<tr><td colspan="7" class="empty">Couldn\'t load orders. Check your connection and refresh.</td></tr>';
   }
 }
-function loadAll() { load(); loadProblems(); }
+function loadAll() { load(); }
 $("#refresh").onclick = loadAll;
 loadAll();
 </script>

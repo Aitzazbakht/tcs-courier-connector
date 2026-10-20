@@ -29,6 +29,10 @@ The orders page (`/orders/<CONNECTOR_KEY>`) has a **TCS delivery report** tab ne
 
 Pick one order date (Pakistan time, default yesterday) to see the delivery ratio of every order placed that day across both stores: parcels booked on TCS (latest tracking checkpoint, cached 15 minutes; **Refresh TCS status** bypasses the cache) plus orders delivered by our own rider in Rawalpindi/Islamabad, matched by exact amount and similar name against the courier Google Sheet (`COURIER_SHEET_ID` / `COURIER_SHEET_GID` override the defaults; the sheet must be shared as "anyone with the link can view"). **Download PDF** opens a 2-page A4 print view; choose Save as PDF.
 
+### Delivery problems tab
+
+Lists every parcel still in process with TCS (booked in the last 60 days, from both stores), with its latest TCS status and events. Filter by status with the dropdown and by order date (default: All dates). Results are cached 15 minutes; **Refresh TCS status** checks again. **Mark done** hides the alert for that order.
+
 ## Deploy (about 10 minutes)
 
 1. Put this folder in a new **private** GitHub repo.
