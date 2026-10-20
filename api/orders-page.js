@@ -400,9 +400,13 @@ function renderTotal() {
     trow("Total orders placed", d.split.total, d.checks[1].ok ? "adds up" : "does not add up", "sum") + "</table></div>";
   const ranges = '<div class="tbox"><h3>Order numbers and booking dates</h3><table>' + d.stores.map(s => trow(esc(s.label), "#" + s.first + " to #" + s.last, s.total + " orders")).join("") +
     Object.keys(d.bookedDays).sort().map(k => trow("Booked on TCS on " + k, d.bookedDays[k])).join("") + "</table><p class=\"sub\">TCS bookings often happen 1 to 3 days after the order date.</p></div>";
+  const rd = d.lists.rider || [];
+  const rcount = (st) => rd.filter(x => x.status === st).length;
+  const riderBox = '<div class="tbox"><h3>Our rider orders (' + rd.length + "): " + rcount("Delivered") + " delivered, " + rcount("Returned") + " returned, " + rcount("Still open") + " still open</h3>" +
+    (rd.length ? "<table><tr><th>Order</th><th>City</th><th>Status</th><th class=\"n\">Amount</th></tr>" + rd.map(x => "<tr><td><strong>" + esc(x.order) + '</strong><div class="sub">' + esc(x.store) + "</div></td><td>" + esc(x.city || "") + "</td><td>" + x.status + '</td><td class="n">' + rs(x.amount) + "</td></tr>").join("") + "</table>" : '<p class="sub">No orders were matched to our rider for this day.</p>') + "</div>";
   const lst = '<div class="lst">' + lists.map(([n, a]) => "<details" + (a.length && n !== "Cancelled" ? " open" : "") + "><summary>" + n + " (" + a.length + ")</summary>" + listRows(a) + "</details>").join("") + "</div>";
   const foot = '<p class="note">' + esc(d.window.note) + ". Rider orders are matched to the courier sheet by amount and a similar name" + (d.sheet ? " (" + d.sheet.rows + " sheet rows read)" : "") + ". Checks: " + d.checks.map(c => (c.ok ? "✓ " : "✗ ") + esc(c.name)).join(" · ") + "</p>";
-  $("#totBody").innerHTML = box + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + lst + foot;
+  $("#totBody").innerHTML = box + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + riderBox + lst + foot;
 }
 
 $("#totPdf").onclick = () => {
@@ -421,7 +425,9 @@ $("#totPdf").onclick = () => {
     '<div class="g"><div class="c"><h2>What the final ratio could be</h2>' + T(r2("Best case: all open or unaccounted orders get delivered", pc(sc.best.ratio), sc.best.delivered + " of " + t.shipped) + r2("Worst case: no more deliveries", pc(sc.worst.ratio), sc.worst.delivered + " delivered, " + sc.worst.failures + " did not") + r2("If the " + t.cancelled + " cancelled orders were counted", pc(sc.withCancelled.ratio), t.delivered + " of " + sc.withCancelled.base)) + "</div>" +
     '<div class="c"><h2>All orders placed</h2>' + T(r2("Cancelled or fake", d.split.cancelled) + r2("Delivered by our rider", d.split.rider) + r2("Booked on TCS", d.split.tcs) + r2("Not accounted for", d.split.unaccounted) + '<tr class="s"><td>Total orders placed</td><td class="n">' + d.split.total + "</td><td></td></tr>") + "</div></div>" +
     '<div class="c"><h2>Order numbers and booking dates</h2>' + T(d.stores.map(s => r2(esc(s.label), "#" + s.first + " to #" + s.last, s.total + " orders")).join("") + Object.keys(d.bookedDays).sort().map(k => r2("Booked on TCS on " + k, d.bookedDays[k])).join("")) + '<div class="fn">TCS bookings often happen 1 to 3 days after the order date.</div></div></div>';
-  const p2 = '<div class="pg"><h1>Order details</h1>' + lists.map(([n, a]) => L(n, a)).join("") +
+  const rd = d.lists.rider || [];
+  const riderPdf = "<h3>Our rider orders (" + rd.length + ")</h3>" + (rd.length ? '<table class="l"><tr><th style="width:15%">Order</th><th>City</th><th>Status</th><th class="n" style="width:14%">Amount (PKR)</th></tr>' + rd.map(x => "<tr><td>" + esc(x.order) + "</td><td>" + esc(x.city || "") + "</td><td>" + x.status + '</td><td class="n">' + Number(x.amount).toLocaleString("en-PK") + "</td></tr>").join("") + "</table>" : "<p>None.</p>");
+  const p2 = '<div class="pg"><h1>Order details</h1>' + riderPdf + lists.map(([n, a]) => L(n, a)).join("") +
     '<div class="fn"><strong>Sources and method.</strong> Orders come from both Shopify stores for the Pakistan day ' + ord + " (" + esc(d.window.note) + "). Parcels booked on TCS are checked live with TCS tracking and counted by their latest status. Orders delivered by our rider in Rawalpindi and Islamabad are matched to the courier sheet by amount and a similar name. Cancelled and fake orders are left out of the ratio.</div></div>";
   const w = window.open("", "_blank"); if (!w) return log("Allow pop-ups to open the print view.");
   w.document.write("<!doctype html><html><head><meta charset=\"utf-8\"><title>Delivery Ratio " + esc(d.date) + "</title><style>" + css + "</style></head><body>" + p1 + p2 + "</body></html>");
