@@ -23,7 +23,11 @@ No dependencies. Runs as one serverless function on Vercel.
 
 ## Orders page: Delivery report tab
 
-The orders page (`/orders/<CONNECTOR_KEY>`) has a **Delivery report** tab next to **Blocked**. Pick a From/To date (or Last 30 days / 3 months / 6 months) and it pulls the parcels booked in that range from TCS and shows, overall and city by city: booked, delivered, returned and still in process. Delivered % is delivered ÷ (delivered + returned). Ranges up to about 6 months are fetched in monthly windows because TCS handles roughly 31 days per request.
+The orders page (`/orders/<CONNECTOR_KEY>`) has a **TCS delivery report** tab next to **Blocked**. Pick a From/To date (or Last 30 days / 3 months / 6 months) and it pulls the parcels booked in that range from TCS and shows, overall and city by city: booked, delivered, returned and still in process. Delivered % is delivered ÷ (delivered + returned). Ranges up to about 6 months are fetched in monthly windows because TCS handles roughly 31 days per request.
+
+### Total delivery report tab
+
+Pick one order date (Pakistan time, default yesterday) to see the delivery ratio of every order placed that day across both stores: parcels booked on TCS (latest tracking checkpoint, cached 15 minutes; **Refresh TCS status** bypasses the cache) plus orders delivered by our own rider in Rawalpindi/Islamabad, matched by exact amount and similar name against the courier Google Sheet (`COURIER_SHEET_ID` / `COURIER_SHEET_GID` override the defaults; the sheet must be shared as "anyone with the link can view"). **Download PDF** opens a 2-page A4 print view; choose Save as PDF.
 
 ## Deploy (about 10 minutes)
 

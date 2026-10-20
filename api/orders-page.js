@@ -133,6 +133,24 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
 .daterange .arr{color:var(--mute)}
 .daterange:focus-within{box-shadow:0 0 0 3px var(--pine-soft)}
 @media (max-width:560px){.seg{width:100%}.seg button{flex:1;padding:7px 6px}.daterange{width:100%;justify-content:space-between}}
+.ratiobox{background:var(--pine-soft);border:1px solid var(--pine);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px}
+.ratiobox .big{font-size:44px;font-weight:800;color:var(--pine);line-height:1}
+.ratiobox p{margin:0;flex:1;min-width:220px}
+.tgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px}
+@media (max-width:820px){.tgrid{grid-template-columns:minmax(0,1fr)}}
+.tbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.tbox h3{margin:0 0 8px;font-size:14px}
+.tbox table{width:100%;border-collapse:collapse;font-size:13px}
+.tbox td,.tbox th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
+.tbox th{color:var(--mute);font-weight:600}
+.tbox td.n,.tbox th.n{text-align:right;white-space:nowrap}
+.tbox tr.sum td{font-weight:800;border-bottom:0}
+.tbox .sub{font-size:12px}
+.lst details{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;padding:8px 14px}
+.lst summary{cursor:pointer;font-weight:700}
+.lst table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.lst td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}
+.lst td.n{text-align:right;white-space:nowrap}
 .btn.on{background:var(--pine-soft);border-color:var(--pine);font-weight:700}
 .t-sm{min-width:1000px}
 th[data-sort]{cursor:pointer;user-select:none;white-space:nowrap}
@@ -209,7 +227,8 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     <button class="tab" role="tab" data-tab="problems" aria-selected="false">Delivery problems <b id="cProblems">–</b></button>
     <button class="tab" role="tab" data-tab="booked" aria-selected="false">Booked, last 2 days <b id="cBooked">–</b></button>
     <button class="tab" role="tab" data-tab="blocked" aria-selected="false">Blocked <b id="cBlocked">–</b></button>
-    <button class="tab" role="tab" data-tab="delivery" aria-selected="false">Delivery report <b id="cDelivery">–</b></button>
+    <button class="tab" role="tab" data-tab="delivery" aria-selected="false">TCS delivery report <b id="cDelivery">–</b></button>
+    <button class="tab" role="tab" data-tab="total" aria-selected="false">Total delivery report <b id="cTotal">–</b></button>
   </nav>
 </div></header>
 
@@ -291,6 +310,17 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     </table></div></div>
     <p class="note" style="margin-top:12px" id="repNote">Data comes from TCS bulk inquiry: every parcel booked in the date range with its status, city and COD value, the same source as the TCS portal dashboard. Parcels are picked by booking date. Delivered % is delivered ÷ (delivered + returned), so parcels still on the way don't count against you. Returned includes parcels on their way back. Cancelled bookings are left out. Delivered amount and Returned amount are the COD values of those parcels. Amount delivered % is delivered amount ÷ (delivered + returned amount). If TCS bulk inquiry is unavailable the page falls back to payment data, load sheets and Shopify orders.</p>
   </section>
+
+  <section class="panel" id="p-total" hidden>
+    <div class="toolbar">
+      <label class="field">Order date <input type="date" id="totDate"></label>
+      <button class="btn primary" id="totRun">Show report</button>
+      <button class="btn" id="totRefresh" data-tip="Ask TCS again for every parcel instead of using the results saved in the last 15 minutes.">Refresh TCS status</button>
+      <button class="btn" id="totPdf" disabled data-tip="Opens a 2-page A4 print view. Choose Save as PDF in the print window.">Download PDF</button>
+      <span class="stats" id="totMeta" style="margin-left:auto"></span>
+    </div>
+    <div id="totBody"><p class="note">Open this tab to load yesterday's orders.</p></div>
+  </section>
 </main>
 <div id="tip" role="tooltip"></div>
 
@@ -320,7 +350,83 @@ function applyPreset(kind) {
   document.querySelectorAll("[data-preset]").forEach(b => b.classList.toggle("on", b.dataset.preset === kind));
 }
 applyPreset("30d");
+let tot = { data: null, loading: false };
 function ensureReport() { if (!rep.data && !rep.loading) runReport(); }
+
+/* ---------- total delivery report (one order day, both stores + local rider) ---------- */
+function yesterdayPK() { return new Date(Date.now() + 5 * 3600e3 - 86400000).toISOString().slice(0, 10); }
+$("#totDate").value = yesterdayPK();
+function ensureTotal() { if (!tot.data && !tot.loading) runTotal(false); }
+async function runTotal(refresh) {
+  if (tot.loading) return;
+  const date = $("#totDate").value; if (!date) return log("Pick an order date.");
+  tot.loading = true; $("#totRun").disabled = true; $("#totRefresh").disabled = true; $("#totPdf").disabled = true; log("");
+  $("#totBody").innerHTML = '<p class="note">Reading orders and checking every parcel with TCS… this can take up to a minute.</p>';
+  try {
+    tot.data = await post({ action: "daily_report", date, refresh: !!refresh });
+    renderTotal();
+    if (tot.data.warnings.length) log(tot.data.warnings.join("  ·  "));
+  } catch (e) { tot.data = null; $("#cTotal").textContent = "–"; $("#totBody").innerHTML = '<p class="note">Could not load the report: ' + esc(e.message) + "</p>"; log(e.message); }
+  finally { tot.loading = false; $("#totRun").disabled = false; $("#totRefresh").disabled = false; }
+}
+$("#totRun").onclick = () => runTotal(false);
+$("#totRefresh").onclick = () => runTotal(true);
+$("#totDate").onkeydown = (e) => { if (e.key === "Enter") runTotal(false); };
+
+function trow(label, n, sub, cls) { return "<tr" + (cls ? ' class="' + cls + '"' : "") + "><td>" + label + '</td><td class="n">' + n + '</td><td class="n sub">' + (sub == null ? "" : sub) + "</td></tr>"; }
+function listRows(a) { return a.length ? "<table>" + a.map(x => "<tr><td><strong>" + esc(x.order) + '</strong><div class="sub">' + esc(x.store) + "</div></td><td>" + esc(x.detail) + '</td><td class="n">' + rs(x.amount) + "</td></tr>").join("") + "</table>" : '<p class="sub">None.</p>'; }
+function totalSections(d) {
+  const t = d.totals, sc = d.scenarios;
+  const lists = [["Cancelled", d.lists.cancelled], ["Returned or refused", d.lists.failed], ["Still open", d.lists.open], ["Needs manual check", d.lists.manual]];
+  return { t, sc, lists };
+}
+function renderTotal() {
+  const d = tot.data; if (!d) return;
+  const { t, sc, lists } = totalSections(d);
+  $("#cTotal").textContent = t.ratio == null ? "–" : Math.round(t.ratio) + "%";
+  $("#totPdf").disabled = false;
+  $("#totMeta").textContent = "Status as of " + new Date().toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + " · " + d.cache.fetched + " parcels checked with TCS, " + d.cache.reused + " reused from the last 15 minutes";
+  const box = '<div class="ratiobox"><div class="big">' + pc(t.ratio) + "</div><p><strong>" + t.delivered + " of " + t.shipped + " shipped orders delivered.</strong> The " + t.cancelled + " cancelled fake orders are excluded because they were never booked.</p></div>";
+  const outcome = '<div class="tbox"><h3>Outcome of shipped orders</h3><table>' +
+    trow("Delivered by TCS", t.deliveredTcs) + trow("Delivered by our rider", t.deliveredRider) + trow("Returned, refused or cancelled", t.failed) + trow("Still open", t.open) + trow("Not accounted for", t.unaccounted) +
+    trow("Shipped orders", t.shipped, d.checks[0].ok ? "adds up" : "does not add up", "sum") + "</table></div>";
+  const stores = '<div class="tbox"><h3>By store</h3><table><tr><th>Store</th><th class="n">Shipped</th><th class="n">Delivered</th><th class="n">Ratio</th></tr>' +
+    d.stores.map(s => "<tr><td>" + esc(s.label) + (s.small ? '<div class="sub">fewer than 5 orders, ratio is not reliable</div>' : "") + '</td><td class="n">' + s.shipped + '</td><td class="n">' + s.delivered + '</td><td class="n"><strong>' + pc(s.ratio) + "</strong></td></tr>").join("") + "</table></div>";
+  const scen = '<div class="tbox"><h3>What the final ratio could be</h3><table>' +
+    trow("Best case: every open or unaccounted order gets delivered", pc(sc.best.ratio), sc.best.delivered + " of " + t.shipped) +
+    trow("Worst case: no more deliveries", pc(sc.worst.ratio), sc.worst.delivered + " delivered, " + sc.worst.failures + " did not") +
+    trow("If the " + t.cancelled + " cancelled orders were counted", pc(sc.withCancelled.ratio), t.delivered + " of " + sc.withCancelled.base) + "</table></div>";
+  const split = '<div class="tbox"><h3>All orders placed</h3><table>' + trow("Cancelled or fake", d.split.cancelled) + trow("Delivered by our rider (courier sheet)", d.split.rider) + trow("Booked on TCS", d.split.tcs) + trow("Not accounted for", d.split.unaccounted) +
+    trow("Total orders placed", d.split.total, d.checks[1].ok ? "adds up" : "does not add up", "sum") + "</table></div>";
+  const ranges = '<div class="tbox"><h3>Order numbers and booking dates</h3><table>' + d.stores.map(s => trow(esc(s.label), "#" + s.first + " to #" + s.last, s.total + " orders")).join("") +
+    Object.keys(d.bookedDays).sort().map(k => trow("Booked on TCS on " + k, d.bookedDays[k])).join("") + "</table><p class=\"sub\">TCS bookings often happen 1 to 3 days after the order date.</p></div>";
+  const lst = '<div class="lst">' + lists.map(([n, a]) => "<details" + (a.length && n !== "Cancelled" ? " open" : "") + "><summary>" + n + " (" + a.length + ")</summary>" + listRows(a) + "</details>").join("") + "</div>";
+  const foot = '<p class="note">' + esc(d.window.note) + ". Rider orders are matched to the courier sheet by amount and a similar name" + (d.sheet ? " (" + d.sheet.rows + " sheet rows read)" : "") + ". Checks: " + d.checks.map(c => (c.ok ? "✓ " : "✗ ") + esc(c.name)).join(" · ") + "</p>";
+  $("#totBody").innerHTML = box + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + lst + foot;
+}
+
+$("#totPdf").onclick = () => {
+  const d = tot.data; if (!d) return;
+  const { t, sc, lists } = totalSections(d);
+  const T = (rows) => "<table>" + rows + "</table>";
+  const r2 = (a, b, c) => "<tr><td>" + a + '</td><td class="n">' + b + '</td><td class="n">' + (c == null ? "" : c) + "</td></tr>";
+  const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const ord = new Date(d.date + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const L = (n, a) => "<h3>" + n + " (" + a.length + ")</h3>" + (a.length ? "<table class=\"l\"><tr><th style=\"width:15%\">Order</th><th>Detail</th><th class=\"n\" style=\"width:14%\">Amount (PKR)</th></tr>" + a.map(x => "<tr><td>" + esc(x.order) + "</td><td>" + esc(x.detail) + '</td><td class="n">' + Number(x.amount).toLocaleString("en-PK") + "</td></tr>").join("") + "</table>" : "<p>None.</p>");
+  const css = "@page{size:A4;margin:11mm}*{box-sizing:border-box}body{font:9.5pt/1.35 Arial,Helvetica,sans-serif;color:#111;margin:0}h1{font-size:17pt;margin:0}h2{font-size:10.5pt;margin:0 0 6px}h3{font-size:9.5pt;margin:8px 0 3px}.sub{color:#555;margin:2px 0 10px}.box{border:2px solid #2E6A4E;background:#E3EFE8;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;gap:16px;align-items:center}.big{font-size:32pt;font-weight:800;color:#2E6A4E}.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}.c{border:1px solid #ccc;border-radius:6px;padding:7px 9px;margin-bottom:10px}table{width:100%;border-collapse:collapse}td,th{padding:3px 4px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.n{text-align:right;white-space:nowrap}.s td{font-weight:800;border-bottom:0}table.l{font-size:8.5pt}table.l td,table.l th{padding:2px 4px}.pg{page-break-after:always}.pg:last-child{page-break-after:auto}.fn{font-size:8.5pt;color:#444;margin-top:8px}";
+  const p1 = '<div class="pg"><h1>Delivery Ratio: ' + ord + " Orders</h1><div class=\"sub\">Status as of " + today + "</div>" +
+    '<div class="box"><div class="big">' + pc(t.ratio) + "</div><div><strong>" + t.delivered + " of " + t.shipped + " shipped orders delivered.</strong> The " + t.cancelled + " cancelled fake orders are excluded because they were never booked.</div></div>" +
+    '<div class="g"><div class="c"><h2>Outcome of shipped orders</h2>' + T(r2("Delivered by TCS", t.deliveredTcs) + r2("Delivered by our rider", t.deliveredRider) + r2("Returned, refused or cancelled", t.failed) + r2("Still open", t.open) + r2("Not accounted for", t.unaccounted) + '<tr class="s"><td>Shipped orders</td><td class="n">' + t.shipped + "</td><td></td></tr>") + "</div>" +
+    '<div class="c"><h2>By store</h2>' + T("<tr><th>Store</th><th class=\"n\">Shipped</th><th class=\"n\">Delivered</th><th class=\"n\">Ratio</th></tr>" + d.stores.map(s => "<tr><td>" + esc(s.label) + (s.small ? " *" : "") + '</td><td class="n">' + s.shipped + '</td><td class="n">' + s.delivered + '</td><td class="n">' + pc(s.ratio) + "</td></tr>").join("")) + (d.stores.some(s => s.small) ? '<div class="fn">* fewer than 5 orders, so the ratio is not reliable.</div>' : "") + "</div></div>" +
+    '<div class="g"><div class="c"><h2>What the final ratio could be</h2>' + T(r2("Best case: all open or unaccounted orders get delivered", pc(sc.best.ratio), sc.best.delivered + " of " + t.shipped) + r2("Worst case: no more deliveries", pc(sc.worst.ratio), sc.worst.delivered + " delivered, " + sc.worst.failures + " did not") + r2("If the " + t.cancelled + " cancelled orders were counted", pc(sc.withCancelled.ratio), t.delivered + " of " + sc.withCancelled.base)) + "</div>" +
+    '<div class="c"><h2>All orders placed</h2>' + T(r2("Cancelled or fake", d.split.cancelled) + r2("Delivered by our rider", d.split.rider) + r2("Booked on TCS", d.split.tcs) + r2("Not accounted for", d.split.unaccounted) + '<tr class="s"><td>Total orders placed</td><td class="n">' + d.split.total + "</td><td></td></tr>") + "</div></div>" +
+    '<div class="c"><h2>Order numbers and booking dates</h2>' + T(d.stores.map(s => r2(esc(s.label), "#" + s.first + " to #" + s.last, s.total + " orders")).join("") + Object.keys(d.bookedDays).sort().map(k => r2("Booked on TCS on " + k, d.bookedDays[k])).join("")) + '<div class="fn">TCS bookings often happen 1 to 3 days after the order date.</div></div></div>';
+  const p2 = '<div class="pg"><h1>Order details</h1>' + lists.map(([n, a]) => L(n, a)).join("") +
+    '<div class="fn"><strong>Sources and method.</strong> Orders come from both Shopify stores for the Pakistan day ' + ord + " (" + esc(d.window.note) + "). Parcels booked on TCS are checked live with TCS tracking and counted by their latest status. Orders delivered by our rider in Rawalpindi and Islamabad are matched to the courier sheet by amount and a similar name. Cancelled and fake orders are left out of the ratio.</div></div>";
+  const w = window.open("", "_blank"); if (!w) return log("Allow pop-ups to open the print view.");
+  w.document.write("<!doctype html><html><head><meta charset=\"utf-8\"><title>Delivery Ratio " + esc(d.date) + "</title><style>" + css + "</style></head><body>" + p1 + p2 + "</body></html>");
+  w.document.close(); setTimeout(() => { w.focus(); w.print(); }, 400);
+};
 
 /* ---------- tabs ---------- */
 function showTab(name) {
@@ -328,9 +434,10 @@ function showTab(name) {
   document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "p-" + name);
   try { history.replaceState(null, "", "#" + name); } catch (e) {}
   if (name === "delivery") ensureReport();
+  if (name === "total") ensureTotal();
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
-showTab(["waiting", "problems", "booked", "blocked", "delivery"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
+showTab(["waiting", "problems", "booked", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
 
 /* ---------- WhatsApp setup popover ---------- */
 $("#waOpen").onclick = (e) => { e.stopPropagation(); const open = $("#waPanel").classList.toggle("open"); $("#waOpen").setAttribute("aria-expanded", String(open)); };
@@ -801,6 +908,7 @@ const TIPS = [
   ["#p-blocked th:nth-child(4)", "How many times this blocked device came back to the website and was stopped."],
   ["#p-problems th:nth-child(5)", "What the customer answered on WhatsApp after TCS couldn't deliver."],
   ['.tab[data-tab="delivery"]', "How many of your TCS parcels were delivered or returned, city by city, for any date range you pick."],
+  ['.tab[data-tab="total"]', "The delivery ratio of every order placed on one day, from both stores: TCS parcels tracked live plus orders delivered by our own rider (from the courier sheet)."],
   ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Ranges of 3 months or more can take up to a minute."],
   ["#p-delivery th:nth-child(8)", "Delivered ÷ (delivered + returned) by number of parcels. Parcels still on the way are left out until they finish."],
   ["#p-delivery th:nth-child(6)", "COD value of the delivered parcels in this city."],
