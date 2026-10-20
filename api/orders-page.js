@@ -140,7 +140,7 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
 @media (max-width:820px){.tgrid{grid-template-columns:minmax(0,1fr)}}
 .tbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
 .tbox h3{margin:0 0 8px;font-size:14px}
-.tbox table{width:100%;border-collapse:collapse;font-size:13px}
+.tbox table,.lst table{min-width:0;width:100%;border-collapse:collapse;font-size:13px}
 .tbox td,.tbox th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
 .tbox th{color:var(--mute);font-weight:600}
 .tbox td.n,.tbox th.n{text-align:right;white-space:nowrap}
@@ -148,7 +148,7 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
 .tbox .sub{font-size:12px}
 .lst details{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;padding:8px 14px}
 .lst summary{cursor:pointer;font-weight:700}
-.lst table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.lst table{min-width:0;width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
 .lst td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}
 .lst td.n{text-align:right;white-space:nowrap}
 .btn.on{background:var(--pine-soft);border-color:var(--pine);font-weight:700}
