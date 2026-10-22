@@ -287,6 +287,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <thead><tr><th>Customer</th><th>Contact</th><th>Cart</th><th>Left</th><th></th></tr></thead>
       <tbody id="abBody"><tr><td colspan="5" class="empty">Open this tab to load abandoned carts.</td></tr></tbody>
     </table></div></div>
+    <div id="abStats" style="margin-top:14px"></div>
   </section>
   <section class="panel" id="p-blocked" hidden>
     <div class="toolbar">
@@ -674,7 +675,7 @@ async function loadAband() {
     ab.data = await post({ action: "abandoned", from, to });
     if (!from) $("#abFrom").value = ab.data.from; if (!to) $("#abTo").value = ab.data.to;
     if (ab.data.warnings.length) log(ab.data.warnings.join("  ·  "));
-    renderAband();
+    renderAband(); loadAbStats(from, to);
   } catch (e) { ab.data = null; $("#abBody").innerHTML = '<tr><td colspan="5" class="empty">Couldn\'t load abandoned carts: ' + esc(e.message) + "</td></tr>"; }
   finally { ab.loading = false; $("#abRun").disabled = false; }
 }
@@ -702,6 +703,17 @@ function renderAband() {
     try { await post({ action: "abandoned_handled", id: b.dataset.abdone }); const r = ab.data.rows.find(x => x.id === b.dataset.abdone); if (r) r.handled = true; renderAband(); }
     catch (e) { b.disabled = false; log("Couldn't mark done: " + e.message); }
   });
+}
+async function loadAbStats(from, to) {
+  $("#abStats").innerHTML = '<p class="note">Checking how many offers worked…</p>';
+  try {
+    const d = await post({ action: "abandoned_stats", from: from || ab.data.from, to: to || ab.data.to });
+    const rows = d.orders.map(o => "<tr><td><strong>" + esc(o.name) + "</strong><div class=\"sub\">" + esc(o.store) + "</div></td><td>" + esc(o.customer) + "</td><td>" + when(o.at) + '</td><td class="n">' + rs(o.amount) + '</td><td class="n">' + rs(o.discount) + "</td></tr>").join("");
+    $("#abStats").innerHTML = '<div class="tbox"><h3>How the 10% offers worked (' + esc(d.from) + " to " + esc(d.to) + ")</h3>" +
+      '<table><tr><td>Offers sent</td><td class="n">' + d.sent + "</td></tr><tr><td>Carts recovered (ordered with their code)</td><td class=\"n\"><strong>" + d.recovered + "</strong>" + (d.rate == null ? "" : " (" + d.rate + "%)") + "</td></tr><tr><td>Sales recovered</td><td class=\"n\"><strong>" + rs(d.revenue) + "</strong></td></tr><tr><td>Discount given</td><td class=\"n\">" + rs(d.discount) + "</td></tr></table>" +
+      (d.sent ? '<p class="sub">Counts offers sent in this date range. Cancelled orders are not counted. An offer only counts when the customer orders with the code we sent.</p>' : '<p class="sub">No offers sent in this date range yet.</p>') +
+      (rows ? '<table style="margin-top:8px"><tr><th>Order</th><th>Customer</th><th>Placed</th><th class="n">Total</th><th class="n">Discount</th></tr>' + rows + "</table>" : "") + "</div>";
+  } catch (e) { $("#abStats").innerHTML = '<p class="note">Couldn\'t load offer results: ' + esc(e.message) + "</p>"; }
 }
 { const t = new Date(Date.now() + 5 * 3600e3); $("#abTo").value = t.toISOString().slice(0, 10); $("#abFrom").value = new Date(t - 6 * 86400000).toISOString().slice(0, 10); }
 $("#abRun").onclick = loadAband;
