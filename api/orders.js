@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       return res.status(200).json(await deliveryReport(String(body.from || ""), String(body.to || "")));
     }
     if (body.action === "daily_report") {
-      return res.status(200).json(await dailyReport(String(body.date || ""), { refresh: body.refresh === true }));
+      return res.status(200).json(await dailyReport(String(body.date || ""), { refresh: body.refresh === true, to: String(body.to || "") }));
     }
     if (body.action === "in_process") return res.status(200).json(await inProcess({ refresh: body.refresh === true }));
     if (body.action === "problems") {

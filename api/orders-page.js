@@ -320,13 +320,14 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
 
   <section class="panel" id="p-total" hidden>
     <div class="toolbar">
-      <label class="field">Order date <input type="date" id="totDate"></label>
+      <label class="field">From <input type="date" id="totDate"></label>
+      <label class="field">To <input type="date" id="totTo"></label>
       <button class="btn primary" id="totRun">Show report</button>
       <button class="btn" id="totRefresh" data-tip="Ask TCS again for every parcel instead of using the results saved in the last 15 minutes.">Refresh TCS status</button>
       <button class="btn" id="totPdf" disabled data-tip="Opens a 2-page A4 print view. Choose Save as PDF in the print window.">Download PDF</button>
       <span class="stats" id="totMeta" style="margin-left:auto"></span>
     </div>
-    <div id="totBody"><p class="note">Open this tab to load yesterday's orders.</p></div>
+    <div id="totBody"><p class="note">Open this tab to load yesterday's orders, or pick a From and To date.</p></div>
   </section>
 </main>
 <div id="tip" role="tooltip"></div>
@@ -362,15 +363,16 @@ function ensureReport() { if (!rep.data && !rep.loading) runReport(); }
 
 /* ---------- total delivery report (one order day, both stores + local rider) ---------- */
 function yesterdayPK() { return new Date(Date.now() + 5 * 3600e3 - 86400000).toISOString().slice(0, 10); }
-$("#totDate").value = yesterdayPK();
+$("#totDate").value = yesterdayPK(); $("#totTo").value = yesterdayPK();
+$("#totDate").onchange = () => { if ($("#totTo").value < $("#totDate").value) $("#totTo").value = $("#totDate").value; };
 function ensureTotal() { if (!tot.data && !tot.loading) runTotal(false); }
 async function runTotal(refresh) {
   if (tot.loading) return;
-  const date = $("#totDate").value; if (!date) return log("Pick an order date.");
+  const date = $("#totDate").value, to = $("#totTo").value || date; if (!date) return log("Pick an order date."); if (to < date) return log("The end date is before the start date.");
   tot.loading = true; $("#totRun").disabled = true; $("#totRefresh").disabled = true; $("#totPdf").disabled = true; log("");
   $("#totBody").innerHTML = '<p class="note">Reading orders and checking every parcel with TCS… this can take up to a minute.</p>';
   try {
-    tot.data = await post({ action: "daily_report", date, refresh: !!refresh });
+    tot.data = await post({ action: "daily_report", date, to, refresh: !!refresh });
     renderTotal();
     if (tot.data.warnings.length) log(tot.data.warnings.join("  ·  "));
   } catch (e) { tot.data = null; $("#cTotal").textContent = "–"; $("#totBody").innerHTML = '<p class="note">Could not load the report: ' + esc(e.message) + "</p>"; log(e.message); }
@@ -422,7 +424,8 @@ $("#totPdf").onclick = () => {
   const T = (rows) => "<table>" + rows + "</table>";
   const r2 = (a, b, c) => "<tr><td>" + a + '</td><td class="n">' + b + '</td><td class="n">' + (c == null ? "" : c) + "</td></tr>";
   const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  const ord = new Date(d.date + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const fd = (x) => new Date(x + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const ord = d.dateTo && d.dateTo !== d.date ? fd(d.date) + " to " + fd(d.dateTo) : fd(d.date);
   const L = (n, a) => "<h3>" + n + " (" + a.length + ")</h3>" + (a.length ? "<table class=\"l\"><tr><th style=\"width:15%\">Order</th><th>Detail</th><th class=\"n\" style=\"width:14%\">Amount (PKR)</th></tr>" + a.map(x => "<tr><td>" + esc(x.order) + "</td><td>" + esc(x.detail) + '</td><td class="n">' + Number(x.amount).toLocaleString("en-PK") + "</td></tr>").join("") + "</table>" : "<p>None.</p>");
   const css = "@page{size:A4;margin:11mm}*{box-sizing:border-box}body{font:9.5pt/1.35 Arial,Helvetica,sans-serif;color:#111;margin:0}h1{font-size:17pt;margin:0}h2{font-size:10.5pt;margin:0 0 6px}h3{font-size:9.5pt;margin:8px 0 3px}.sub{color:#555;margin:2px 0 10px}.box{border:2px solid #2E6A4E;background:#E3EFE8;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;gap:16px;align-items:center}.big{font-size:32pt;font-weight:800;color:#2E6A4E}.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}.c{border:1px solid #ccc;border-radius:6px;padding:7px 9px;margin-bottom:10px}table{width:100%;border-collapse:collapse}td,th{padding:3px 4px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.n{text-align:right;white-space:nowrap}.s td{font-weight:800;border-bottom:0}table.l{font-size:8.5pt}table.l td,table.l th{padding:2px 4px}.pg{page-break-after:always}.pg:last-child{page-break-after:auto}.fn{font-size:8.5pt;color:#444;margin-top:8px}";
   const p1 = '<div class="pg"><h1>Delivery Ratio: ' + ord + " Orders</h1><div class=\"sub\">Status as of " + today + "</div>" +
@@ -435,9 +438,9 @@ $("#totPdf").onclick = () => {
   const rd = d.lists.rider || [];
   const riderPdf = "<h3>Our rider orders (" + rd.length + ")</h3>" + (rd.length ? '<table class="l"><tr><th style="width:15%">Order</th><th>City</th><th>Status</th><th class="n" style="width:14%">Amount (PKR)</th></tr>' + rd.map(x => "<tr><td>" + esc(x.order) + "</td><td>" + esc(x.city || "") + "</td><td>" + x.status + '</td><td class="n">' + Number(x.amount).toLocaleString("en-PK") + "</td></tr>").join("") + "</table>" : "<p>None.</p>");
   const p2 = '<div class="pg"><h1>Order details</h1>' + riderPdf + lists.map(([n, a]) => L(n, a)).join("") +
-    '<div class="fn"><strong>Sources and method.</strong> Orders come from both Shopify stores for the Pakistan day ' + ord + " (" + esc(d.window.note) + "). Parcels booked on TCS are checked live with TCS tracking and counted by their latest status. Orders delivered by our rider in Rawalpindi and Islamabad are matched to the courier sheet by amount and a similar name. Cancelled and fake orders are left out of the ratio.</div></div>";
+    '<div class="fn"><strong>Sources and method.</strong> Orders come from both Shopify stores for the Pakistan time period ' + ord + " (" + esc(d.window.note) + "). Parcels booked on TCS are checked live with TCS tracking and counted by their latest status. Orders delivered by our rider in Rawalpindi and Islamabad are matched to the courier sheet by amount and a similar name. Cancelled and fake orders are left out of the ratio.</div></div>";
   const w = window.open("", "_blank"); if (!w) return log("Allow pop-ups to open the print view.");
-  w.document.write("<!doctype html><html><head><meta charset=\"utf-8\"><title>Delivery Ratio " + esc(d.date) + "</title><style>" + css + "</style></head><body>" + p1 + p2 + "</body></html>");
+  w.document.write("<!doctype html><html><head><meta charset=\"utf-8\"><title>Delivery Ratio " + esc(d.date + (d.dateTo && d.dateTo !== d.date ? " to " + d.dateTo : "")) + "</title><style>" + css + "</style></head><body>" + p1 + p2 + "</body></html>");
   w.document.close(); setTimeout(() => { w.focus(); w.print(); }, 400);
 };
 
