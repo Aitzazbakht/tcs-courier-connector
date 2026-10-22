@@ -278,6 +278,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <label class="field">To <input type="date" id="abTo"></label>
       <button class="btn primary" id="abRun">Show</button>
       <label class="field"><input type="checkbox" id="abHidden"> Show handled</label>
+      <button class="btn" id="abTest" data-tip="Sends the 10% offer message for the first cart below to a phone number you type, so you can try the link yourself. Nothing is marked as sent.">Send a test</button>
       <span class="stats" id="abMeta" style="margin-left:auto"></span>
     </div>
     <p class="note">Customers who started checkout and left their name and a phone number or email, but did not order. Contact them, then press Mark done.</p>
@@ -687,8 +688,14 @@ function renderAband() {
     "<td>" + (r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + "</a>" + (r.wa ? ' · <a href="https://wa.me/92' + esc(r.wa.slice(1)) + '" target="_blank" rel="noopener">WhatsApp</a>' : "") : "") + (r.email ? '<div class="sub"><a href="mailto:' + esc(r.email) + '">' + esc(r.email) + "</a></div>" : "") + "</td>" +
     "<td>" + esc(r.items || "No items") + '<div class="sub">Rs ' + esc(r.amount) + (r.url ? ' · <a href="' + esc(r.url) + '" target="_blank" rel="noopener">Checkout link</a>' : "") + "</div></td>" +
     "<td>" + when(r.createdAt) + "</td>" +
-    "<td>" + (r.handled ? '<span class="chip ok">Handled</span>' : '<button class="btn" data-abdone="' + esc(r.id) + '">Mark done</button>') + "</td></tr>").join("")
+    "<td>" + (r.offered ? '<span class="chip wait" data-tip="10% offer sent on WhatsApp">Offer sent</span> ' : (r.wa && !r.handled ? '<button class="btn" data-aboffer="' + esc(r.id) + '">Send 10% offer</button> ' : "")) + (r.handled ? '<span class="chip ok">Handled</span>' : '<button class="btn" data-abdone="' + esc(r.id) + '">Mark done</button>') + "</td></tr>").join("")
     : '<tr><td colspan="5" class="empty">No abandoned carts with contact details in this range.</td></tr>';
+  document.querySelectorAll("[data-aboffer]").forEach(b => b.onclick = async () => {
+    if (!confirm("Send this customer a WhatsApp message with a one-time 10% discount link?")) return;
+    b.disabled = true;
+    try { await post({ action: "abandoned_offer", id: b.dataset.aboffer }); const r = ab.data.rows.find(x => x.id === b.dataset.aboffer); if (r) r.offered = new Date().toISOString(); log("Offer sent."); renderAband(); }
+    catch (e) { b.disabled = false; log("Couldn't send the offer: " + e.message); }
+  });
   document.querySelectorAll("[data-abdone]").forEach(b => b.onclick = async () => {
     b.disabled = true;
     try { await post({ action: "abandoned_handled", id: b.dataset.abdone }); const r = ab.data.rows.find(x => x.id === b.dataset.abdone); if (r) r.handled = true; renderAband(); }
@@ -697,6 +704,13 @@ function renderAband() {
 }
 { const t = new Date(Date.now() + 5 * 3600e3); $("#abTo").value = t.toISOString().slice(0, 10); $("#abFrom").value = new Date(t - 6 * 86400000).toISOString().slice(0, 10); }
 $("#abRun").onclick = loadAband;
+$("#abTest").onclick = async () => {
+  const row = ab.data && ab.data.rows.find(r => !r.handled && !r.offered && r.wa) || ab.data && ab.data.rows.find(r => r.wa);
+  if (!row) return log("There is no cart with a phone number to use for the test.");
+  const to = prompt("Your own WhatsApp number (03XX XXXXXXX). The test message uses the cart of " + row.name + " but is sent only to you:"); if (!to) return;
+  try { const r = await post({ action: "abandoned_offer", id: row.id, testTo: to }); log("Test sent to " + r.to + ". Link: " + r.link); }
+  catch (e) { log("Couldn't send the test: " + e.message); }
+};
 $("#abHidden").onchange = renderAband;
 
 /* ---------- blocked devices ---------- */
