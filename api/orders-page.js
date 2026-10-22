@@ -278,6 +278,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <label class="field">To <input type="date" id="abTo"></label>
       <button class="btn primary" id="abRun">Show</button>
       <label class="field"><input type="checkbox" id="abHidden"> Show handled</label>
+      <button class="btn primary" id="abAll" data-tip="Sends the 10% offer on WhatsApp to every customer below who has a mobile number and has not been messaged yet. Each one is marked done after the message is sent.">Send offer to all</button>
       <button class="btn" id="abTest" data-tip="Sends the 10% offer message for the first cart below to a phone number you type, so you can try the link yourself. Nothing is marked as sent.">Send a test</button>
       <span class="stats" id="abMeta" style="margin-left:auto"></span>
     </div>
@@ -693,7 +694,7 @@ function renderAband() {
   document.querySelectorAll("[data-aboffer]").forEach(b => b.onclick = async () => {
     if (!confirm("Send this customer a WhatsApp message with a one-time 10% discount link?")) return;
     b.disabled = true;
-    try { await post({ action: "abandoned_offer", id: b.dataset.aboffer }); const r = ab.data.rows.find(x => x.id === b.dataset.aboffer); if (r) r.offered = new Date().toISOString(); log("Offer sent."); renderAband(); }
+    try { await post({ action: "abandoned_offer", id: b.dataset.aboffer }); const r = ab.data.rows.find(x => x.id === b.dataset.aboffer); if (r) { r.offered = new Date().toISOString(); r.handled = true; } log("Offer sent and marked done."); renderAband(); }
     catch (e) { b.disabled = false; log("Couldn't send the offer: " + e.message); }
   });
   document.querySelectorAll("[data-abdone]").forEach(b => b.onclick = async () => {
@@ -704,6 +705,20 @@ function renderAband() {
 }
 { const t = new Date(Date.now() + 5 * 3600e3); $("#abTo").value = t.toISOString().slice(0, 10); $("#abFrom").value = new Date(t - 6 * 86400000).toISOString().slice(0, 10); }
 $("#abRun").onclick = loadAband;
+$("#abAll").onclick = async () => {
+  if (!ab.data) return log("Press Show first.");
+  const todo = ab.data.rows.filter(r => r.wa && !r.offered && !r.handled);
+  if (!todo.length) return log("Nobody left to message: every cart with a mobile number has been messaged or marked done.");
+  if (!confirm("Send the WhatsApp 10% offer to " + todo.length + " customer" + (todo.length === 1 ? "" : "s") + "? Each one gets their own one-time code and is marked done after the message is sent.")) return;
+  $("#abAll").disabled = true; let ok = 0, fail = 0, streak = 0;
+  for (const r of todo) {
+    log("Sending offers… " + (ok + fail) + " of " + todo.length);
+    try { await post({ action: "abandoned_offer", id: r.id }); r.offered = new Date().toISOString(); r.handled = true; ok++; streak = 0; }
+    catch (e) { fail++; streak++; log("Couldn't send to " + r.name + ": " + e.message); if (streak >= 3) { log("Stopped after 3 failures in a row. " + ok + " sent."); break; } }
+  }
+  $("#abAll").disabled = false; renderAband();
+  log(ok + " offer" + (ok === 1 ? "" : "s") + " sent and marked done" + (fail ? ", " + fail + " failed (still in the list)" : "") + ".");
+};
 $("#abTest").onclick = async () => {
   const row = ab.data && ab.data.rows.find(r => !r.handled && !r.offered && r.wa) || ab.data && ab.data.rows.find(r => r.wa);
   if (!row) return log("There is no cart with a phone number to use for the test.");
