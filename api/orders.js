@@ -9,6 +9,7 @@ import * as guard from "../lib/guard.js";
 import { deliveryReport } from "../lib/report.js";
 import { dailyReport } from "../lib/daily.js";
 import { inProcess } from "../lib/inprocess.js";
+import { listAbandoned, markAbandonedHandled } from "../lib/abandoned.js";
 import { stores, withStore, splitId } from "../lib/store.js";
 
 const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
@@ -58,6 +59,8 @@ export default async function handler(req, res) {
     if (body.action === "daily_report") {
       return res.status(200).json(await dailyReport(String(body.date || ""), { refresh: body.refresh === true, to: String(body.to || "") }));
     }
+    if (body.action === "abandoned") return res.status(200).json(await listAbandoned(String(body.from || ""), String(body.to || "")));
+    if (body.action === "abandoned_handled") return res.status(200).json(await markAbandonedHandled(String(body.id || "")));
     if (body.action === "in_process") return res.status(200).json(await inProcess({ refresh: body.refresh === true }));
     if (body.action === "problems") {
       return res.status(200).json({ problems: await notify.listProblems() });

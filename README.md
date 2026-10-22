@@ -33,6 +33,10 @@ Pick one order date (Pakistan time, default yesterday) to see the delivery ratio
 
 Lists every parcel still in process with TCS (booked in the last 60 days, from both stores), with its latest TCS status and events. Filter by status with the dropdown and by order date (default: All dates). Results are cached 15 minutes; **Refresh TCS status** checks again. **Mark done** hides the alert for that order.
 
+### Abandoned carts tab
+
+Replaces the old "Booked, last 2 days" tab. Lists checkouts from both stores that were started but never completed, only where the customer left a name and a phone number or email. Pick a From/To date (default last 7 days). **Mark done** is remembered in a shop metafield (`tcs_sync.abandoned_handled`) and the row becomes Handled; tick "Show handled" to see them again.
+
 ## Deploy (about 10 minutes)
 
 1. Put this folder in a new **private** GitHub repo.

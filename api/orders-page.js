@@ -225,7 +225,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" data-tab="waiting" aria-selected="true">Waiting to book <b id="cWaiting">–</b></button>
     <button class="tab" role="tab" data-tab="problems" aria-selected="false">Delivery problems <b id="cProblems">–</b></button>
-    <button class="tab" role="tab" data-tab="booked" aria-selected="false">Booked, last 2 days <b id="cBooked">–</b></button>
+    <button class="tab" role="tab" data-tab="abandoned" aria-selected="false">Abandoned carts <b id="cAband">–</b></button>
     <button class="tab" role="tab" data-tab="blocked" aria-selected="false">Blocked <b id="cBlocked">–</b></button>
     <button class="tab" role="tab" data-tab="delivery" aria-selected="false">TCS delivery report <b id="cDelivery">–</b></button>
     <button class="tab" role="tab" data-tab="total" aria-selected="false">Total delivery report <b id="cTotal">–</b></button>
@@ -272,11 +272,18 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     </table></div></div>
   </section>
 
-  <section class="panel" id="p-booked" hidden>
-    <p class="note">Orders sent to TCS in the last 2 days. Older bookings are in the TCS portal.</p>
+  <section class="panel" id="p-abandoned" hidden>
+    <div class="toolbar">
+      <label class="field">From <input type="date" id="abFrom"></label>
+      <label class="field">To <input type="date" id="abTo"></label>
+      <button class="btn primary" id="abRun">Show</button>
+      <label class="field"><input type="checkbox" id="abHidden"> Show handled</label>
+      <span class="stats" id="abMeta" style="margin-left:auto"></span>
+    </div>
+    <p class="note">Customers who started checkout and left their name and a phone number or email, but did not order. Contact them, then press Mark done.</p>
     <div class="sheet"><div class="scroll"><table>
-      <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>Booked</th><th>Label</th></tr></thead>
-      <tbody id="booked"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+      <thead><tr><th>Customer</th><th>Contact</th><th>Cart</th><th>Left</th><th></th></tr></thead>
+      <tbody id="abBody"><tr><td colspan="5" class="empty">Open this tab to load abandoned carts.</td></tr></tbody>
     </table></div></div>
   </section>
   <section class="panel" id="p-blocked" hidden>
@@ -454,9 +461,10 @@ function showTab(name) {
   if (name === "delivery") ensureReport();
   if (name === "total") ensureTotal();
   if (name === "problems") ensureProblems();
+  if (name === "abandoned") ensureAband();
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
-showTab(["waiting", "problems", "booked", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
+showTab(["waiting", "problems", "abandoned", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
 
 /* ---------- WhatsApp setup popover ---------- */
 $("#waOpen").onclick = (e) => { e.stopPropagation(); const open = $("#waPanel").classList.toggle("open"); $("#waOpen").setAttribute("aria-expanded", String(open)); };
@@ -652,18 +660,44 @@ async function push(ids) {
 $("#pushSel").onclick = () => push([...document.querySelectorAll(".sel:checked")].map(c => c.value));
 $("#pushAll").onclick = () => push(visiblePending().filter(ready).map(o => o.id));
 
-/* ---------- booked (last 2 days) ---------- */
-function renderBooked() {
-  const b = state.booked || [];
-  $("#cBooked").textContent = b.length;
-  $("#booked").innerHTML = b.length ? b.map(x =>
-    '<tr><td><span class="order">' + esc(x.name) + "</span>" + storeBadge(x) + "</td>" +
-    "<td>" + esc(x.customer) + '<div class="sub">' + esc(x.city) + "</div></td>" +
-    "<td>" + (x.cn ? '<a href="https://www.tcsexpress.com/track/' + esc(x.cn) + '" target="_blank" rel="noopener">' + esc(x.cn) + "</a>" : "–") + "</td>" +
-    "<td>" + when(x.bookedAt) + "</td>" +
-    "<td>" + (x.cn ? '<a href="/label/' + encodeURIComponent(KEY) + "/" + esc(x.cn) + '" target="_blank">Print label</a>' : "") + "</td></tr>").join("")
-    : '<tr><td colspan="5" class="empty">Nothing booked in the last 2 days.</td></tr>';
+/* ---------- abandoned carts ---------- */
+let ab = { data: null, loading: false };
+function ensureAband() { if (!ab.data && !ab.loading) loadAband(); }
+async function loadAband() {
+  if (ab.loading) return;
+  const from = $("#abFrom").value, to = $("#abTo").value;
+  ab.loading = true; $("#abRun").disabled = true;
+  $("#abBody").innerHTML = '<tr><td colspan="5" class="empty">Loading abandoned carts…</td></tr>';
+  try {
+    ab.data = await post({ action: "abandoned", from, to });
+    if (!from) $("#abFrom").value = ab.data.from; if (!to) $("#abTo").value = ab.data.to;
+    if (ab.data.warnings.length) log(ab.data.warnings.join("  ·  "));
+    renderAband();
+  } catch (e) { ab.data = null; $("#abBody").innerHTML = '<tr><td colspan="5" class="empty">Couldn\'t load abandoned carts: ' + esc(e.message) + "</td></tr>"; }
+  finally { ab.loading = false; $("#abRun").disabled = false; }
 }
+function renderAband() {
+  if (!ab.data) return;
+  const all = ab.data.rows, open = all.filter(r => !r.handled);
+  $("#cAband").textContent = open.length;
+  const list = $("#abHidden").checked ? all : open;
+  $("#abMeta").textContent = open.length + " to follow up · " + (all.length - open.length) + " handled";
+  $("#abBody").innerHTML = list.length ? list.map(r =>
+    "<tr><td><strong>" + esc(r.name) + "</strong>" + storeBadge(r) + '<div class="sub">' + esc(r.city) + "</div></td>" +
+    "<td>" + (r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + "</a>" + (r.wa ? ' · <a href="https://wa.me/92' + esc(r.wa.slice(1)) + '" target="_blank" rel="noopener">WhatsApp</a>' : "") : "") + (r.email ? '<div class="sub"><a href="mailto:' + esc(r.email) + '">' + esc(r.email) + "</a></div>" : "") + "</td>" +
+    "<td>" + esc(r.items || "No items") + '<div class="sub">Rs ' + esc(r.amount) + (r.url ? ' · <a href="' + esc(r.url) + '" target="_blank" rel="noopener">Checkout link</a>' : "") + "</div></td>" +
+    "<td>" + when(r.createdAt) + "</td>" +
+    "<td>" + (r.handled ? '<span class="chip ok">Handled</span>' : '<button class="btn" data-abdone="' + esc(r.id) + '">Mark done</button>') + "</td></tr>").join("")
+    : '<tr><td colspan="5" class="empty">No abandoned carts with contact details in this range.</td></tr>';
+  document.querySelectorAll("[data-abdone]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { await post({ action: "abandoned_handled", id: b.dataset.abdone }); const r = ab.data.rows.find(x => x.id === b.dataset.abdone); if (r) r.handled = true; renderAband(); }
+    catch (e) { b.disabled = false; log("Couldn't mark done: " + e.message); }
+  });
+}
+{ const t = new Date(Date.now() + 5 * 3600e3); $("#abTo").value = t.toISOString().slice(0, 10); $("#abFrom").value = new Date(t - 6 * 86400000).toISOString().slice(0, 10); }
+$("#abRun").onclick = loadAband;
+$("#abHidden").onchange = renderAband;
 
 /* ---------- blocked devices ---------- */
 function renderBlocked() {
@@ -924,7 +958,7 @@ const TIPS = [
   ["#refresh", "Reload the latest orders from both stores."],
   ['.tab[data-tab="waiting"]', "New orders not yet booked on TCS. Check details, then push them to TCS."],
   ['.tab[data-tab="problems"]', "Every parcel still in process with TCS. Filter by status or order date, call the customer, then press Mark done."],
-  ['.tab[data-tab="booked"]', "Orders booked on TCS in the last 2 days, with tracking number and label. Older ones are in the TCS portal."],
+  ['.tab[data-tab="abandoned"]', "People who started checkout and left their name and phone or email but didn't order. Contact them, then press Mark done."],
   ['.tab[data-tab="blocked"]', "Devices blocked on the website after a fake order. Unblock someone here if they should be allowed to order again."],
   ["#storeFilter", "Show orders from one store or both. Push all ready only books the orders shown."],
   ["#onlyConfWrap", "Ticked: Push all ready only books orders the customer confirmed on WhatsApp. Unticked: it also books orders still awaiting a reply."],
@@ -1001,7 +1035,7 @@ async function load() {
     if (!r.ok) throw new Error(d.error || r.status);
     state = d;
     $("#storeNames").textContent = (d.stores || []).join(" + ");
-    renderWaiting(); renderBooked(); renderBlocked();
+    renderWaiting(); renderBlocked();
     log((d.storeErrors || []).map(e => e.store + ": " + e.error).join("  ·  "));
   } catch (e) {
     log("Couldn't load orders: " + e.message);
