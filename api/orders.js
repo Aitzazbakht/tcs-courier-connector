@@ -41,6 +41,8 @@ export default async function handler(req, res) {
         sync.listPending(), sync.listRecentBooked(2), sync.cityOptions(), sync.isAutoOn(), notify.isOn(),
         guard.list().catch(() => ({ on: true, rows: [] })),
       ]);
+      // Reinstalling an app deletes its webhooks, so make sure they exist whenever the page is opened and they are needed.
+      if (auto || waOn) await hookAllStores();
       return res.status(200).json({ auto, waOn, webBlock: blocked.on, blocked: blocked.rows, pending, booked, cities, stores: stores().map((s) => s.label), storeErrors: sync.listPending.errors || [] });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Use GET or POST" });
