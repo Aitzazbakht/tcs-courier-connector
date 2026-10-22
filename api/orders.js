@@ -24,6 +24,7 @@ export default async function handler(req, res) {
     if (req.method === "GET" && url.searchParams.get("scopes")) {
       // Which Shopify permissions each store's app currently has, e.g. ?key=..&scopes=1
       const out = {};
+      shop.forgetTokens();
       for (const st of stores()) {
         try { out[st.label] = (await withStore(st.key, () => shop.gql(`{ currentAppInstallation { accessScopes { handle } } }`))).currentAppInstallation.accessScopes.map((s) => s.handle).sort(); }
         catch (e) { out[st.label] = "error: " + e.message; }
