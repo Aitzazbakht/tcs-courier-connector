@@ -21,6 +21,15 @@ export default async function handler(req, res) {
   if (!keyOk(url.searchParams.get("key"))) return res.status(403).json({ error: "Forbidden" });
   res.setHeader("Cache-Control", "no-store");
   try {
+    if (req.method === "GET" && url.searchParams.get("scopes")) {
+      // Which Shopify permissions each store's app currently has, e.g. ?key=..&scopes=1
+      const out = {};
+      for (const st of stores()) {
+        try { out[st.label] = (await withStore(st.key, () => shop.gql(`{ currentAppInstallation { accessScopes { handle } } }`))).currentAppInstallation.accessScopes.map((s) => s.handle).sort(); }
+        catch (e) { out[st.label] = "error: " + e.message; }
+      }
+      return res.status(200).json(out);
+    }
     if (req.method === "GET" && url.searchParams.get("explore")) {
       // Read-only peek at TCS inquiry/report/setup endpoints, e.g. ?key=..&explore=/ecom/api/report/loadsheetlogs&fromdate=2026-10-01&todate=2026-10-07
       const params = Object.fromEntries([...url.searchParams].filter(([k]) => !["key", "explore"].includes(k)));
