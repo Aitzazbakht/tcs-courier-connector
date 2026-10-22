@@ -414,7 +414,7 @@ function renderTotal() {
   const riderBox = '<div class="tbox"><h3>Our rider orders (' + rd.length + "): " + rcount("Delivered") + " delivered, " + rcount("Returned") + " returned, " + rcount("Still open") + " still open</h3>" +
     (rd.length ? "<table><tr><th>Order</th><th>City</th><th>Status</th><th class=\"n\">Amount</th></tr>" + rd.map(x => "<tr><td><strong>" + esc(x.order) + '</strong><div class="sub">' + esc(x.store) + "</div></td><td>" + esc(x.city || "") + "</td><td>" + x.status + '</td><td class="n">' + rs(x.amount) + "</td></tr>").join("") + "</table>" : '<p class="sub">No orders were matched to our rider for this day.</p>') + "</div>";
   const lst = '<div class="lst">' + lists.map(([n, a]) => "<details" + (a.length && n !== "Cancelled" ? " open" : "") + "><summary>" + n + " (" + a.length + ")</summary>" + listRows(a) + "</details>").join("") + "</div>";
-  const foot = '<p class="note">' + esc(d.window.note) + ". Rider orders are matched to the courier sheet by amount and a similar name" + (d.sheet ? " (" + d.sheet.rows + " sheet rows read)" : "") + ". Checks: " + d.checks.map(c => (c.ok ? "✓ " : "✗ ") + esc(c.name)).join(" · ") + "</p>";
+  const foot = '<p class="note">' + esc(d.window.note) + ". Rider orders are matched to the courier sheet by amount and a similar name" + (d.sheet ? " (" + d.sheet.rows + " sheet rows read just now, " + new Date(d.sheet.fetchedAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) + ")" : "") + ". Checks: " + d.checks.map(c => (c.ok ? "✓ " : "✗ ") + esc(c.name)).join(" · ") + "</p>";
   $("#totBody").innerHTML = box + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + riderBox + lst + foot;
 }
 
