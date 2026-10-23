@@ -124,7 +124,7 @@ export default async function handler(req, res) {
       if (!(await pinGate(res, body.pin))) return;
       return res.status(200).json(await profitReport({
         date: String(body.date || ""), to: String(body.to || ""), usdRate: Number(body.usdRate) || undefined,
-        ads: body.ads && typeof body.ads === "object" ? body.ads : {}, refresh: body.refresh === true,
+        ads: body.ads && typeof body.ads === "object" ? body.ads : {}, adsDaily: body.adsDaily && typeof body.adsDaily === "object" ? body.adsDaily : {}, refresh: body.refresh === true,
       }));
     }
     if (body.action === "ad_spend") {
