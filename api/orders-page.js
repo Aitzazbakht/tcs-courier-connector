@@ -456,17 +456,20 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     </div>
     <div id="setupBody" hidden>
       <div class="toolbar" style="align-items:flex-end">
-        <label class="adf">Orders of <input type="date" id="pfDate"></label>
+        <label class="adf">Orders from <input type="date" id="pfDate"></label>
+        <label class="adf">to (optional, for a range) <input type="date" id="pfTo"></label>
         <button class="btn primary" id="prRun">Build report</button>
         <button class="btn" id="pfRefresh">Refresh TCS status</button>
         <button class="btn" id="prPdf" disabled>Download PDF</button>
         <span class="stats" id="pfMeta" style="margin-left:auto"></span>
       </div>
       <div class="sheet" style="padding:14px 16px;margin-bottom:14px">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-weight:700">Ad spend for the order date (PKR)</div><button class="btn" id="prFetchAds" type="button">Fetch from Windsor</button></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-weight:700">Ad spend for the selected date(s) (PKR)</div><button class="btn" id="prFetchAds" type="button">Fetch from Windsor</button></div>
         <p class="note" style="margin:2px 0 6px">Fetch fills what Windsor knows. Anything it cannot find stays blank: type it in. The report adds them up.</p>
         <div class="note" id="prAdNote" style="margin:0 0 8px" aria-live="polite"></div>
         <div class="adgrid" id="prAds"></div>
+        <label class="adf" style="margin-top:8px">USD rate (PKR per $, market rate) <input type="number" min="1" step="0.5" inputmode="decimal" id="pfRate" value="276"></label>
+        <p class="note" style="margin:2px 0 0">USD-PKR cost = ad spend &divide; USD rate &times; 8 (we buy dollars at the rate + 8). It is deducted from profit.</p>
         <div class="sub" id="prAdTotal"></div>
       </div>
       <div id="prBody"><p class="note">Pick the order date, enter the ad spend, then press Build report.</p></div>
@@ -671,7 +674,7 @@ const prN = (x) => Number(x || 0).toLocaleString("en-PK");
 const prM = (x) => (Number(x) < 0 ? "-" : "") + prN(Math.abs(Number(x) || 0));
 function prD(iso) { const d = new Date(iso + "T00:00:00Z"); return d.getUTCDate() + " " + PR_MON[d.getUTCMonth()] + " " + d.getUTCFullYear(); }
 function prDL(iso) { const d = new Date(iso + "T00:00:00Z"); return PR_DAY[d.getUTCDay()] + ", " + prD(iso); }
-function prFile(iso) { return "Sales_Profit_Report_" + prD(iso).replace(/ /g, ""); }
+function prFile(iso, to) { return "Sales_Profit_Report_" + prD(iso).replace(/ /g, "") + (to && to !== iso ? "_to_" + prD(to).replace(/ /g, "") : ""); }
 function prAddDay(iso, n) { return new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10); }
 const PR_CSS = [
   ".pr{font:12px/1.4 Arial,Helvetica,sans-serif;color:#111;background:#fff;padding:18px 20px;border:1px solid #DCE2DF;border-radius:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
@@ -713,7 +716,7 @@ function prHtml(d) {
   const pcl = (c) => c + (c === 1 ? " order" : " orders");
   const kpi =(label, val, cls) => '<td class="kpi' + (cls ? " " + cls : "") + '"><small>' + esc(label) + "</small><b>" + val + "</b></td>";
   let h = "<h1>Daily Sales &amp; Profit Report</h1>";
-  h += '<div class="sub">Chitral House + Chitral Herbs (+ WhatsApp) | Orders of ' + esc(prDL(d.date)) + " | Currency: PKR</div>";
+  h += '<div class="sub">Chitral House + Chitral Herbs (+ WhatsApp) | Orders of ' + (d.dateTo && d.dateTo !== d.date ? esc(prD(d.date)) + " to " + esc(prD(d.dateTo)) : esc(prDL(d.date))) + " | Currency: PKR</div>";
   h += '<table class="kpis"><tr>' + kpi("Orders booked", prN(k.orders)) + kpi("Booked sales", prN(k.bookedSales)) + kpi("Delivered", prN(k.delivered) + " of " + prN(k.shipped)) +
     kpi("Delivered sales", prN(k.deliveredSales)) + kpi("Net profit (delivered)", prM(k.net), k.net < 0 ? "neg" : "") + "</tr></table>";
 
@@ -732,14 +735,15 @@ function prHtml(d) {
   h += '<div class="keep"><h2>Profit &amp; loss (delivered orders)</h2>' + prT([["Item"], ["PKR", 1], ["Detail"]], [
     ["Delivered sales", prM(p.deliveredSales), prN(k.delivered) + " delivered orders (" + prN(d.delivery.tcs) + " by TCS, " + prN(d.delivery.rider) + " by our ISB/RWP rider)"],
     ["Less: product cost of delivered units", prM(-p.productCost), "Returned units go back to stock"],
-    ["Less: delivery", prM(-p.delivery), prN(p.parcels) + " TCS parcels x " + prN(p.deliveryPer)],
+    ["Less: delivery", prM(-p.delivery), prN(p.parcels) + " TCS parcels x " + prN(p.tcsPer) + " + " + prN(p.riderOrders) + " own-rider orders x " + prN(p.riderPer)],
     ["Less: ad spend", prM(-p.adSpend), "All accounts"],
-    ["Less: " + p.feePct + "% of delivered sales", prM(-p.fee), ""]
+    ["Less: USD-PKR cost", prM(-p.usdPkr), "Ad spend / " + prN(p.usdRate) + " x " + prN(p.usdMarkup) + " (dollars bought at rate + " + prN(p.usdMarkup) + ")"],
+    ["Less: " + p.feePct + "% of delivered TCS sales", prM(-p.fee), "On " + prN(p.feeBase) + " of TCS delivered sales; not on our own rider's orders"]
   ], ["Net profit (delivered)", prM(p.net), pct(p.marginPct) + " of delivered sales"]);
   h += prT([["If more orders deliver"], ["PKR", 1], ["Detail"]], [
-    ["Extra profit if the " + prN(p.inProcessCount) + (p.inProcessCount === 1 ? " in-process order delivers" : " in-process orders deliver"), prM(p.inProcessExtra), "Sales less product cost and " + p.feePct + "%"],
+    ["Extra profit if the " + prN(p.inProcessCount) + (p.inProcessCount === 1 ? " in-process order delivers" : " in-process orders deliver"), prM(p.inProcessExtra), "Sales less product cost and the " + p.feePct + "% (TCS orders only)"],
     ["Profit if in-process orders deliver", prM(p.profitIfInProcess), ""],
-    ["Extra profit if the " + prN(p.notDeliveredCount) + (p.notDeliveredCount === 1 ? " not-delivered order had delivered" : " not-delivered orders had delivered"), prM(p.notDeliveredExtra), "Sales less product cost and " + p.feePct + "%"],
+    ["Extra profit if the " + prN(p.notDeliveredCount) + (p.notDeliveredCount === 1 ? " not-delivered order had delivered" : " not-delivered orders had delivered"), prM(p.notDeliveredExtra), "Sales less product cost and the " + p.feePct + "% (TCS orders only)"],
     ["Profit if every shipped order had delivered", prM(p.profitAllDelivered), ""]
   ]);
   h += '<p class="note">Net margin ' + pct(p.marginPct) + " of delivered sales (" + prM(perParcel) + " per delivered order). Ad spend is " + adShare + "% of delivered sales. Ads and the delivery charge are paid on every shipped order, but sales only count once an order is delivered, so the delivered figure is the lowest the day can end at.</p></div>";
@@ -770,14 +774,14 @@ function prHtml(d) {
   const costs = d.assumptions.costs.map((c) => c.label + " " + prN(c.cost)).join(", ");
   h += "<h2>Assumptions</h2><ul>" + [
     "Unit costs (PKR): " + costs + ". Loose sachets are costed per sachet. 60g + 10g free counts as 2 units (" + prN(1430) + ").",
-    "Net profit = delivered sales - cost of delivered units - (TCS parcels x " + d.assumptions.deliveryPer + ") - total ad spend - " + d.assumptions.feePct + "% of delivered sales.",
+    "Net profit = delivered sales - cost of delivered units - delivery (TCS parcels x " + d.assumptions.tcsPer + " + own-rider orders x " + d.assumptions.riderPer + ") - total ad spend - USD-PKR cost (ad spend / USD rate x " + d.assumptions.usdMarkup + ") - " + d.assumptions.feePct + "% of delivered TCS sales.",
     "Pakistan day: orders created 00:00 to 23:59 PKT on the order date, from both Shopify stores. WhatsApp orders on the Chitral House store are shown as their own source.",
     "Orders are followed to their outcome whenever they were booked (same data as the Total delivery report): delivered or returned by TCS, delivered by our own ISB/RWP rider (courier sheet), or still open. Orders that cannot be traced count in booked sales only.",
-    "The delivery charge is counted for TCS parcels only. Orders delivered by our own rider carry no TCS charge.",
+    "Delivery: " + d.assumptions.tcsPer + " per TCS parcel, " + d.assumptions.riderPer + " per order carried by our own ISB/RWP rider. The " + d.assumptions.feePct + "% is not taken on our own rider's orders.",
     "Sales are the order total (COD including the delivery fee). A zero-amount order is counted at list price.",
     "Cancelled and fake orders are left out. The same customer with the same order is counted once, only when one of the two could not be traced.",
     "Only delivered units are costed: returned units go back to stock.",
-    "Ad spend is typed in by hand for the date. Meta Chitral Herbs is the account named Not use.",
+    "Ad spend is fetched from Windsor (or typed in) for the selected date(s). Meta Chitral Herbs is the account named Not use.",
     "Delivery status was read live on " + new Date(d.generatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + "."
   ].map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
   return h;
@@ -785,9 +789,10 @@ function prHtml(d) {
 /* PR-RENDER-END */
 function prAdsRead() { const o = {}; PR_ADS.forEach((a) => { o[a[0]] = Number($("#ad_" + a[0]).value) || 0; }); return o; }
 function prAdsSum() { const t = Object.values(prAdsRead()).reduce((s, x) => s + x, 0); $("#prAdTotal").textContent = "Total ad spend: Rs " + prN(t); }
-function prAdsSave() { try { localStorage.setItem("prAds:" + $("#pfDate").value, JSON.stringify(prAdsRead())); } catch (e) {} prAdsSum(); }
+function prAdsKey() { return "prAds:" + $("#pfDate").value + ($("#pfTo").value ? ":" + $("#pfTo").value : ""); }
+function prAdsSave() { try { localStorage.setItem(prAdsKey(), JSON.stringify(prAdsRead())); } catch (e) {} prAdsSum(); }
 function prAdsLoad() {
-  let v = {}; try { v = JSON.parse(localStorage.getItem("prAds:" + $("#pfDate").value) || "{}"); } catch (e) {}
+  let v = {}; try { v = JSON.parse(localStorage.getItem(prAdsKey()) || "{}"); } catch (e) {}
   PR_ADS.forEach((a) => { $("#ad_" + a[0]).value = v[a[0]] ? v[a[0]] : ""; });
   prAdsSum();
 }
@@ -797,7 +802,9 @@ function prInit() {
   $("#prAds").innerHTML = PR_ADS.map((a) => '<label class="adf">' + esc(a[1]) + ' <input type="number" min="0" step="1" inputmode="numeric" placeholder="0" id="ad_' + a[0] + '"></label>').join("");
   $("#pfDate").value = yesterdayPK();
   PR_ADS.forEach((a) => { $("#ad_" + a[0]).oninput = prAdsSave; });
-  $("#pfDate").onchange = prAdsLoad;
+  $("#pfDate").onchange = prAdsLoad; $("#pfTo").onchange = prAdsLoad;
+  try { const r = localStorage.getItem("prRate"); if (r) $("#pfRate").value = r; } catch (e) {}
+  $("#pfRate").onchange = () => { try { localStorage.setItem("prRate", $("#pfRate").value); } catch (e) {} };
   $("#prRun").onclick = () => runProfit(false);
   $("#pfRefresh").onclick = () => runProfit(true);
   $("#prPdf").onclick = prPdf;
@@ -810,7 +817,7 @@ async function prFetchAds(auto) {
   const btn = $("#prFetchAds"), note = $("#prAdNote");
   btn.disabled = true; note.textContent = "Asking Windsor...";
   try {
-    const r = await post({ action: "ad_spend", pin: setupPin, date: date });
+    const r = await post({ action: "ad_spend", pin: setupPin, date: date, to: $("#pfTo").value });
     const missing = [];
     PR_ADS.forEach((a) => {
       const st = r.status[a[0]] || {};
@@ -840,7 +847,7 @@ async function runProfit(refresh) {
   $("#prBody").innerHTML = '<p class="note">Getting ad spend from Windsor, then reading both stores and checking every parcel with TCS... this can take up to a minute.</p>';
   try {
     await prFetchAds(true);
-    pf.data = await post({ action: "profit_report", pin: setupPin, date: date, ads: prAdsRead(), refresh: !!refresh });
+    pf.data = await post({ action: "profit_report", pin: setupPin, date: date, to: $("#pfTo").value, usdRate: Number($("#pfRate").value) || 276, ads: prAdsRead(), refresh: !!refresh });
     renderProfit();
   } catch (e) {
     pf.data = null;
@@ -851,7 +858,7 @@ async function runProfit(refresh) {
 function prPdf() {
   const d = pf.data; if (!d) return;
   const w = window.open("", "_blank"); if (!w) return log("Allow pop-ups to open the print view.");
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(prFile(d.date)) + "</title><style>@page{size:A4;margin:11mm}body{margin:0;background:#fff}" + PR_CSS + ".pr{padding:0;border:0;border-radius:0}</style></head><body><div class=\"pr\">" + prHtml(d) + "</div></body></html>");
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(prFile(d.date, d.dateTo)) + "</title><style>@page{size:A4;margin:11mm}body{margin:0;background:#fff}" + PR_CSS + ".pr{padding:0;border:0;border-radius:0}</style></head><body><div class=\"pr\">" + prHtml(d) + "</div></body></html>");
   w.document.close(); setTimeout(() => { w.focus(); w.print(); }, 400);
 }
 
@@ -1660,7 +1667,8 @@ const TIPS = [
   ['.tab[data-tab="total"]', "The delivery ratio of every order placed on one day, from both stores: TCS parcels tracked live plus orders delivered locally in Islamabad and Rawalpindi (ISB/RWP delivery, from the courier sheet) (from the courier sheet)."],
   ['.tab[data-tab="setup"]', "Locked settings area. Enter the PIN to open it."],
   ["#setupGo", "Checks the PIN with the server. Nothing opens until it is correct."],
-  ["#pfDate", "The day the orders were placed (Pakistan time). Defaults to yesterday."],
+  ["#pfDate", "The day the orders were placed (Pakistan time), or the first day of a range. Defaults to yesterday."],
+  ["#pfTo", "Leave empty for one day. Fill it to get one combined report for the whole range."],
   ["#prFetchAds", "Reads that day's spend for each ad account from Windsor.ai and fills the boxes. Accounts Windsor cannot find stay blank."],
   ["#prRun", "Fetches that day's ad spend from Windsor, reads that day's orders from both stores, matches them to the TCS parcels, and works out sales and profit."],
   ["#pfRefresh", "Ask TCS again for every parcel instead of using the results saved in the last 15 minutes."],
