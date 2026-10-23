@@ -277,6 +277,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     <button class="tab" role="tab" data-tab="blocked" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span class="tl">Blocked</span><b id="cBlocked">–</b></button>
     <button class="tab" role="tab" data-tab="delivery" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg><span class="tl">TCS delivery report</span><b id="cDelivery">–</b></button>
     <button class="tab" role="tab" data-tab="total" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="tl">Total delivery report</span><b id="cTotal">–</b></button>
+    <button class="tab" role="tab" data-tab="setup" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span class="tl">Setup</span></button>
   </nav>
 </aside>
 <div class="scrim" id="scrim"></div>
@@ -439,6 +440,18 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <span class="stats" id="totMeta" style="margin-left:auto"></span>
     </div>
     <div id="totBody"><p class="note">Open this tab to load yesterday's orders, or pick a From and To date.</p></div>
+  </section>
+
+  <section class="panel" id="p-setup" hidden>
+    <div class="sheet" id="setupGate" style="max-width:360px;margin:48px auto;padding:24px;text-align:center">
+      <p class="note" style="margin:0 0 14px">This tab is locked. Enter the PIN to open it.</p>
+      <form id="setupForm" style="display:flex;gap:8px;justify-content:center">
+        <input id="setupPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="PIN" aria-label="Setup PIN" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;flex:1;background:var(--surface)">
+        <button class="btn primary" id="setupGo" type="submit">Unlock</button>
+      </form>
+      <p class="note" id="setupMsg" style="margin:12px 0 0" aria-live="polite"></p>
+    </div>
+    <div id="setupBody" hidden></div>
   </section>
 </main>
 </div></div>
@@ -610,6 +623,23 @@ async function runDash() {
   }).catch(e => ok() && dashFail("total", "Total delivery ratio", "total", e));
 }
 
+/* ---------- setup tab (PIN protected, blank for now) ---------- */
+let setupOpen = false;
+function ensureSetup() {
+  $("#setupGate").hidden = setupOpen; $("#setupBody").hidden = !setupOpen;
+  if (!setupOpen) setTimeout(() => $("#setupPin").focus(), 0);
+}
+$("#setupForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const pin = $("#setupPin").value.trim(); if (!pin) return;
+  $("#setupGo").disabled = true; $("#setupMsg").textContent = "Checking…";
+  try {
+    await post({ action: "setup_unlock", pin: pin });
+    setupOpen = true; $("#setupMsg").textContent = "";
+  } catch (err) { $("#setupMsg").textContent = err.message; }
+  finally { $("#setupPin").value = ""; $("#setupGo").disabled = false; ensureSetup(); }
+};
+
 /* ---------- tabs ---------- */
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
@@ -622,13 +652,14 @@ function showTab(name) {
   if (name === "problems") ensureProblems();
   if (name === "abandoned") ensureAband();
   if (name === "marketing") ensureMarketing();
+  if (name === "setup") ensureSetup();
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
 document.querySelectorAll("#dPreset button").forEach(b => b.onclick = () => { dashSet(Number(b.dataset.d)); runDash(); });
 $("#dRun").onclick = () => runDash(); $("#dFrom").onchange = () => { if ($("#dTo").value < $("#dFrom").value) $("#dTo").value = $("#dFrom").value; runDash(); }; $("#dTo").onchange = () => runDash();
 $("#menuBtn").onclick = () => { const o = $("#side").classList.toggle("open"); $("#scrim").classList.toggle("on", o); };
 $("#scrim").onclick = () => { $("#side").classList.remove("open"); $("#scrim").classList.remove("on"); };
-showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
+showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total", "setup"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
 
 /* ---------- WhatsApp setup popover ---------- */
 $("#waOpen").onclick = (e) => { e.stopPropagation(); const open = $("#waPanel").classList.toggle("open"); $("#waOpen").setAttribute("aria-expanded", String(open)); };
@@ -1412,6 +1443,8 @@ const TIPS = [
   ["#p-blocked th:nth-child(4)", "How many times this blocked device came back to the website and was stopped."],
   ['.tab[data-tab="delivery"]', "How many of your TCS parcels were delivered or returned, city by city, for any date range you pick."],
   ['.tab[data-tab="total"]', "The delivery ratio of every order placed on one day, from both stores: TCS parcels tracked live plus orders delivered locally in Islamabad and Rawalpindi (ISB/RWP delivery, from the courier sheet) (from the courier sheet)."],
+  ['.tab[data-tab="setup"]', "Locked settings area. Enter the PIN to open it."],
+  ["#setupGo", "Checks the PIN with the server. Nothing opens until it is correct."],
   ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Ranges of 3 months or more can take up to a minute."],
   ["#p-delivery th:nth-child(8)", "Delivered ÷ (delivered + returned) by number of parcels. Parcels still on the way are left out until they finish."],
   ["#p-delivery th:nth-child(6)", "COD value of the delivered parcels in this city."],

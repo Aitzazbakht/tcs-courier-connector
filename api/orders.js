@@ -1,4 +1,5 @@
 // JSON API behind the orders page. /api/orders?key=<CONNECTOR_KEY>
+import { createHash, timingSafeEqual } from "node:crypto";
 import { keyOk, rawBody, publicBase } from "../lib/auth.js";
 import * as sync from "../lib/sync.js";
 import * as tcs from "../lib/tcs.js";
@@ -89,6 +90,17 @@ export default async function handler(req, res) {
     }
     if (body.action === "problem_handled") {
       return res.status(200).json(await notify.markProblemHandled(body.id));
+    }
+    if (body.action === "setup_unlock") {
+      // PIN for the Setup tab. It lives in the SETUP_PIN environment variable and is never sent to the browser.
+      const want = String(process.env.SETUP_PIN || "");
+      if (!want) return res.status(400).json({ error: "No Setup PIN is set yet. Add SETUP_PIN in Vercel and redeploy." });
+      const h = (s) => createHash("sha256").update(String(s)).digest();
+      if (!timingSafeEqual(h(body.pin ?? ""), h(want))) {
+        await new Promise((r) => setTimeout(r, 800));
+        return res.status(403).json({ error: "Wrong PIN" });
+      }
+      return res.status(200).json({ ok: true });
     }
     if (body.action === "env_check") {
       const names = ["CONNECTOR_KEY", "TCS_BEARER_TOKEN", "TCS_USERNAME", "TCS_PASSWORD", "TCS_ENV",
