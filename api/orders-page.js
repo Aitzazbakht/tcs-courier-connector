@@ -882,12 +882,15 @@ function mkPeriodRange() {
 }
 function mkSortOptions() {
   const o = mk.view === "customers"
-    ? [["spend", "Highest total spent"], ["orders", "Most orders"], ["avg", "Highest average order"], ["recent", "Newest order"], ["oldest", "Oldest order"], ["name", "Name A–Z"]]
+    ? [["spend", "Highest total spent"], ["orders", "Most orders"], ["avg", "Highest average order"], ["recent", "Newest order"], ["oldest", "Oldest order"], ["name", "Name A–Z"], ["random", "Random order"]]
     : [["recent", "Newest first"], ["oldest", "Oldest first"], ["amount", "Highest amount"], ["name", "Name A–Z"]];
   const cur = $("#mkSort").value;
   $("#mkSort").innerHTML = o.map(x => '<option value="' + x[0] + '">' + x[1] + "</option>").join("");
   if (o.some(x => x[0] === cur)) $("#mkSort").value = cur; else $("#mkSort").value = mk.view === "customers" ? "spend" : "recent";
 }
+// stable random order for this page load, so the list does not reshuffle on every filter change
+const mkRndMap = {};
+function mkRnd(k) { return mkRndMap[k] === undefined ? (mkRndMap[k] = Math.random()) : mkRndMap[k]; }
 function mkLastOk(x) {
   const f = $("#mkLast").value; if (f === "any") return true;
   const age = (Date.parse(pkDay(new Date().toISOString())) - Date.parse(pkDay(x.last))) / 86400000;
@@ -923,7 +926,7 @@ function mkRender() {
   if (mk.view === "customers") {
     const of = $("#mkOffer").value;
     let list = c.all.filter(x => c.okC(x) && c.hit(x.name + " " + x.phone) && (of === "all" || (of === "sent") === !!mk.offers[x.phone]) && mkLastOk(x));
-    const by = { spend: (x, y) => y.spent - x.spent, orders: (x, y) => y.orders - x.orders || y.spent - x.spent, avg: (x, y) => y.spent / y.orders - x.spent / x.orders, recent: (x, y) => (y.last > x.last ? 1 : -1), oldest: (x, y) => (x.last > y.last ? 1 : -1), name: (x, y) => String(x.name).localeCompare(String(y.name)) };
+    const by = { spend: (x, y) => y.spent - x.spent, orders: (x, y) => y.orders - x.orders || y.spent - x.spent, avg: (x, y) => y.spent / y.orders - x.spent / x.orders, recent: (x, y) => (y.last > x.last ? 1 : -1), oldest: (x, y) => (x.last > y.last ? 1 : -1), name: (x, y) => String(x.name).localeCompare(String(y.name)), random: (x, y) => mkRnd(x.key) - mkRnd(y.key) };
     list.sort(by[sort] || by.spend);
     if (lim) list = list.slice(0, lim);
     mkView = list;
