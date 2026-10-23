@@ -713,10 +713,11 @@ function prUl(items, max) {
   if (!items.length) return '<p class="note">None.</p>';
   return "<ul>" + items.slice(0, max).map((x) => "<li>" + x + "</li>").join("") + (items.length > max ? "<li>...and " + (items.length - max) + " more</li>" : "") + "</ul>";
 }
-function prChart(series) {
+function prChart(series, field, title, note, pos) {
   if (!series || series.length < 2) return "";
+  field = field || "net";
   const W = 760, H = 230, L = 62, R = 10, T = 18, B = 52, pw = W - L - R, ph = H - T - B;
-  const vals = series.map((x) => x.net);
+  const vals = series.map((x) => x[field]);
   const hi = Math.max(0, Math.max.apply(null, vals)), lo = Math.min(0, Math.min.apply(null, vals));
   const span = hi - lo || 1, y = (v) => T + ph * (hi - v) / span;
   const bw = pw / series.length, tot = vals.reduce((s, v) => s + v, 0);
@@ -724,13 +725,13 @@ function prChart(series) {
   [hi, (hi + lo) / 2, lo].forEach((v) => { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="#ddd"/><text x="' + (L - 6) + '" y="' + (y(v) + 3).toFixed(1) + '" font-size="10" text-anchor="end" fill="#555">' + prN(Math.round(v)) + "</text>"; });
   g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '" stroke="#555"/>';
   series.forEach((x, i) => {
-    const bx = L + i * bw + bw * 0.15, w = bw * 0.7, y0 = y(0), y1 = y(x.net), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0));
-    g += '<rect x="' + bx.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + (x.net < 0 ? "#C0392B" : "#2E8B57") + '"><title>' + esc(prD(x.date) + ": " + prM(x.net)) + "</title></rect>";
-    if (series.length <= 16) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (x.net < 0 ? top + h + 11 : top - 4).toFixed(1) + '" font-size="9" text-anchor="middle" fill="#333">' + prN(x.net) + "</text>";
+    const bx = L + i * bw + bw * 0.15, w = bw * 0.7, y0 = y(0), y1 = y(x[field]), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0));
+    g += '<rect x="' + bx.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + (x[field] < 0 ? "#C0392B" : pos ? "#2E6DA4" : "#2E8B57") + '"><title>' + esc(prD(x.date) + ": " + prM(x[field])) + "</title></rect>";
+    if (series.length <= 16) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (x[field] < 0 ? top + h + 11 : top - 4).toFixed(1) + '" font-size="9" text-anchor="middle" fill="#333">' + prN(x[field]) + "</text>";
     if (series.length <= 16 || i % Math.ceil(series.length / 16) === 0) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (H - 12) + '" font-size="9" text-anchor="middle" fill="#555">' + esc(prD(x.date).replace(/ \d{4}$/, "")) + "</text>";
   });
   g += "</svg>";
-  return '<div class="keep"><h2>Profit per day</h2>' + g + '<p class="note">Net profit by order date, same rules as the table below (delivered orders only). Days add up to ' + prM(tot) + ". Ad spend for the range is shared across the days by Windsor's daily spend. Orders still in process add to their day later.</p></div>";
+  return '<div class="keep"><h2>' + title + "</h2>" + g + '<p class="note">' + note.replace("{tot}", prM(tot)) + "</p></div>";
 }
 function prHtml(d) {
   const k = d.kpi, p = d.pnl, n = d.notes;
@@ -739,7 +740,8 @@ function prHtml(d) {
   const kpi =(label, val, cls) => '<td class="kpi' + (cls ? " " + cls : "") + '"><small>' + esc(label) + "</small><b>" + val + "</b></td>";
   let h = "<h1>Daily Sales &amp; Profit Report</h1>";
   h += '<div class="sub">Chitral House + Chitral Herbs (+ WhatsApp) | Orders of ' + (d.dateTo && d.dateTo !== d.date ? esc(prD(d.date)) + " to " + esc(prD(d.dateTo)) : esc(prDL(d.date))) + " | Currency: PKR</div>";
-  h += prChart(d.series);
+  h += prChart(d.series, "net", "Profit per day", "Net profit by order date, same rules as the table below (delivered orders only). Days add up to {tot}. Ad spend for the range is shared across the days by Windsor's daily spend. Orders still in process add to their day later.");
+  h += prChart(d.series, "adSpend", "Total campaign cost per day (PKR)", "Ad spend of all accounts for each day of the range. Total {tot}. Not including the USD-PKR cost.", true);
   h += '<table class="kpis"><tr>' + kpi("Orders booked", prN(k.orders)) + kpi("Booked sales", prN(k.bookedSales)) + kpi("Delivered", prN(k.delivered) + " of " + prN(k.shipped)) +
     kpi("Delivered sales", prN(k.deliveredSales)) + kpi("Net profit (delivered)", prM(k.net), k.net < 0 ? "neg" : "") + "</tr></table>";
 
