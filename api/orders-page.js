@@ -473,15 +473,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   </section>
 
   <section class="panel" id="p-stock" hidden>
-    <div class="sheet" id="stockGate" style="max-width:360px;margin:48px auto;padding:24px;text-align:center">
-      <p class="note" style="margin:0 0 14px">Stock is locked. Enter the PIN to open it.</p>
-      <form id="stockForm" style="display:flex;gap:8px;justify-content:center">
-        <input id="stockPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="PIN" aria-label="Stock PIN" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;width:120px;background:var(--surface);color:var(--ink)">
-        <button class="btn primary" id="stockGo" type="submit">Unlock</button>
-      </form>
-      <p class="note" id="stockMsg" style="margin:12px 0 0" aria-live="polite"></p>
-    </div>
-      <div id="stockBody" hidden>
+      <div id="stockBody">
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><div class="seg" id="stTabs" role="group" aria-label="Stock sections"><button data-st="stock" aria-pressed="true">Stock</button><button data-st="pack" aria-pressed="false">Can pack</button><button data-st="record" aria-pressed="false">Record</button><button data-st="history" aria-pressed="false">History</button><button data-st="tidy" aria-pressed="false">Tidy up</button></div><div class="stalerts" id="stAlerts"></div></div>
         <p class="note" style="margin:0 0 10px">One shared stock for Chitral House and Chitral Herbs. Packaging parts are tracked one by one.</p>
         <div id="stView"></div>
@@ -695,19 +687,8 @@ function ensureSetup() {
   $("#setupGate").hidden = setupOpen; $("#setupBody").hidden = !setupOpen;
   if (!setupOpen) setTimeout(() => $("#setupPin").focus(), 0); else prInit();
 }
-function setupLock(msg) { setupOpen = false; setupPin = ""; $("#setupMsg").textContent = msg || ""; $("#stockMsg").textContent = msg || ""; ensureSetup(); ensureStock(); }
-function ensureStock() {
-  $("#stockGate").hidden = setupOpen; $("#stockBody").hidden = !setupOpen;
-  if (!setupOpen) setTimeout(() => $("#stockPin").focus(), 0); else stInit();
-}
-$("#stockForm").onsubmit = async (e) => {
-  e.preventDefault();
-  const pin = $("#stockPin").value.trim(); if (!pin) return;
-  $("#stockGo").disabled = true; $("#stockMsg").textContent = "Checking...";
-  try { await post({ action: "setup_unlock", pin: pin }); setupOpen = true; setupPin = pin; $("#stockMsg").textContent = ""; }
-  catch (err) { $("#stockMsg").textContent = err.message; }
-  finally { $("#stockPin").value = ""; $("#stockGo").disabled = false; ensureStock(); ensureSetup(); }
-};
+function setupLock(msg) { setupOpen = false; setupPin = ""; $("#setupMsg").textContent = msg || ""; ensureSetup(); }
+function ensureStock() { stInit(); }
 $("#setupForm").onsubmit = async (e) => {
   e.preventDefault();
   const pin = $("#setupPin").value.trim(); if (!pin) return;
@@ -716,7 +697,7 @@ $("#setupForm").onsubmit = async (e) => {
     await post({ action: "setup_unlock", pin: pin });
     setupOpen = true; setupPin = pin; $("#setupMsg").textContent = "";
   } catch (err) { $("#setupMsg").textContent = err.message; }
-  finally { $("#setupPin").value = ""; $("#setupGo").disabled = false; ensureSetup(); ensureStock(); }
+  finally { $("#setupPin").value = ""; $("#setupGo").disabled = false; ensureSetup(); }
 };
 
 /* ---------- profit report (Setup tab) ---------- */
@@ -974,8 +955,7 @@ function stCan(p, q) { let best = Infinity, lim = null; Object.keys(p.bom || {})
 function stToast(t) { const el = $("#stToast"); el.textContent = t; el.classList.add("show"); clearTimeout(stToast.t); stToast.t = setTimeout(() => el.classList.remove("show"), 2600); }
 async function stCall(body) {
   ST.busy = true;
-  try { const r = await post(Object.assign({ pin: setupPin }, body)); ST.d = r; return r; }
-  catch (e) { if (e.message === "Wrong PIN") { setupLock("The PIN was not accepted. Enter it again."); } throw e; }
+  try { const r = await post(body); ST.d = r; return r; }
   finally { ST.busy = false; }
 }
 async function stLoad() {
@@ -1950,7 +1930,7 @@ const TIPS = [
   ["#p-blocked th:nth-child(4)", "How many times this blocked device came back to the website and was stopped."],
   ['.tab[data-tab="delivery"]', "How many of your TCS parcels were delivered or returned, city by city, for any date range you pick."],
   ['.tab[data-tab="total"]', "The delivery ratio of every order placed on one day, from both stores: TCS parcels tracked live plus orders delivered locally in Islamabad and Rawalpindi (ISB/RWP delivery, from the courier sheet) (from the courier sheet)."],
-  ['.tab[data-tab="stock"]', "Packaging-parts stock: levels, alerts, what can be packed, and recording dispatches, returns, deliveries and counts. Uses the same PIN as Setup."],
+  ['.tab[data-tab="stock"]', "Packaging-parts stock: levels, alerts, what can be packed, and recording dispatches, returns, deliveries and counts."],
   ['.tab[data-tab="setup"]', "Locked settings area. Enter the PIN to open it."],
   ["#setupGo", "Checks the PIN with the server. Nothing opens until it is correct."],
   ["#pfDate", "The day the orders were placed (Pakistan time), or the first day of a range. Defaults to yesterday."],

@@ -129,7 +129,7 @@ export default async function handler(req, res) {
       }));
     }
     if (typeof body.action === "string" && body.action.startsWith("stock_")) {
-      if (!(await pinGate(res, body.pin))) return;
+      // No PIN here: like the other tabs, the page link's connector key is the protection.
       if (body.action === "stock_get") return res.status(200).json(await stockGet());
       if (body.action === "stock_move") return res.status(200).json(await stockMove(body.move));
       if (body.action === "stock_undo") return res.status(200).json(await stockUndo(String(body.id || "")));

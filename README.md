@@ -86,4 +86,4 @@ straight from the Herbs Shopify store (totals, payment type, items, time of the 
 
 ## Stock tracker (Stock tab)
 
-The packaging-parts stock tracker that used to live in a Claude artifact is now its own PIN-protected Stock tab, just above Setup (same PIN). Sections: Stock (levels and "Alert below"), Can pack, Record (dispatch / return / receive / stock count / write-off), History (with undo) and Tidy up. Data is one JSON document in the Chitral House shop setting `tcs_sync.stock_state`; the first time it is opened it starts from the data copied out of the artifact (`lib/stock-seed.js`). No new environment variables.
+The packaging-parts stock tracker that used to live in a Claude artifact is now its own Stock tab, just above Setup (no PIN, like the other tabs). Sections: Stock (levels and "Alert below"), Can pack, Record (dispatch / return / receive / stock count / write-off), History (with undo) and Tidy up. Data is one JSON document in the Chitral House shop setting `tcs_sync.stock_state`; the first time it is opened it starts from the data copied out of the artifact (`lib/stock-seed.js`). No new environment variables.
