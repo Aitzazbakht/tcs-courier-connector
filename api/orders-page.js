@@ -299,6 +299,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   </section>
   <section class="panel" id="p-marketing" hidden>
     <div class="toolbar">
+      <label class="field">Load <select id="mkDays"><option value="0">All orders</option><option value="365">Last 12 months</option><option value="180">Last 6 months</option><option value="60">Last 2 months</option></select></label>
       <button class="btn primary" id="mkRefresh" data-tip="Asks Shopify for every order from both stores. It runs on Shopify's side and takes a few minutes for a large history. The result is kept in this browser so the tab opens instantly next time.">Refresh orders from Shopify</button>
       <button class="btn" id="mkCsv" disabled data-tip="Downloads what is shown below (all rows, not just the first page) as a spreadsheet file.">Download CSV</button>
       <span class="stats" id="mkMeta" style="margin-left:auto"></span>
@@ -820,7 +821,7 @@ async function mkRefresh() {
   if (mk.loading) return; mk.loading = true; $("#mkRefresh").disabled = true; log("");
   try {
     mkMsg("Asking Shopify to export all orders…");
-    const st = await post({ action: "mk_start" }), ids = {};
+    const st = await post({ action: "mk_start", days: Number($("#mkDays").value) || 0 }), ids = {};
     st.stores.forEach(s => { if (s.error) throw new Error(s.label + ": " + s.error); ids[s.key] = s.id; });
     const t0 = Date.now();
     for (;;) {
@@ -930,7 +931,7 @@ function mkRender() {
   $("#mkCards").innerHTML = card(c.all.length.toLocaleString("en-PK"), "Customers", "", "all") + card(c.orders.length.toLocaleString("en-PK"), "Orders", "") + card(rs(c.revenue), "Sales", "") +
     card(c.counts[1].toLocaleString("en-PK"), "Single order", pct(c.counts[1]), "1") + card(c.counts[2].toLocaleString("en-PK"), "Double order", pct(c.counts[2]), "2") + card(c.counts[3].toLocaleString("en-PK"), "3 or more", pct(c.counts[3]), "3");
   document.querySelectorAll("#mkCards [data-g]").forEach(b => b.onclick = () => { $("#mkGroup").value = b.dataset.g; mk.shown = 100; mkRender(); });
-  $("#mkNote").textContent = (mk.excluded ? mk.excluded.toLocaleString("en-PK") + " cancelled, voided, refunded or fake orders are left out. " : "") + "Only the last 2 months of orders are loaded. Customers are matched by phone number across both stores. Returned parcels are not excluded yet, because Shopify does not record TCS returns.";
+  $("#mkNote").textContent = (mk.excluded ? mk.excluded.toLocaleString("en-PK") + " cancelled, voided, refunded or fake orders are left out. " : "") + "Customers are matched by phone number across both stores. Returned parcels are not excluded yet, because Shopify does not record TCS returns.";
 }
 function mkCsv() {
   const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';

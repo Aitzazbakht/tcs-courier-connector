@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     if (body.action === "daily_report") {
       return res.status(200).json(await dailyReport(String(body.date || ""), { refresh: body.refresh === true, to: String(body.to || "") }));
     }
-    if (body.action === "mk_start") return res.status(200).json(await startExport());
+    if (body.action === "mk_start") return res.status(200).json(await startExport(Math.max(0, Math.min(3650, Number(body.days) || 0))));
     if (body.action === "mk_status") return res.status(200).json(await exportStatus());
     if (body.action === "mk_data") return await streamStore(String(body.store || ""), res);
     if (body.action === "abandoned") return res.status(200).json(await listAbandoned(String(body.from || ""), String(body.to || "")));
