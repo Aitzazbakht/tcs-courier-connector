@@ -319,6 +319,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     </div>
     <div class="toolbar" id="mkOfferBar">
       <label class="field">Daily limit <input type="number" id="mkCap" min="1" max="2000" value="1500" style="width:80px;border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--ink)"></label>
+      <label class="field">Message <select id="mkTpl"><option value="img">With picture (ch_reorder_offer_img)</option><option value="text">Text only (ch_reorder_offer)</option></select></label>
       <label class="field">Code valid for <select id="mkDays2"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select></label>
       <button class="btn primary" id="mkSend" data-tip="Sends each customer shown below (customers view) their own one-time 10% code on WhatsApp. Customers who already got an offer are skipped. Stops at the daily limit.">Send 10% offer to shown customers</button>
       <button class="btn" id="mkTest" data-tip="Sends the offer message for the first customer below to a phone number you type. Nothing is marked as sent.">Send a test</button>
@@ -966,10 +967,10 @@ async function mkSendOffers() {
     for (let i = 0; i < list.length && !mk.stop; i += 15) {
       const batch = list.slice(i, i + 15).map(x => ({ phone: x.phone, name: x.name, store: x.store }));
       log("Sending offers… " + (ok + fail + skip) + " of " + list.length);
-      const d = await post({ action: "mk_send", items: batch, days, cap });
+      const d = await post({ action: "mk_send", items: batch, days, cap, image: $("#mkTpl").value === "img" });
       d.results.forEach(r => { if (r.ok) ok++; else if (r.skipped) skip++; else { fail++; if (fail <= 3) log("Couldn't send to " + r.phone + ": " + r.error); } });
       await loadMkOffers();
-      if (fail >= 10 && ok === 0) { log("Stopped: the first sends all failed. Check that the ch_reorder_offer template is approved."); break; }
+      if (fail >= 10 && ok === 0) { log("Stopped: the first sends all failed. Check that the template is approved."); break; }
     }
   } catch (e) { log("Stopped: " + e.message); }
   mk.sending = false; $("#mkSend").textContent = "Send 10% offer to shown customers";
@@ -980,7 +981,7 @@ $("#mkOffer").onchange = () => { mk.shown = 100; mkRender(); };
 $("#mkTest").onclick = async () => {
   const x = mkView[0]; if (!x || mk.view !== "customers") return log("Switch to the Customers view first.");
   const to = prompt("Your own WhatsApp number (03XX XXXXXXX). The test uses the name " + x.name + " but is sent only to you:"); if (!to) return;
-  try { const d = await post({ action: "mk_send", items: [{ phone: x.phone, name: x.name, store: x.store }], days: Number($("#mkDays2").value) || 14, testTo: to }); const r = d.results[0]; log(r.ok ? "Test sent. Link: " + r.link : "Couldn't send the test: " + (r.error || r.skipped)); }
+  try { const d = await post({ action: "mk_send", items: [{ phone: x.phone, name: x.name, store: x.store }], days: Number($("#mkDays2").value) || 14, testTo: to, image: $("#mkTpl").value === "img" }); const r = d.results[0]; log(r.ok ? "Test sent. Link: " + r.link : "Couldn't send the test: " + (r.error || r.skipped)); }
   catch (e) { log("Couldn't send the test: " + e.message); }
 };
 $("#mkResBtn").onclick = async () => {
