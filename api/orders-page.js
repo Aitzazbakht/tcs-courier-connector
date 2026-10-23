@@ -663,7 +663,7 @@ $("#setupForm").onsubmit = async (e) => {
 /* ---------- profit report (Setup tab) ---------- */
 let setupPin = "";
 let pf = { data: null, loading: false, ready: false };
-const PR_ADS = [["metaHouse", "Meta: Chitral House (Myadaccount)"], ["metaHerbs", "Meta: Chitral Herbs (Not use)"], ["tiktokHouse", "TikTok: Chitral House SMC PVT LTD1119"], ["tiktokNew", "TikTok: CHouse new"], ["google", "Google Ads (790-385-1046)"], ["otherMeta", "Other Chitral Meta accounts (expected 0)"]];
+const PR_ADS = [["metaHouse", "Meta: Chitral House (Myadaccount)"], ["metaHerbs", "Meta: Chitral Herbs (Not use)"], ["tiktokHouse", "TikTok: Chitral House SMC PVT LTD1119"], ["google", "Google Ads (790-385-1046)"], ["otherMeta", "Other Chitral Meta accounts (expected 0)"]];
 /* PR-RENDER-START */
 const PR_MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const PR_DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -804,7 +804,7 @@ function prInit() {
   $("#prFetchAds").onclick = prFetchAds;
   prAdsLoad();
 }
-async function prFetchAds() {
+async function prFetchAds(auto) {
   const date = $("#pfDate").value;
   if (!date) return log("Pick the order date.");
   const btn = $("#prFetchAds"), note = $("#prAdNote");
@@ -837,8 +837,9 @@ async function runProfit(refresh) {
   const date = $("#pfDate").value;
   if (!date) return log("Pick the order date.");
   pf.loading = true; $("#prRun").disabled = true; $("#pfRefresh").disabled = true; $("#prPdf").disabled = true; log("");
-  $("#prBody").innerHTML = '<p class="note">Reading both stores and checking every parcel with TCS... this can take up to a minute.</p>';
+  $("#prBody").innerHTML = '<p class="note">Getting ad spend from Windsor, then reading both stores and checking every parcel with TCS... this can take up to a minute.</p>';
   try {
+    await prFetchAds(true);
     pf.data = await post({ action: "profit_report", pin: setupPin, date: date, ads: prAdsRead(), refresh: !!refresh });
     renderProfit();
   } catch (e) {
@@ -1661,7 +1662,7 @@ const TIPS = [
   ["#setupGo", "Checks the PIN with the server. Nothing opens until it is correct."],
   ["#pfDate", "The day the orders were placed (Pakistan time). Defaults to yesterday."],
   ["#prFetchAds", "Reads that day's spend for each ad account from Windsor.ai and fills the boxes. Accounts Windsor cannot find stay blank."],
-  ["#prRun", "Reads that day's orders from both stores, matches them to the TCS parcels, and works out sales and profit."],
+  ["#prRun", "Fetches that day's ad spend from Windsor, reads that day's orders from both stores, matches them to the TCS parcels, and works out sales and profit."],
   ["#pfRefresh", "Ask TCS again for every parcel instead of using the results saved in the last 15 minutes."],
   ["#prPdf", "Opens a print view of the report. Choose Save as PDF in the print window; the file is named Sales_Profit_Report_<date>."],
   ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Ranges of 3 months or more can take up to a minute."],
