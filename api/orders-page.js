@@ -56,6 +56,15 @@ header.top .ctrl[aria-checked="true"] .switch{background:#6FC39A}
 .side{width:256px;flex:none;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;background:#1B2925;color:#C9D4CF;padding:14px 12px;border-right:1px solid #0E1613}
 .sidehead{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7F8E88;padding:4px 12px 10px}
 .scrim{display:none}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.dcard{display:flex;flex-direction:column;justify-content:flex-start;text-align:left;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;cursor:pointer;color:inherit}
+.dcard:hover{border-color:var(--pine)}
+.dcard .dh{display:flex;align-items:center;justify-content:space-between;color:var(--mute);font-weight:700;font-size:13px;margin-bottom:6px}
+.dcard .dv{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.dcard .dv.ok{color:var(--pine)}.dcard .dv.bad{color:var(--rust)}
+.dcard .dl{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--mute);padding:3px 0;border-top:1px solid var(--soft)}
+.dcard .dl:first-of-type{margin-top:10px}
+.dcard .dl b{color:var(--ink);font-weight:700}
 .dashempty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:60px 20px;text-align:center;color:var(--mute)}
 .dashempty h2{margin:0 0 6px;color:var(--ink)}
 .ctrl{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:5px 6px 5px 12px;background:var(--surface);cursor:pointer;white-space:nowrap}
@@ -276,7 +285,14 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   <div id="log" aria-live="polite"></div>
 
   <section class="panel" id="p-dashboard" hidden>
-    <div class="dashempty"><h2>Dashboard</h2><p>This page is ready to be set up.</p></div>
+    <div class="toolbar">
+      <label class="field">From <input type="date" id="dFrom"></label>
+      <label class="field">To <input type="date" id="dTo"></label>
+      <div class="seg" id="dPreset"><button data-d="0">Today</button><button data-d="1">Yesterday</button><button data-d="7">7 days</button><button data-d="30">30 days</button></div>
+      <button class="btn" id="dRun">Refresh</button>
+      <span class="sub" id="dMeta"></span>
+    </div>
+    <div class="dgrid" id="dGrid"></div>
   </section>
 
   <section class="panel" id="p-waiting">
@@ -545,12 +561,62 @@ $("#totPdf").onclick = () => {
   w.document.close(); setTimeout(() => { w.focus(); w.print(); }, 400);
 };
 
+let dash = { cards: {}, seq: 0 };
+function dashDay(n) { return new Date(Date.now() + 5 * 3600e3 - n * 86400000).toISOString().slice(0, 10); }
+function dashSet(n) { $("#dFrom").value = n === 1 ? dashDay(1) : dashDay(n === 0 ? 0 : n - 1); $("#dTo").value = n === 1 ? dashDay(1) : dashDay(0); }
+function ensureDash() { if (!$("#dFrom").value) dashSet(7); if (!dash.loaded) runDash(); }
+function dcard(go, title, big, cls, lines) {
+  return '<button class="dcard" data-go="' + go + '"><div class="dh"><span>' + esc(title) + '</span><span>Open &rarr;</span></div><div class="dv ' + (cls || "") + '">' + big + "</div>" +
+    lines.map(l => '<div class="dl"><span>' + esc(l[0]) + "</span><b>" + l[1] + "</b></div>").join("") + "</button>";
+}
+function dashPaint() {
+  const c = dash.cards, order = ["waiting", "delivery", "total", "problems", "abandoned", "blocked", "marketing"];
+  $("#dGrid").innerHTML = order.map(k => c[k] || "").join("");
+  document.querySelectorAll("#dGrid .dcard").forEach(b => b.onclick = () => showTab(b.dataset.go));
+}
+function dashPut(k, html) { dash.cards[k] = html; dashPaint(); }
+function dashLoading(k, title, go) { dashPut(k, dcard(go, title, "…", "", [["Loading", ""]])); }
+function dashFail(k, title, go, e) { dashPut(k, dcard(go, title, "–", "", [["Couldn't load", esc(e && e.message || "error")]])); }
+async function runDash() {
+  const a = $("#dFrom").value, b = $("#dTo").value || a;
+  if (!a) return; if (b < a) return log("The end date is before the start date.");
+  dash.loaded = true; const my = ++dash.seq; const ok = () => my === dash.seq; dash.cards = {};
+  $("#dMeta").textContent = a + (b !== a ? " to " + b : "");
+  const inR = (iso) => iso && pkDay(iso) >= a && pkDay(iso) <= b;
+  const n = (x) => Number(x || 0).toLocaleString("en-PK");
+  // instant ones from data already on the page
+  const pend = (state.pending || []).filter(o => inR(o.createdAt));
+  dashPut("waiting", dcard("waiting", "Waiting to book", n(pend.length), pend.length ? "bad" : "", [["All waiting orders now", n((state.pending || []).length)]]));
+  const blk = (state.blocked || []).filter(r => inR(r.at));
+  dashPut("blocked", dcard("blocked", "Blocked devices", n(blk.length), "", [["Blocked in total", n((state.blocked || []).length)]]));
+  const mkIn = mk.rows.filter(o => inR(o.d));
+  dashPut("marketing", mk.rows.length ? dcard("marketing", "Marketing orders", n(mkIn.length), "", [["Orders loaded in total", n(mk.rows.length)]]) : dcard("marketing", "Marketing orders", "–", "", [["Open the tab once to load all orders", ""]]));
+  dashLoading("delivery", "TCS delivery report", "delivery"); dashLoading("total", "Total delivery ratio", "total");
+  dashLoading("problems", "Delivery problems", "problems"); dashLoading("abandoned", "Abandoned carts", "abandoned");
+  post({ action: "delivery_report", from: a, to: b }).then(d => { if (!ok()) return; const t = d.totals;
+    dashPut("delivery", dcard("delivery", "TCS delivery report", t.deliveredPctClosed == null ? "–" : Math.round(t.deliveredPctClosed) + "%", "ok", [["Booked", n(t.booked)], ["Delivered", n(t.delivered)], ["Returned", n(t.returned)], ["In process", n(t.inProcess)]]));
+  }).catch(e => ok() && dashFail("delivery", "TCS delivery report", "delivery", e));
+  post({ action: "abandoned", from: a, to: b }).then(async d => { if (!ok()) return;
+    const open = d.rows.filter(r => !r.handled).length; let st = null; try { st = await post({ action: "abandoned_stats", from: a, to: b }); } catch (e) {}
+    if (!ok()) return;
+    dashPut("abandoned", dcard("abandoned", "Abandoned carts", n(d.rows.length), "", [["To follow up", n(open)], ["Handled", n(d.rows.length - open)]].concat(st ? [["10% offers sent", n(st.sent)], ["Recovered", n(st.recovered)]] : [])));
+  }).catch(e => ok() && dashFail("abandoned", "Abandoned carts", "abandoned", e));
+  post({ action: "in_process", refresh: false }).then(d => { if (!ok()) return;
+    const rows = d.rows.filter(r => inR(r.createdAt)), need = rows.filter(r => r.issue && !r.handled).length;
+    dashPut("problems", dcard("problems", "Delivery problems", n(rows.length), need ? "bad" : "", [["In process (orders in range)", n(rows.length)], ["Need a call", n(need)], ["In process, all dates", n(d.rows.length)]]));
+  }).catch(e => ok() && dashFail("problems", "Delivery problems", "problems", e));
+  post({ action: "daily_report", date: a, to: b, refresh: false }).then(d => { if (!ok()) return; const t = d.totals;
+    dashPut("total", dcard("total", "Total delivery ratio", t.ratio == null ? "–" : Math.round(t.ratio) + "%", "ok", [["Orders counted", n(t.counted)], ["Delivered", n(t.delivered)], ["Cancelled (not counted)", n(t.cancelled)]]));
+  }).catch(e => ok() && dashFail("total", "Total delivery ratio", "total", e));
+}
+
 /* ---------- tabs ---------- */
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
   $("#side").classList.remove("open"); $("#scrim").classList.remove("on");
   document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "p-" + name);
   try { history.replaceState(null, "", "#" + name); } catch (e) {}
+  if (name === "dashboard") ensureDash();
   if (name === "delivery") ensureReport();
   if (name === "total") ensureTotal();
   if (name === "problems") ensureProblems();
@@ -558,6 +624,8 @@ function showTab(name) {
   if (name === "marketing") ensureMarketing();
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
+document.querySelectorAll("#dPreset button").forEach(b => b.onclick = () => { dashSet(Number(b.dataset.d)); runDash(); });
+$("#dRun").onclick = () => runDash(); $("#dFrom").onchange = () => { if ($("#dTo").value < $("#dFrom").value) $("#dTo").value = $("#dFrom").value; runDash(); }; $("#dTo").onchange = () => runDash();
 $("#menuBtn").onclick = () => { const o = $("#side").classList.toggle("open"); $("#scrim").classList.toggle("on", o); };
 $("#scrim").onclick = () => { $("#side").classList.remove("open"); $("#scrim").classList.remove("on"); };
 showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
@@ -1315,7 +1383,7 @@ const TIPS = [
   ["#webSw", "ON: phones/browsers that placed a fake order see \"Order on WhatsApp\" instead of Buy now and Checkout on the website. OFF: nobody is blocked."],
   ["#waOpen", "Check the WhatsApp number and message templates. Only needed when setting up or if messages stop working."],
   ["#refresh", "Reload the latest orders from both stores."],
-  ['.tab[data-tab="dashboard"]', "Overview page. It is empty for now and will be set up next."],
+  ['.tab[data-tab="dashboard"]', "One overview of every tab for the date range you pick. Click a card to open that tab."],
   ['.tab[data-tab="waiting"]', "New orders not yet booked on TCS. Check details, then push them to TCS."],
   ['.tab[data-tab="problems"]', "Every parcel still in process with TCS. Filter by status or order date, call the customer, then press Mark done."],
   ['.tab[data-tab="marketing"]', "All orders from both stores, grouped into customers. Sort by date, spend or number of orders to pick who to message."],
@@ -1397,6 +1465,7 @@ async function load() {
     state = d;
     $("#storeNames").textContent = (d.stores || []).join(" + ");
     renderWaiting(); renderBlocked();
+    if (dash.loaded && !$("#p-dashboard").hidden) runDash();
     log((d.storeErrors || []).map(e => e.store + ": " + e.error).join("  ·  "));
   } catch (e) {
     log("Couldn't load orders: " + e.message);
