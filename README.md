@@ -84,6 +84,6 @@ Read-only: `GET /api/orders?herbs_orders=YYYY-MM-DD&feed_key=<HERBS_FEED_KEY>` r
 straight from the Herbs Shopify store (totals, payment type, items, time of the latest order). It uses its own key, `HERBS_FEED_KEY`
 (16+ characters), which opens nothing else. It replaces the Windsor "shopify" connector for Herbs.
 
-## Stock tracker (Setup > Stock)
+## Stock tracker (Stock tab)
 
-The packaging-parts stock tracker that used to live in a Claude artifact is now inside the PIN-protected Setup tab. Tabs: Stock (levels and "Alert below"), Can pack, Record (dispatch / return / receive / stock count / write-off), History (with undo) and Tidy up. Data is one JSON document in the Chitral House shop setting `tcs_sync.stock_state`; the first time it is opened it starts from the data copied out of the artifact (`lib/stock-seed.js`). No new environment variables.
+The packaging-parts stock tracker that used to live in a Claude artifact is now its own PIN-protected Stock tab, just above Setup (same PIN). Sections: Stock (levels and "Alert below"), Can pack, Record (dispatch / return / receive / stock count / write-off), History (with undo) and Tidy up. Data is one JSON document in the Chitral House shop setting `tcs_sync.stock_state`; the first time it is opened it starts from the data copied out of the artifact (`lib/stock-seed.js`). No new environment variables.
