@@ -40,10 +40,23 @@ a{color:var(--pine)}
 .wrap{max-width:1240px;margin:0 auto;padding:0 20px}
 
 /* header */
-header{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
-.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 0 10px}
-.brand{font-weight:800;font-size:17px;letter-spacing:-.01em;margin-right:auto}
-.brand span{color:var(--mute);font-weight:500;font-size:13px;margin-left:8px}
+header.top{background:#15211D;color:#E6ECE9;border-bottom:1px solid #0E1613;position:sticky;top:0;z-index:30;height:56px}
+.bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:56px}
+.brand{font-weight:800;font-size:17px;letter-spacing:-.01em;margin-right:auto;display:flex;align-items:center;gap:10px}
+.brand span{color:#93A09B;font-weight:500;font-size:13px;margin-left:2px}
+.logo{width:30px;height:30px;border-radius:9px;background:#6FC39A;color:#0D1A14;display:grid;place-items:center;font-style:normal;font-weight:800}
+.menu-btn{display:none}
+header.top .ctrl,header.top .btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:#E6ECE9}
+header.top .ctrl:hover,header.top .btn:hover{border-color:rgba(255,255,255,.4)}
+header.top .switch{background:rgba(255,255,255,.22)}
+header.top .ctrl[aria-checked="true"] .switch{background:#6FC39A}
+.shell{display:flex;align-items:flex-start}
+.content{flex:1;min-width:0}
+.side{width:256px;flex:none;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;background:#1B2925;color:#C9D4CF;padding:14px 12px;border-right:1px solid #0E1613}
+.sidehead{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7F8E88;padding:4px 12px 10px}
+.scrim{display:none}
+.dashempty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:60px 20px;text-align:center;color:var(--mute)}
+.dashempty h2{margin:0 0 6px;color:var(--ink)}
 .ctrl{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:5px 6px 5px 12px;background:var(--surface);cursor:pointer;white-space:nowrap}
 .ctrl:hover{border-color:var(--mute)}
 .switch{width:34px;height:20px;border-radius:999px;background:var(--line);position:relative;transition:background .15s;flex:none}
@@ -56,19 +69,22 @@ header{background:var(--surface);border-bottom:1px solid var(--line);position:st
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .icon-btn{width:34px;height:34px;padding:0;display:grid;place-items:center;border-radius:50%}
 
-/* tabs — the one bold element */
-nav.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-bottom:-1px}
-nav.tabs::-webkit-scrollbar{display:none}
-.tab{border:0;background:none;padding:10px 16px 12px;cursor:pointer;color:var(--mute);border-bottom:3px solid transparent;display:flex;align-items:baseline;gap:10px;white-space:nowrap;font-weight:600}
-.tab b{font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.02em;line-height:1}
-.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pine)}
-.tab[aria-selected="true"] b{color:var(--pine)}
-.tab.alert b{color:var(--rust)}
+/* sidebar menu */
+nav.tabs{display:flex;flex-direction:column;gap:3px}
+.tab{border:0;background:none;padding:10px 12px;cursor:pointer;color:#C9D4CF;border-radius:10px;display:flex;align-items:center;gap:12px;font-weight:600;text-align:left;width:100%}
+.tab .tl{flex:1;min-width:0}
+.tab .ti{flex:none;opacity:.85}
+.tab:hover{background:rgba(255,255,255,.07)}
+.tab b{font-size:12px;font-weight:700;background:rgba(255,255,255,.12);color:#E6ECE9;border-radius:999px;padding:1px 9px;line-height:1.6}
+.tab[aria-selected="true"]{background:#6FC39A;color:#0D1A14}
+.tab[aria-selected="true"] .ti{opacity:1}
+.tab[aria-selected="true"] b{background:rgba(13,26,20,.16);color:#0D1A14}
+.tab.alert b{background:var(--rust);color:#fff}
 
 #log{min-height:20px;font-size:13px;color:var(--mute);padding:8px 0 0}
 
 /* WhatsApp setup popover */
-#waPanel{display:none;position:absolute;right:20px;top:58px;width:min(380px,calc(100vw - 40px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 12px 32px rgba(28,40,38,.14);z-index:20}
+#waPanel{display:none;position:absolute;right:16px;top:62px;width:min(380px,calc(100vw - 40px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 12px 32px rgba(28,40,38,.14);z-index:20}
 #waPanel.open{display:block}
 #waPanel h3{margin:0 0 4px;font-size:15px}
 #waPanel p{margin:0 0 12px;color:var(--mute);font-size:13px}
@@ -203,20 +219,30 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
 @media (max-width:640px){
   .wrap{padding:0 14px}
   .brand span{display:none}
-  .tab{padding:10px 12px 12px}
-  .tab b{font-size:19px}
   #waPanel{right:14px}
+}
+@media (max-width:1100px){
+  .bar{overflow-x:auto;scrollbar-width:none}
+  .ctrl{flex:none}
+}
+@media (max-width:900px){
+  .menu-btn{display:grid}
+  .side{position:fixed;left:0;top:56px;z-index:40;transform:translateX(-100%);transition:transform .18s;width:260px}
+  .side.open{transform:none}
+  .scrim.on{display:block;position:fixed;inset:56px 0 0 0;background:rgba(0,0,0,.45);z-index:35}
+  .brand{margin-right:auto;flex:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head>
 <body>
-<header><div class="wrap" style="position:relative">
+<header class="top">
   <div class="bar">
-    <div class="brand">TCS Orders<span id="storeNames">Chitral House</span></div>
+    <button class="btn icon-btn menu-btn" id="menuBtn" aria-label="Menu" aria-controls="side"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="brand"><i class="logo">T</i>TCS Orders<span id="storeNames">Chitral House</span></div>
     <button class="ctrl" id="waSw" role="switch" aria-checked="false">WhatsApp messages <span class="switch"></span></button>
     <button class="ctrl" id="auto" role="switch" aria-checked="false">Auto-book <span class="switch"></span></button>
     <button class="ctrl" id="webSw" role="switch" aria-checked="true">Website blocking <span class="switch"></span></button>
-    <button class="btn" id="waOpen" aria-expanded="false" aria-controls="waPanel">WhatsApp setup</button>
+    <button class="btn icon-btn" id="waOpen" aria-expanded="false" aria-controls="waPanel" aria-label="WhatsApp setup" data-tip="WhatsApp setup"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     <button class="btn icon-btn" id="refresh" aria-label="Refresh">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
     </button>
@@ -229,19 +255,29 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     <div class="row"><input id="waPin" type="password" inputmode="numeric" maxlength="6" placeholder="6-digit PIN"><button class="btn primary" id="waReg">Register number</button></div>
     <pre id="waOut"></pre>
   </div>
-  <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" data-tab="waiting" aria-selected="true">Waiting to book <b id="cWaiting">–</b></button>
-    <button class="tab" role="tab" data-tab="problems" aria-selected="false">Delivery problems <b id="cProblems">–</b></button>
-    <button class="tab" role="tab" data-tab="abandoned" aria-selected="false">Abandoned carts <b id="cAband">–</b></button>
-    <button class="tab" role="tab" data-tab="marketing" aria-selected="false">Marketing Workflow <b id="cMk">–</b></button>
-    <button class="tab" role="tab" data-tab="blocked" aria-selected="false">Blocked <b id="cBlocked">–</b></button>
-    <button class="tab" role="tab" data-tab="delivery" aria-selected="false">TCS delivery report <b id="cDelivery">–</b></button>
-    <button class="tab" role="tab" data-tab="total" aria-selected="false">Total delivery report <b id="cTotal">–</b></button>
+</header>
+<div class="shell">
+<aside class="side" id="side">
+  <div class="sidehead">Menu</div>
+  <nav class="tabs" role="tablist" aria-orientation="vertical">
+    <button class="tab" role="tab" data-tab="dashboard" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span class="tl">Dashboard</span></button>
+    <button class="tab" role="tab" data-tab="waiting" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/></svg><span class="tl">Waiting to book</span><b id="cWaiting">–</b></button>
+    <button class="tab" role="tab" data-tab="problems" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><span class="tl">Delivery problems</span><b id="cProblems">–</b></button>
+    <button class="tab" role="tab" data-tab="abandoned" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.2"/><circle cx="18" cy="20" r="1.2"/><path d="M2 3h3l2.5 12h11L21 7H6"/></svg><span class="tl">Abandoned carts</span><b id="cAband">–</b></button>
+    <button class="tab" role="tab" data-tab="marketing" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v3a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg><span class="tl">Marketing Workflow</span><b id="cMk">–</b></button>
+    <button class="tab" role="tab" data-tab="blocked" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span class="tl">Blocked</span><b id="cBlocked">–</b></button>
+    <button class="tab" role="tab" data-tab="delivery" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg><span class="tl">TCS delivery report</span><b id="cDelivery">–</b></button>
+    <button class="tab" role="tab" data-tab="total" aria-selected="false"><svg class="ti" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="tl">Total delivery report</span><b id="cTotal">–</b></button>
   </nav>
-</div></header>
-
+</aside>
+<div class="scrim" id="scrim"></div>
+<div class="content">
 <main class="wrap">
   <div id="log" aria-live="polite"></div>
+
+  <section class="panel" id="p-dashboard" hidden>
+    <div class="dashempty"><h2>Dashboard</h2><p>This page is ready to be set up.</p></div>
+  </section>
 
   <section class="panel" id="p-waiting">
     <div class="toolbar">
@@ -389,6 +425,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     <div id="totBody"><p class="note">Open this tab to load yesterday's orders, or pick a From and To date.</p></div>
   </section>
 </main>
+</div></div>
 <div id="tip" role="tooltip"></div>
 
 <script>
@@ -511,6 +548,7 @@ $("#totPdf").onclick = () => {
 /* ---------- tabs ---------- */
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
+  $("#side").classList.remove("open"); $("#scrim").classList.remove("on");
   document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "p-" + name);
   try { history.replaceState(null, "", "#" + name); } catch (e) {}
   if (name === "delivery") ensureReport();
@@ -520,7 +558,9 @@ function showTab(name) {
   if (name === "marketing") ensureMarketing();
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
-showTab(["waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
+$("#menuBtn").onclick = () => { const o = $("#side").classList.toggle("open"); $("#scrim").classList.toggle("on", o); };
+$("#scrim").onclick = () => { $("#side").classList.remove("open"); $("#scrim").classList.remove("on"); };
+showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
 
 /* ---------- WhatsApp setup popover ---------- */
 $("#waOpen").onclick = (e) => { e.stopPropagation(); const open = $("#waPanel").classList.toggle("open"); $("#waOpen").setAttribute("aria-expanded", String(open)); };
@@ -1275,6 +1315,7 @@ const TIPS = [
   ["#webSw", "ON: phones/browsers that placed a fake order see \"Order on WhatsApp\" instead of Buy now and Checkout on the website. OFF: nobody is blocked."],
   ["#waOpen", "Check the WhatsApp number and message templates. Only needed when setting up or if messages stop working."],
   ["#refresh", "Reload the latest orders from both stores."],
+  ['.tab[data-tab="dashboard"]', "Overview page. It is empty for now and will be set up next."],
   ['.tab[data-tab="waiting"]', "New orders not yet booked on TCS. Check details, then push them to TCS."],
   ['.tab[data-tab="problems"]', "Every parcel still in process with TCS. Filter by status or order date, call the customer, then press Mark done."],
   ['.tab[data-tab="marketing"]', "All orders from both stores, grouped into customers. Sort by date, spend or number of orders to pick who to message."],
