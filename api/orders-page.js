@@ -474,7 +474,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
 
   <section class="panel" id="p-stock" hidden>
       <div id="stockBody">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><div class="seg" id="stTabs" role="group" aria-label="Stock sections"><button data-st="stock" aria-pressed="true">Stock</button><button data-st="pack" aria-pressed="false">Can pack</button><button data-st="record" aria-pressed="false">Record</button><button data-st="history" aria-pressed="false">History</button><button data-st="tidy" aria-pressed="false">Tidy up</button></div><div class="stalerts" id="stAlerts"></div></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><div class="seg" id="stTabs" role="group" aria-label="Stock sections"><button data-st="stock" aria-pressed="true">Stock</button><button data-st="pack" aria-pressed="false">Can pack</button><button data-st="record" aria-pressed="false">Record</button><button data-st="history" aria-pressed="false">History</button><button data-st="tidy" aria-pressed="false">Auto &amp; tidy up</button></div><div class="stalerts" id="stAlerts"></div></div>
         <p class="note" style="margin:0 0 10px">One shared stock for Chitral House and Chitral Herbs. Packaging parts are tracked one by one.</p>
         <div id="stView"></div>
         <div id="stToast" role="status" aria-live="polite"></div>
@@ -1058,7 +1058,7 @@ function stVHistory(v) {
     const t = ST_TYPES[m.type] || { label: m.type };
     const lines = Object.keys(m.items || {}).length ? Object.keys(m.items).map((p) => esc((ST.d.prods[p] || {}).name || p) + " x " + stFmt(m.items[p])).join(" &middot; ") + (m.parcels ? " &middot; " + stFmt(m.parcels) + " parcels" : "")
       : Object.keys(m.delta || {}).map((c) => esc((ST.d.comps[c] || {}).name || c) + " " + (m.delta[c] > 0 ? "+" : "") + stFmt(m.delta[c]) + stUnit(ST.d.comps[c])).join(" &middot; ");
-    const who = m.by === "app" ? "this app" : m.by ? "artifact" : "auto-booking";
+    const who = m.by === "app" ? "this app" : m.by === "auto" ? "auto" : m.by ? "artifact" : "auto (earlier)";
     const open = m.at > (ST.d.base.at || "");
     h += '<div class="strow stin"><div class="stname"><span class="sttag">' + esc(t.label) + '</span><span class="note">' + esc(m.day) + (m.channel ? " &middot; " + esc(m.channel) : "") + " &middot; " + who + '</span><div>' + lines + "</div>" + (m.note ? '<div class="note" style="margin:0">' + esc(m.note) + "</div>" : "") + "</div><div>" +
       (open ? (ST.arm === m.id ? '<button class="btn" style="border-color:var(--rust);color:var(--rust)" data-stact="del" data-id="' + esc(m.id) + '">Confirm undo</button>' : '<button class="btn" data-stact="arm" data-id="' + esc(m.id) + '">Undo</button>') : "") + "</div></div>";
@@ -1066,9 +1066,13 @@ function stVHistory(v) {
   v.innerHTML = h + '</div><p class="note">Showing the latest ' + hist.length + " entries.</p>";
 }
 function stVTidy(v) {
-  const n = ST.d.moves.filter((m) => m.at > (ST.d.base.at || "")).length;
-  v.innerHTML = '<p class="note">' + n + " entries since the last tidy-up. Tidying saves today's totals as the new starting point. History is kept, but entries before the tidy-up can no longer be undone.</p><div class=\"toolbar\">" +
+  const n = ST.d.moves.filter((m) => m.at > (ST.d.base.at || "")).length, a = ST.d.auto || {}, log = (ST.d.autoLog || []).slice().reverse().slice(0, 7);
+  let h = '<h3 class="sth">Automatic deduction</h3><p class="note">Every night at 11:50 PM the app deducts parcels booked on TCS (from ' + esc(a.startDate || "not set") + ') and adds back parcels TCS marks returned or cancelled (from ' + esc(a.returnsFrom || "not set") + '). Flyers are never added back, and neither are 10g boxes of parcels that travelled. Each parcel is counted once.</p>' +
+    '<div class="toolbar"><button class="btn primary" data-stact="auto">Run now</button><span class="stats" id="stAutoMsg"></span></div>';
+  if (log.length) h += '<div class="sheet stlist">' + log.map((l) => '<div class="strow stin"><div class="stname">' + esc(new Date(l.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })) + '<div class="note" style="margin:0">' + l.deducted + " parcels deducted, " + l.returned + " returned/cancelled added back" + (l.unmapped ? ", " + l.unmapped + " could not be matched to a product" : "") + (l.notFound ? ", " + l.notFound + " returns with no order found" : "") + (l.warnings && l.warnings.length ? " | " + esc(l.warnings.join("; ")) : "") + "</div></div></div>").join("") + "</div>";
+  h += '<h3 class="sth">Tidy up totals</h3><p class="note">' + n + " entries since the last tidy-up. Tidying saves today's totals as the new starting point. History is kept, but entries before the tidy-up can no longer be undone.</p><div class=\"toolbar\">" +
     (ST.arm === "roll" ? '<button class="btn" style="border-color:var(--rust);color:var(--rust)" data-stact="roll">Confirm tidy-up</button><button class="btn" data-stact="disarm">Cancel</button>' : '<button class="btn" data-stact="armroll"' + (n ? "" : " disabled") + ">Tidy up totals</button>") + "</div>";
+  v.innerHTML = h;
 }
 function pfToday() { return new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10); }
 function stInit() {
@@ -1085,6 +1089,7 @@ function stInit() {
       else if (a === "disarm") { ST.arm = null; stRender(); }
       else if (a === "armroll") { ST.arm = "roll"; stRender(); }
       else if (a === "del") { b.disabled = true; await stCall({ action: "stock_undo", id: b.dataset.id }); ST.arm = null; stToast("Entry undone"); stRender(); }
+      else if (a === "auto") { b.disabled = true; const r = await stCall({ action: "stock_auto" }); const d = r.run.deducted.reduce((t, x) => t + x.parcels, 0), rt = r.run.returned.reduce((t, x) => t + x.parcels, 0); stRender(); stToast("Auto run: " + d + " parcels deducted, " + rt + " added back" + (r.run.unmapped.length ? ", " + r.run.unmapped.length + " unmatched" : "")); }
       else if (a === "roll") { b.disabled = true; await stCall({ action: "stock_roll" }); ST.arm = null; stToast("Totals saved"); stRender(); }
       else if (a === "save") {
         const f = ST.form, r = stDelta();

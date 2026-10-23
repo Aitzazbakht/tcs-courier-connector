@@ -18,6 +18,7 @@ import { profitReport } from "../lib/profit.js";
 import { adSpend } from "../lib/ads.js";
 import { herbsOrders } from "../lib/herbs.js";
 import { stockGet, stockMove, stockUndo, stockAlert, stockRoll } from "../lib/stock.js";
+import { runAuto } from "../lib/stockauto.js";
 
 const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
 
@@ -130,6 +131,7 @@ export default async function handler(req, res) {
     }
     if (typeof body.action === "string" && body.action.startsWith("stock_")) {
       // No PIN here: like the other tabs, the page link's connector key is the protection.
+      if (body.action === "stock_auto") { const run = await runAuto(); return res.status(200).json({ ...(await stockGet()), run }); }
       if (body.action === "stock_get") return res.status(200).json(await stockGet());
       if (body.action === "stock_move") return res.status(200).json(await stockMove(body.move));
       if (body.action === "stock_undo") return res.status(200).json(await stockUndo(String(body.id || "")));
