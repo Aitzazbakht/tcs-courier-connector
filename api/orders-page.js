@@ -732,11 +732,12 @@ function prHtml(d) {
   const adShare = p.deliveredSales ? (100 * p.adSpend / p.deliveredSales).toFixed(1) : "-";
   h += '<div class="keep"><h2>Profit &amp; loss (delivered parcels)</h2>' + prT([["Item"], ["PKR", 1], ["Detail"]], [
     ["Delivered sales", prM(p.deliveredSales), prN(k.delivered) + " delivered parcels"],
-    ["Less: product cost of delivered units", prM(-p.productCost), "Returned units go back to stock"],
+    ["Less: product cost of delivered units", prM(-p.productCost), p.costMissing ? "Missing for " + prN(p.costMissing) + " delivered parcels (see warning below)" : "Returned units go back to stock"],
     ["Less: delivery", prM(-p.delivery), prN(p.shipped) + " shipped parcels x " + prN(p.deliveryPer)],
     ["Less: ad spend", prM(-p.adSpend), "All accounts"],
     ["Less: " + p.feePct + "% of delivered sales", prM(-p.fee), ""]
   ], ["Net profit (delivered)", prM(p.net), pct(p.marginPct) + " of delivered sales"]);
+  if (p.costMissing) h += '<p class="note" style="color:#b3261e;font-weight:700">Product cost is missing for ' + prN(p.costMissing) + " delivered parcel" + (p.costMissing === 1 ? "" : "s") + " (Rs " + prN(p.costMissingSales) + " of sales) because their orders could not be found. The profit above is too high by their product cost. Press Build report again; if it stays, see the Notes section.</p>";
   h += prT([["If more parcels deliver"], ["PKR", 1], ["Detail"]], [
     ["Extra profit if the " + prN(p.inProcessCount) + " in-process parcels deliver", prM(p.inProcessExtra), "Sales less product cost and " + p.feePct + "%"],
     ["Profit if in-process parcels deliver", prM(p.profitIfInProcess), ""],
