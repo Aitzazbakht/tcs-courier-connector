@@ -1564,7 +1564,7 @@ function mkRender() {
     mkView = list;
     $("#mkHead").innerHTML = "<tr><th>#</th><th>Customer</th><th>Phone</th><th class=\"n\">Orders</th><th class=\"n\">Total spent</th><th class=\"n\">Average</th><th>Last order</th><th>Products bought</th><th>Offer</th></tr>";
     $("#mkBody").innerHTML = list.length ? list.slice(0, mk.shown).map((x, i) =>
-      "<tr><td>" + (i + 1) + "</td><td><strong>" + esc(x.name || "–") + '</strong><div class="sub">' + esc(x.city) + (x.stores.house && x.stores.herbs ? " · both stores" : x.stores.herbs ? " · Herbs" : "") + "</div></td><td>" + esc(x.phone || "–") + '</td><td class="n"><strong>' + x.orders + '</strong></td><td class="n">' + rs(x.spent) + '</td><td class="n">' + rs(Math.round(x.spent / x.orders)) + "</td><td>" + esc(pkDay(x.last)) + "</td><td>" + esc(x.products.join(" · ")) + "</td><td>" + (mk.offers[x.phone] ? '<span class="chip ok" data-tip="Code ' + esc(mk.offers[x.phone][0]) + '">Sent ' + esc(pkDay(mk.offers[x.phone][1])) + "</span>" : "–") + "</td></tr>").join("")
+      "<tr><td>" + (i + 1) + "</td><td><strong>" + esc(x.name || "–") + '</strong><div class="sub">' + esc(x.city) + (x.stores.house && x.stores.herbs ? " · both stores" : x.stores.herbs ? " · Herbs" : "") + "</div></td><td>" + esc(x.phone || "–") + '</td><td class="n"><strong>' + x.orders + '</strong></td><td class="n">' + rs(x.spent) + '</td><td class="n">' + rs(Math.round(x.spent / x.orders)) + "</td><td>" + esc(pkDay(x.last)) + "</td><td>" + esc(x.products.join(" · ")) + "</td><td>" + (mk.offers[x.phone] ? '<span class="chip ok" data-tip="Code ' + esc(mk.offers[x.phone][0]) + '">Sent ' + esc(pkDay(mk.offers[x.phone][1])) + "</span>" + mkStatChip(x.phone) : "–") + "</td></tr>").join("")
       : '<tr><td colspan="9" class="empty">No customers match.</td></tr>';
   } else {
     const ok = new Set(c.all.filter(c.okC).map(x => x.key));
@@ -1590,7 +1590,7 @@ function mkRender() {
 }
 
 async function loadMkOffers() {
-  try { const d = await post({ action: "mk_offers" }); mk.offers = d.sent || {}; mk.today = d.today || 0; $("#mkOfferMeta").textContent = d.total.toLocaleString("en-PK") + " offers sent so far · " + d.today.toLocaleString("en-PK") + " today"; if (mk.rows.length) mkRender(); }
+  try { const d = await post({ action: "mk_offers" }); mk.offers = d.sent || {}; mk.status = d.status || {}; mk.today = d.today || 0; $("#mkOfferMeta").textContent = d.total.toLocaleString("en-PK") + " offers sent so far · " + d.today.toLocaleString("en-PK") + " today"; if (mk.rows.length) mkRender(); }
   catch (e) { $("#mkOfferMeta").textContent = "Couldn't load the sent-offers list: " + e.message; }
 }
 async function mkSendOffers() {
@@ -1633,10 +1633,18 @@ $("#mkResBtn").onclick = async () => {
   try {
     const d = await post({ action: "mk_results" });
     const rows = d.orders.map(o => "<tr><td><strong>" + esc(o.name) + '</strong><div class="sub">' + esc(o.store) + "</div></td><td>" + esc(o.customer) + "</td><td>" + when(o.at) + '</td><td class="n">' + rs(o.amount) + '</td><td class="n">' + rs(o.discount) + "</td></tr>").join("");
-    $("#mkResults").innerHTML = '<div class="tbox"><h3>How the 10% offers worked</h3>' + '<table><tr><th>Group</th><th class="n">Sent</th><th class="n">Used</th><th class="n">Rate</th><th class="n">Sales</th><th class="n">Discount</th></tr>' + (d.groups || []).map(g => "<tr><td><strong>" + esc(g.name) + '</strong></td><td class="n">' + g.sent + '</td><td class="n">' + g.used + '</td><td class="n"><strong>' + g.rate + '%</strong></td><td class="n">' + rs(g.revenue) + '</td><td class="n">' + rs(g.discount) + "</td></tr>").join("") + '</table><table style="margin-top:8px"><tr><td>Offers sent (all groups)</td><td class="n">' + d.sent + '</td></tr><tr><td>Codes used on an order</td><td class="n"><strong>' + d.used + "</strong>" + (d.sent ? " (" + (100 * d.used / d.sent).toFixed(1) + "%)" : "") + '</td></tr><tr><td>Sales from these orders</td><td class="n"><strong>' + rs(d.revenue) + '</strong></td></tr><tr><td>Discount given</td><td class="n">' + rs(d.discount) + "</td></tr></table>" +
+    $("#mkResults").innerHTML = '<div class="tbox"><h3>How the 10% offers worked</h3>' + '<table><tr><th>Group</th><th class="n">Sent</th><th class="n" data-tip="Delivered to the phone (includes read). Only offers sent after tracking was added are counted.">Delivered</th><th class="n">Read</th><th class="n" data-tip="Meta did not deliver the message. See the list below for the reason.">Not delivered</th><th class="n">Used</th><th class="n">Rate</th><th class="n">Sales</th><th class="n">Discount</th></tr>' + (d.groups || []).map(g => "<tr><td><strong>" + esc(g.name) + '</strong></td><td class="n">' + g.sent + '</td><td class="n">' + (g.delivered || 0) + '</td><td class="n">' + (g.read || 0) + '</td><td class="n">' + (g.failed ? '<span style="color:var(--rust)">' + g.failed + "</span>" : 0) + '</td><td class="n">' + g.used + '</td><td class="n"><strong>' + g.rate + '%</strong></td><td class="n">' + rs(g.revenue) + '</td><td class="n">' + rs(g.discount) + "</td></tr>").join("") + '</table><table style="margin-top:8px"><tr><td>Offers sent (all groups)</td><td class="n">' + d.sent + '</td></tr><tr><td>Codes used on an order</td><td class="n"><strong>' + d.used + "</strong>" + (d.sent ? " (" + (100 * d.used / d.sent).toFixed(1) + "%)" : "") + '</td></tr><tr><td>Sales from these orders</td><td class="n"><strong>' + rs(d.revenue) + '</strong></td></tr><tr><td>Discount given</td><td class="n">' + rs(d.discount) + "</td></tr></table>" +
+      ((d.failed || []).length ? '<h3 style="margin-top:14px">Not delivered (' + d.failed.length + ")</h3><p class=\"sub\">These numbers did not get the offer. Trying again rarely helps, so leave them out of the next send.</p>" + '<table><tr><th>Customer</th><th>Phone</th><th>Group</th><th>Why</th></tr>' + d.failed.map(f => { const c = mk.rows.find(o => o.p === f.phone); return "<tr><td>" + esc(c ? c.c : "–") + "</td><td>" + esc(f.phone) + "</td><td>" + esc(f.group) + '</td><td style="color:var(--rust)">' + esc(f.reason) + "</td></tr>"; }).join("") + "</table>" : "") +
       (rows ? '<table style="margin-top:8px"><tr><th>Order</th><th>Customer</th><th>Placed</th><th class="n">Total</th><th class="n">Discount</th></tr>' + rows + "</table>" : "") + "</div>";
   } catch (e) { $("#mkResults").innerHTML = '<p class="note">Couldn\'t load results: ' + esc(e.message) + "</p>"; }
 };
+function mkStatChip(ph) {
+  const s = mk.status && mk.status[ph]; if (!s) return "";
+  if (s[0] === "failed") return ' <span class="chip bad" data-tip="' + esc(s[1]) + '">Not delivered</span>';
+  if (s[0] === "read") return ' <span class="chip ok">Read</span>';
+  if (s[0] === "delivered") return ' <span class="chip">Delivered</span>';
+  return "";
+}
 function mkCsv() {
   const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
   const head = mk.view === "customers" ? ["Customer", "Phone", "City", "Orders", "Total spent", "Average order", "First order", "Last order", "Products", "Offer sent"] : ["Order", "Store", "Customer", "Phone", "City", "Product", "Amount", "Date"];

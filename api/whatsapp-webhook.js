@@ -2,6 +2,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { rawBody } from "../lib/auth.js";
 import { handleButton } from "../lib/notify.js";
+import { record } from "../lib/watrack.js";
 
 export const config = { api: { bodyParser: false } };
 const VERIFY = () => process.env.WHATSAPP_VERIFY_TOKEN || "chitralhouse-wa-7Hq2Lp9Xz4Rk";
@@ -38,7 +39,8 @@ export default async function handler(req, res) {
             catch (e) { console.error("wa-button failed", payload, e.message); }
           }
         }
-        for (const s of v.statuses || []) console.log("wa-status", s.id, s.status, s.recipient_id);
+        for (const s of v.statuses || []) console.log("wa-status", s.id, s.status, s.recipient_id, s.errors?.[0]?.code || "");
+        if ((v.statuses || []).length) { try { await record(v.statuses); } catch (e) { console.error("wa-track failed", e.message); } }
       }
   } catch (e) { console.error("wa-webhook parse", e.message); }
   return res.status(200).send("OK");
