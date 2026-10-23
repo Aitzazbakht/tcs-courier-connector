@@ -17,6 +17,7 @@ import { startExport, exportStatus, streamStore } from "../lib/marketing.js";
 import { profitReport } from "../lib/profit.js";
 import { adSpend } from "../lib/ads.js";
 import { herbsOrders } from "../lib/herbs.js";
+import { stockGet, stockMove, stockUndo, stockAlert, stockRoll } from "../lib/stock.js";
 
 const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
 
@@ -126,6 +127,14 @@ export default async function handler(req, res) {
         date: String(body.date || ""), to: String(body.to || ""), usdRate: Number(body.usdRate) || undefined,
         ads: body.ads && typeof body.ads === "object" ? body.ads : {}, adsDaily: body.adsDaily && typeof body.adsDaily === "object" ? body.adsDaily : {}, refresh: body.refresh === true,
       }));
+    }
+    if (typeof body.action === "string" && body.action.startsWith("stock_")) {
+      if (!(await pinGate(res, body.pin))) return;
+      if (body.action === "stock_get") return res.status(200).json(await stockGet());
+      if (body.action === "stock_move") return res.status(200).json(await stockMove(body.move));
+      if (body.action === "stock_undo") return res.status(200).json(await stockUndo(String(body.id || "")));
+      if (body.action === "stock_alert") return res.status(200).json(await stockAlert(String(body.id || ""), body.reorder));
+      if (body.action === "stock_roll") return res.status(200).json(await stockRoll());
     }
     if (body.action === "ad_spend") {
       if (!(await pinGate(res, body.pin))) return;

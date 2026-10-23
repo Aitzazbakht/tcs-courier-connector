@@ -159,7 +159,7 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
 .seg button{border:0;background:transparent;color:var(--mute);padding:7px 12px;cursor:pointer;white-space:nowrap;font:inherit;border-right:1px solid var(--line)}
 .seg button:last-child{border-right:0}
 .seg button:hover{color:var(--ink);background:var(--soft)}
-.seg button.on{background:var(--pine-soft);color:var(--pine);font-weight:700}
+.seg button.on,.seg button[aria-pressed="true"]{background:var(--pine-soft);color:var(--pine);font-weight:700}
 .field select{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--ink);font:inherit}
 .mkcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .mkcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-align:left;font:inherit;color:inherit}
@@ -248,6 +248,29 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   .brand{margin-right:auto;flex:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.stalerts{display:flex;flex-wrap:wrap;gap:8px}
+.stchip{font-size:12px;padding:6px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);white-space:nowrap}
+.stchip.out{background:var(--rust-soft);color:var(--rust);border-color:transparent}.stchip.low{background:var(--herbs-soft);color:var(--herbs);border-color:transparent}.stchip.ok{background:var(--pine-soft);color:var(--pine);border-color:transparent}
+.sth{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--mute);margin:14px 0 6px}
+.stlist .strow{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px 16px;align-items:center;padding:9px 14px;border-top:1px solid var(--line)}
+.stlist .strow:first-child{border-top:0}
+.stlist .stin{grid-template-columns:minmax(0,1fr) auto}
+.stname{min-width:0;font-weight:600}
+.stnum{text-align:right;white-space:nowrap;font-weight:600}.stnum small,.stname small{color:var(--mute);font-weight:400}
+.stneg{color:var(--rust)}
+.stalf{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--mute)}
+.stalf input,.stq{width:90px;text-align:right;border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:var(--surface);color:var(--ink);font:inherit}
+.stpill{font-size:11px;font-weight:700;text-transform:uppercase;padding:5px 8px;border-radius:5px;min-width:44px;text-align:center}
+.stpill.ok{background:var(--pine-soft);color:var(--pine)}.stpill.low{background:var(--herbs-soft);color:var(--herbs)}.stpill.out{background:var(--rust-soft);color:var(--rust)}
+.stalert{background:var(--herbs-soft);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.stalert ul{margin:0;padding:0;list-style:none;display:grid;gap:5px}.stalert li{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.stalert em{font-style:normal;font-weight:700;font-size:12px}.stalert em.out{color:var(--rust)}.stalert em.low{color:var(--herbs)}
+.stdet{display:block!important}.stdet summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;align-items:center;cursor:pointer;list-style:none}
+.stdet summary::-webkit-details-marker{display:none}
+.stbom{margin:8px 0 2px;padding:0;list-style:none;display:grid;gap:4px;font-size:13px;color:var(--mute)}.stbom li{display:flex;justify-content:space-between;gap:12px}.stbom li.lim{color:var(--rust);font-weight:700}
+.sttag{font-size:11px;font-weight:700;text-transform:uppercase;padding:3px 6px;border-radius:4px;background:var(--soft);margin-right:6px}
+#stToast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}#stToast.show{opacity:1}
+@media (max-width:560px){.stlist .strow{grid-template-columns:minmax(0,1fr) auto}}
 </style></head>
 <body>
 <header class="top">
@@ -458,6 +481,8 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <p class="note" id="setupMsg" style="margin:12px 0 0" aria-live="polite"></p>
     </div>
     <div id="setupBody" hidden>
+      <div class="seg" id="setupNav" role="group" aria-label="Setup sections" style="margin-bottom:12px"><button data-sec="profit" aria-pressed="true">Profit report</button><button data-sec="stock" aria-pressed="false">Stock</button></div>
+      <div id="stProfit">
       <div class="toolbar" style="align-items:flex-end">
         <label class="adf">Orders from <input type="date" id="pfDate"></label>
         <label class="adf">to (optional, for a range) <input type="date" id="pfTo"></label>
@@ -476,6 +501,13 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
         <div class="sub" id="prAdTotal"></div>
       </div>
       <div id="prBody"><p class="note">Pick the order date, enter the ad spend, then press Build report.</p></div>
+      </div>
+      <div id="stStock" hidden>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><div class="seg" id="stTabs" role="group" aria-label="Stock sections"><button data-st="stock" aria-pressed="true">Stock</button><button data-st="pack" aria-pressed="false">Can pack</button><button data-st="record" aria-pressed="false">Record</button><button data-st="history" aria-pressed="false">History</button><button data-st="tidy" aria-pressed="false">Tidy up</button></div><div class="stalerts" id="stAlerts"></div></div>
+        <p class="note" style="margin:0 0 10px">One shared stock for Chitral House and Chitral Herbs. Packaging parts are tracked one by one.</p>
+        <div id="stView"></div>
+        <div id="stToast" role="status" aria-live="polite"></div>
+      </div>
     </div>
   </section>
 </main>
@@ -890,6 +922,202 @@ function prPdf() {
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(prFile(d.date, d.dateTo)) + "</title><style>@page{size:A4;margin:11mm}body{margin:0;background:#fff}" + PR_CSS + ".pr{padding:0;border:0;border-radius:0}</style></head><body><div class=\"pr\">" + prHtml(d) + "</div></body></html>");
   w.document.close(); setTimeout(() => { w.focus(); w.print(); }, 400);
 }
+
+/* ---------- stock tracker (Setup > Stock) ---------- */
+const ST_GROUPS = [["resin", "Shilajit resin"], ["gummies", "Gummies"], ["honey", "Honey Shilajit"], ["drops", "Drops 30ml"], ["shared", "Every parcel"]];
+const ST_TYPES = {
+  dispatch: { label: "Dispatch", hint: "Orders packed and sent out. Every part in each pack is deducted, plus one flyer per parcel.", by: "product", sign: -1 },
+  "return": { label: "Return", hint: "Returned parcels that are fine to resell. Their parts go back into stock.", by: "product", sign: 1 },
+  receive: { label: "Receive", hint: "New stock arrived from a supplier or printer. Enter how many came in.", by: "component", sign: 1 },
+  count: { label: "Stock count", hint: "Enter what you physically counted. Only items you fill in change; blanks stay as they are.", by: "component", sign: 0 },
+  writeoff: { label: "Write-off", hint: "Damaged, used for samples, or lost.", by: "component", sign: -1 }
+};
+const ST_CH = ["Chitral House", "Chitral Herbs", "WhatsApp", "Wholesale", "Other"];
+const ST_FLYER = "resin-flyer";
+const ST_AU = { g: { mult: 1000, label: "kg" }, ml: { mult: 1000, label: "L" } };
+const ST = { d: null, tab: "stock", arm: null, busy: false, form: { type: "dispatch", day: "", channel: "Chitral House", note: "", parcels: "", lines: {} } };
+const stR1 = (n) => Math.round(n * 10) / 10;
+const stFmt = (n) => Number(n || 0).toLocaleString("en-PK", { maximumFractionDigits: 1 });
+const stUnit = (c) => (c && c.unit === "g" ? " g" : c && c.unit === "ml" ? " ml" : "");
+const stAu = (c) => ST_AU[c.unit] || { mult: 1, label: "pcs" };
+function stStock() {
+  const d = ST.d, q = Object.assign({}, d.base.qty || {});
+  d.moves.forEach((m) => { if (m.at > (d.base.at || "")) Object.keys(m.delta || {}).forEach((c) => { q[c] = stR1((q[c] || 0) + m.delta[c]); }); });
+  return q;
+}
+function stComps() { const go = {}; ST_GROUPS.forEach((g, i) => { go[g[0]] = i; }); return Object.values(ST.d.comps).sort((a, b) => ((go[a.group] == null ? 9 : go[a.group]) - (go[b.group] == null ? 9 : go[b.group])) || ((a.order || 0) - (b.order || 0))); }
+function stProds() { return Object.values(ST.d.prods).sort((a, b) => (a.order || 0) - (b.order || 0)); }
+function stStatus(c, q) { const v = q[c.id] || 0; if (v <= 0) return "out"; if (c.reorder > 0 && v < c.reorder) return "low"; return "ok"; }
+function stQtyText(c, v) { if (c.unit === "g") return stFmt(v) + " g <small>" + (v / 1000).toFixed(2) + " kg</small>"; if (c.unit === "ml") return stFmt(v) + " ml <small>" + (v / 1000).toFixed(2) + " L</small>"; return stFmt(v); }
+function stCan(p, q) { let best = Infinity, lim = null; Object.keys(p.bom || {}).forEach((c) => { const n = Math.floor(Math.max(0, q[c] || 0) / p.bom[c]); if (n < best) { best = n; lim = c; } }); return { n: best === Infinity ? 0 : best, lim: lim }; }
+function stToast(t) { const el = $("#stToast"); el.textContent = t; el.classList.add("show"); clearTimeout(stToast.t); stToast.t = setTimeout(() => el.classList.remove("show"), 2600); }
+async function stCall(body) {
+  ST.busy = true;
+  try { const r = await post(Object.assign({ pin: setupPin }, body)); ST.d = r; return r; }
+  catch (e) { if (e.message === "Wrong PIN") { setupLock("The PIN was not accepted. Enter it again."); } throw e; }
+  finally { ST.busy = false; }
+}
+async function stLoad() {
+  $("#stView").innerHTML = '<p class="note">Loading stock...</p>';
+  try { await stCall({ action: "stock_get" }); stRender(); }
+  catch (e) { $("#stView").innerHTML = '<p class="note">Could not load stock: ' + esc(e.message) + "</p>"; }
+}
+function stRender() {
+  if (!ST.d) return;
+  document.querySelectorAll("#stTabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.st === ST.tab)));
+  const q = stStock(), cs = stComps();
+  let out = 0, low = 0; cs.forEach((c) => { const s = stStatus(c, q); if (s === "out") out++; else if (s === "low") low++; });
+  const bulk = ST.d.comps["resin-bulk"];
+  let h = "";
+  if (out) h += '<span class="stchip out"><b>' + out + "</b> out of stock</span>";
+  if (low) h += '<span class="stchip low"><b>' + low + "</b> running low</span>";
+  if (!out && !low) h += '<span class="stchip ok">All parts in stock</span>';
+  if (bulk) h += '<span class="stchip">Resin <b>' + ((q["resin-bulk"] || 0) / 1000).toFixed(2) + " kg</b></span>";
+  $("#stAlerts").innerHTML = h;
+  ({ stock: stVStock, pack: stVPack, record: stVRecord, history: stVHistory, tidy: stVTidy }[ST.tab] || stVStock)($("#stView"));
+}
+function stVStock(v) {
+  const q = stStock(), cs = stComps();
+  const lows = cs.map((c) => ({ c: c, s: stStatus(c, q) })).filter((x) => x.s !== "ok");
+  let h = "";
+  if (lows.length) h += '<div class="stalert" role="alert"><b>' + lows.length + (lows.length === 1 ? " item needs" : " items need") + " restocking</b><ul>" + lows.map((x) => "<li><span>" + esc(x.c.name) + '</span><span class="stnum">' + stQtyText(x.c, q[x.c.id] || 0) + ' <em class="' + x.s + '">' + (x.s === "out" ? "out of stock" : "below " + stFmt(x.c.reorder / stAu(x.c).mult) + " " + stAu(x.c).label) + "</em></span></li>").join("") + "</ul></div>";
+  else h += '<p class="note">Everything is above its alert level. Set an <b>Alert below</b> value next to any item to be warned when it runs low.</p>';
+  ST_GROUPS.forEach((g) => {
+    const rows = cs.filter((c) => c.group === g[0]); if (!rows.length) return;
+    h += '<h3 class="sth">' + g[1] + '</h3><div class="sheet stlist">';
+    rows.forEach((c) => {
+      const s = stStatus(c, q), a = stAu(c), shown = c.reorder > 0 ? Math.round(c.reorder / a.mult * 1000) / 1000 : "";
+      h += '<div class="strow"><div class="stname">' + esc(c.name) + (c.note ? '<div class="note" style="margin:0">' + esc(c.note) + "</div>" : "") + '</div><div class="stnum">' + stQtyText(c, q[c.id] || 0) + "</div>" +
+        '<label class="stalf">Alert below <span><input type="number" min="0" step="any" inputmode="decimal" data-reorder="' + esc(c.id) + '" data-mult="' + a.mult + '" value="' + shown + '" placeholder="off" aria-label="Alert below for ' + esc(c.name) + '"> ' + a.label + "</span></label>" +
+        '<span class="stpill ' + s + '">' + (s === "ok" ? "OK" : s === "low" ? "Low" : "Out") + "</span></div>";
+    });
+    h += "</div>";
+  });
+  v.innerHTML = h;
+}
+function stVPack(v) {
+  const q = stStock();
+  let h = '<p class="note">How many of each product you can pack right now with the parts on hand. The part that runs out first is shown in red.</p><div class="sheet stlist">';
+  stProds().forEach((p) => {
+    const r = stCan(p, q), lc = ST.d.comps[r.lim];
+    h += '<details class="strow stdet"><summary><div class="stname">' + esc(p.name) + '<div class="note" style="margin:0">' + (r.n ? "limited by " : "blocked by ") + esc(lc ? lc.name : r.lim || "") + '</div></div><div class="stnum">' + stFmt(r.n) + " <small>packs</small></div></summary><ul class=\"stbom\">";
+    Object.keys(p.bom || {}).forEach((c) => { const cc = ST.d.comps[c]; h += '<li class="' + (c === r.lim ? "lim" : "") + '"><span>' + esc(cc ? cc.name : c) + "</span><span>" + stFmt(p.bom[c]) + stUnit(cc) + " each &middot; " + stFmt(q[c] || 0) + stUnit(cc) + " on hand</span></li>"; });
+    h += "</ul></details>";
+  });
+  v.innerHTML = h + "</div>";
+}
+function stVRecord(v) {
+  const f = ST.form, t = ST_TYPES[f.type]; if (!f.day) f.day = pfToday();
+  let h = '<div class="seg" role="group" aria-label="Entry type">' + Object.keys(ST_TYPES).map((k) => '<button data-sttype="' + k + '" aria-pressed="' + (k === f.type) + '">' + ST_TYPES[k].label + "</button>").join("") + '</div><p class="note">' + t.hint + "</p>";
+  h += '<div class="toolbar" style="align-items:flex-end"><label class="adf">Date <input type="date" id="stDay" value="' + esc(f.day) + '"></label>';
+  if (f.type === "dispatch") h += '<label class="adf">Parcels sent (1 flyer each) <input type="number" min="0" inputmode="numeric" id="stParc" value="' + esc(f.parcels) + '" placeholder="number of parcels"></label>';
+  if (t.by === "product") h += '<label class="adf">Store / channel <select id="stCh">' + ST_CH.map((c) => "<option" + (c === f.channel ? " selected" : "") + ">" + c + "</option>").join("") + "</select></label>";
+  h += '<label class="adf">Note (optional) <input id="stNote" value="' + esc(f.note) + '" placeholder="' + (t.by === "product" ? "e.g. TCS batch 12 Oct" : "e.g. supplier, invoice no.") + '"></label></div>';
+  const q = stStock();
+  if (t.by === "product") {
+    h += '<div class="sheet stlist">' + stProds().map((p) => '<div class="strow stin"><div class="stname">' + esc(p.name) + '</div><input class="stq" type="number" min="0" inputmode="numeric" data-line="' + esc(p.id) + '" value="' + esc(f.lines[p.id] == null ? "" : f.lines[p.id]) + '" placeholder="0"></div>').join("") + "</div>";
+  } else {
+    ST_GROUPS.forEach((g) => {
+      const rows = stComps().filter((c) => c.group === g[0]); if (!rows.length) return;
+      h += '<h3 class="sth">' + g[1] + '</h3><div class="sheet stlist">' + rows.map((c) => '<div class="strow stin"><div class="stname">' + esc(c.name) + '<div class="note" style="margin:0">now ' + stFmt(q[c.id] || 0) + stUnit(c) + '</div></div><input class="stq" type="number" min="0" inputmode="numeric" data-line="' + esc(c.id) + '" value="' + esc(f.lines[c.id] == null ? "" : f.lines[c.id]) + '" placeholder="' + (f.type === "count" ? "counted" : c.unit === "g" ? "grams" : c.unit === "ml" ? "ml" : "0") + '"></div>').join("") + "</div>";
+    });
+  }
+  h += '<h3 class="sth">What will change</h3><div id="stPrev"></div><div class="toolbar"><button class="btn primary" data-stact="save">Save entry</button><button class="btn" data-stact="clear">Clear</button></div>';
+  v.innerHTML = h; stPreview();
+}
+function stDelta() {
+  const f = ST.form, t = ST_TYPES[f.type], q = stStock(), delta = {}, items = {};
+  Object.keys(f.lines).forEach((id) => {
+    const raw = f.lines[id]; if (raw === "" || raw == null) return;
+    const n = Math.round(Number(raw)); if (!isFinite(n) || n < 0) return;
+    if (t.by === "product") { if (!n) return; items[id] = n; const bom = (ST.d.prods[id] || {}).bom || {}; Object.keys(bom).forEach((c) => { delta[c] = (delta[c] || 0) + t.sign * bom[c] * n; }); }
+    else if (f.type === "count") { const dd = n - (q[id] || 0); if (dd) delta[id] = dd; }
+    else if (n) delta[id] = t.sign * n;
+  });
+  let parcels = 0;
+  if (f.type === "dispatch") { parcels = Math.max(0, Math.round(Number(f.parcels) || 0)); if (parcels) delta[ST_FLYER] = (delta[ST_FLYER] || 0) - parcels; }
+  Object.keys(delta).forEach((k) => { delta[k] = stR1(delta[k]); if (!delta[k]) delete delta[k]; });
+  return { delta: delta, items: items, parcels: parcels };
+}
+function stPreview() {
+  const el = $("#stPrev"); if (!el) return;
+  const r = stDelta(), q = stStock(), ks = stComps().filter((c) => r.delta[c.id]);
+  if (!ks.length) { el.innerHTML = '<p class="note">Enter quantities above to see the effect on stock.</p>'; return; }
+  let h = "";
+  if (ST.form.type === "dispatch" && Object.keys(r.items).length && !r.parcels) h += '<p class="note"><b>Parcels is empty.</b> Enter how many parcels went out so flyers are deducted too.</p>';
+  h += '<div class="sheet stlist">' + ks.map((c) => { const d = r.delta[c.id], after = stR1((q[c.id] || 0) + d), u = stUnit(c); return '<div class="strow stin"><div class="stname">' + esc(c.name) + '</div><div class="stnum">' + (d > 0 ? "+" : "") + stFmt(d) + u + ' &rarr; <span class="' + (after < 0 ? "stneg" : "") + '">' + stFmt(after) + u + "</span></div></div>"; }).join("") + "</div>";
+  if (ks.some((c) => (q[c.id] || 0) + r.delta[c.id] < 0)) h += '<p class="note"><b>Some parts would go below zero.</b> You can still save; run a stock count when you can.</p>';
+  el.innerHTML = h;
+}
+function stVHistory(v) {
+  const hist = ST.d.moves.slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 150);
+  if (!hist.length) { v.innerHTML = '<p class="note">No entries yet. Dispatches, deliveries, counts and write-offs appear here.</p>'; return; }
+  let h = '<div class="sheet stlist">';
+  hist.forEach((m) => {
+    const t = ST_TYPES[m.type] || { label: m.type };
+    const lines = Object.keys(m.items || {}).length ? Object.keys(m.items).map((p) => esc((ST.d.prods[p] || {}).name || p) + " x " + stFmt(m.items[p])).join(" &middot; ") + (m.parcels ? " &middot; " + stFmt(m.parcels) + " parcels" : "")
+      : Object.keys(m.delta || {}).map((c) => esc((ST.d.comps[c] || {}).name || c) + " " + (m.delta[c] > 0 ? "+" : "") + stFmt(m.delta[c]) + stUnit(ST.d.comps[c])).join(" &middot; ");
+    const who = m.by === "app" ? "this app" : m.by ? "artifact" : "auto-booking";
+    const open = m.at > (ST.d.base.at || "");
+    h += '<div class="strow stin"><div class="stname"><span class="sttag">' + esc(t.label) + '</span><span class="note">' + esc(m.day) + (m.channel ? " &middot; " + esc(m.channel) : "") + " &middot; " + who + '</span><div>' + lines + "</div>" + (m.note ? '<div class="note" style="margin:0">' + esc(m.note) + "</div>" : "") + "</div><div>" +
+      (open ? (ST.arm === m.id ? '<button class="btn" style="border-color:var(--rust);color:var(--rust)" data-stact="del" data-id="' + esc(m.id) + '">Confirm undo</button>' : '<button class="btn" data-stact="arm" data-id="' + esc(m.id) + '">Undo</button>') : "") + "</div></div>";
+  });
+  v.innerHTML = h + '</div><p class="note">Showing the latest ' + hist.length + " entries.</p>";
+}
+function stVTidy(v) {
+  const n = ST.d.moves.filter((m) => m.at > (ST.d.base.at || "")).length;
+  v.innerHTML = '<p class="note">' + n + " entries since the last tidy-up. Tidying saves today's totals as the new starting point. History is kept, but entries before the tidy-up can no longer be undone.</p><div class=\"toolbar\">" +
+    (ST.arm === "roll" ? '<button class="btn" style="border-color:var(--rust);color:var(--rust)" data-stact="roll">Confirm tidy-up</button><button class="btn" data-stact="disarm">Cancel</button>' : '<button class="btn" data-stact="armroll"' + (n ? "" : " disabled") + ">Tidy up totals</button>") + "</div>";
+}
+function pfToday() { return new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10); }
+function stInit() {
+  if (ST.ready) return; ST.ready = true;
+  $("#stTabs").onclick = (e) => { const b = e.target.closest("button[data-st]"); if (!b || !ST.d) return; ST.tab = b.dataset.st; ST.arm = null; stRender(); };
+  const v = $("#stView");
+  v.addEventListener("click", async (e) => {
+    const t = e.target.closest("[data-sttype]");
+    if (t) { ST.form.type = t.dataset.sttype; ST.form.lines = {}; stRender(); return; }
+    const b = e.target.closest("[data-stact]"); if (!b) return; const a = b.dataset.stact;
+    try {
+      if (a === "clear") { ST.form.lines = {}; ST.form.note = ""; ST.form.parcels = ""; stRender(); }
+      else if (a === "arm") { ST.arm = b.dataset.id; stRender(); }
+      else if (a === "disarm") { ST.arm = null; stRender(); }
+      else if (a === "armroll") { ST.arm = "roll"; stRender(); }
+      else if (a === "del") { b.disabled = true; await stCall({ action: "stock_undo", id: b.dataset.id }); ST.arm = null; stToast("Entry undone"); stRender(); }
+      else if (a === "roll") { b.disabled = true; await stCall({ action: "stock_roll" }); ST.arm = null; stToast("Totals saved"); stRender(); }
+      else if (a === "save") {
+        const f = ST.form, r = stDelta();
+        if (!Object.keys(r.delta).length) return stToast("Nothing to save. Enter at least one quantity.");
+        b.disabled = true;
+        await stCall({ action: "stock_move", move: { type: f.type, day: f.day, channel: ST_TYPES[f.type].by === "product" ? f.channel : "", note: f.note, items: r.items, parcels: r.parcels, delta: r.delta } });
+        f.lines = {}; f.note = ""; f.parcels = ""; stToast(ST_TYPES[f.type].label + " saved"); stRender();
+      }
+    } catch (err) { stToast("Could not save: " + err.message); stRender(); }
+  });
+  v.addEventListener("input", (e) => {
+    const t = e.target;
+    if (t.dataset.line) { ST.form.lines[t.dataset.line] = t.value; stPreview(); }
+    else if (t.id === "stParc") { ST.form.parcels = t.value; stPreview(); }
+    else if (t.id === "stDay") ST.form.day = t.value;
+    else if (t.id === "stNote") ST.form.note = t.value;
+    else if (t.id === "stCh") ST.form.channel = t.value;
+  });
+  v.addEventListener("change", async (e) => {
+    const t = e.target; if (!t.dataset.reorder) return;
+    const raw = t.value.trim(), x = Number(raw);
+    if (raw !== "" && !(isFinite(x) && x >= 0)) return stToast("Enter a number, or leave it empty to turn the alert off.");
+    const c = ST.d.comps[t.dataset.reorder];
+    try { await stCall({ action: "stock_alert", id: t.dataset.reorder, reorder: raw === "" ? 0 : Math.round(x * Number(t.dataset.mult || 1)) }); stToast(raw === "" ? "Alert off for " + c.name : "Alert set: " + c.name + " below " + stFmt(x) + " " + stAu(c).label); stRender(); }
+    catch (err) { stToast("Could not save the alert: " + err.message); }
+  });
+  stLoad();
+}
+function setupSection(which) {
+  $("#stProfit").hidden = which !== "profit"; $("#stStock").hidden = which !== "stock";
+  document.querySelectorAll("#setupNav button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sec === which)));
+  if (which === "stock") stInit();
+}
+$("#setupNav").onclick = (e) => { const b = e.target.closest("button[data-sec]"); if (b) setupSection(b.dataset.sec); };
 
 /* ---------- tabs ---------- */
 function showTab(name) {
