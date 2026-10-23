@@ -128,6 +128,13 @@ select.bad,select.fuzzy{border:2px solid var(--rust)}
 .seg button:last-child{border-right:0}
 .seg button:hover{color:var(--ink);background:var(--soft)}
 .seg button.on{background:var(--pine-soft);color:var(--pine);font-weight:700}
+.field select{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--ink);font:inherit}
+.mkcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.mkcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-align:left;font:inherit;color:inherit}
+.mkcard.click{cursor:pointer}.mkcard.click:hover{border-color:var(--pine)}.mkcard.on{border-color:var(--pine);background:var(--pine-soft)}
+.mkcard .v{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.25}.mkcard .s{font-size:12.5px;color:var(--mute)}
+#mkTable td.n,#mkTable th.n{text-align:right;white-space:nowrap}
+#mkTable{min-width:760px}
 .daterange{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--pine);border-radius:9px;background:var(--surface);padding:3px 4px 3px 10px}
 .daterange input[type=date]{border:0;background:transparent;color:var(--ink);font:inherit;padding:4px 2px;outline:0}
 .daterange .arr{color:var(--mute)}
@@ -226,6 +233,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     <button class="tab" role="tab" data-tab="waiting" aria-selected="true">Waiting to book <b id="cWaiting">–</b></button>
     <button class="tab" role="tab" data-tab="problems" aria-selected="false">Delivery problems <b id="cProblems">–</b></button>
     <button class="tab" role="tab" data-tab="abandoned" aria-selected="false">Abandoned carts <b id="cAband">–</b></button>
+    <button class="tab" role="tab" data-tab="marketing" aria-selected="false">Marketing Workflow <b id="cMk">–</b></button>
     <button class="tab" role="tab" data-tab="blocked" aria-selected="false">Blocked <b id="cBlocked">–</b></button>
     <button class="tab" role="tab" data-tab="delivery" aria-selected="false">TCS delivery report <b id="cDelivery">–</b></button>
     <button class="tab" role="tab" data-tab="total" aria-selected="false">Total delivery report <b id="cTotal">–</b></button>
@@ -289,6 +297,33 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     </table></div></div>
     <div id="abStats" style="margin-top:14px"></div>
   </section>
+  <section class="panel" id="p-marketing" hidden>
+    <div class="toolbar">
+      <button class="btn primary" id="mkRefresh" data-tip="Asks Shopify for every order from both stores. It runs on Shopify's side and takes a few minutes for a large history. The result is kept in this browser so the tab opens instantly next time.">Refresh orders from Shopify</button>
+      <button class="btn" id="mkCsv" disabled data-tip="Downloads what is shown below (all rows, not just the first page) as a spreadsheet file.">Download CSV</button>
+      <span class="stats" id="mkMeta" style="margin-left:auto"></span>
+    </div>
+    <div class="toolbar">
+      <div class="seg" id="mkView" role="group" aria-label="View"><button type="button" data-v="customers" class="on">Customers</button><button type="button" data-v="orders">Orders</button></div>
+      <label class="field">Period <select id="mkPeriod">
+        <option value="all">All time</option><option value="today">Today</option><option value="week">This week</option><option value="7d">Last 7 days</option>
+        <option value="month">This month</option><option value="lastmonth">Last month</option><option value="30d">Last 30 days</option><option value="90d">Last 90 days</option><option value="custom">Custom range</option></select></label>
+      <span class="daterange" id="mkCustom" hidden><input type="date" id="mkFrom" aria-label="From date"><span class="arr">→</span><input type="date" id="mkTo" aria-label="To date"></span>
+      <label class="field">Orders <select id="mkGroup"><option value="all">Any number</option><option value="1">Single (1)</option><option value="2">Double (2)</option><option value="3">3 or more</option></select></label>
+      <label class="field">Sort <select id="mkSort"></select></label>
+      <label class="field">Show <select id="mkLimit"><option value="0">All</option><option value="100">Top 100</option><option value="200">Top 200</option><option value="500">Top 500</option><option value="1000">Top 1000</option><option value="2000">Top 2000</option></select></label>
+      <label class="field">Store <select id="mkStore"><option value="all">Both stores</option><option value="house">Chitral House</option><option value="herbs">Chitral Herbs</option></select></label>
+      <label class="field"><input type="search" id="mkSearch" placeholder="Search name, phone or order"></label>
+    </div>
+    <div class="mkcards" id="mkCards"></div>
+    <div class="sheet"><div class="scroll"><table id="mkTable">
+      <thead id="mkHead"></thead>
+      <tbody id="mkBody"><tr><td class="empty">Open this tab to load orders.</td></tr></tbody>
+    </table></div></div>
+    <div class="toolbar" style="margin-top:10px"><button class="btn" id="mkMore" hidden>Show more</button><span class="stats" id="mkCount"></span></div>
+    <p class="note" id="mkNote"></p>
+  </section>
+
   <section class="panel" id="p-blocked" hidden>
     <div class="toolbar">
       <p class="note" style="margin:0;margin-right:auto">Devices that placed a fake order. On these devices the website shows "Order on WhatsApp" instead of Buy now and Checkout.</p>
@@ -369,6 +404,9 @@ function applyPreset(kind) {
 }
 applyPreset("30d");
 let tot = { data: null, loading: false };
+let pr = { data: null, loading: false };
+let ab = { data: null, loading: false };
+let mk = { rows: [], at: null, loaded: false, loading: false, view: "customers", shown: 100, excluded: 0 };
 function ensureReport() { if (!rep.data && !rep.loading) runReport(); }
 
 /* ---------- total delivery report (one order day, both stores + local rider) ---------- */
@@ -465,9 +503,10 @@ function showTab(name) {
   if (name === "total") ensureTotal();
   if (name === "problems") ensureProblems();
   if (name === "abandoned") ensureAband();
+  if (name === "marketing") ensureMarketing();
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
-showTab(["waiting", "problems", "abandoned", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
+showTab(["waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
 
 /* ---------- WhatsApp setup popover ---------- */
 $("#waOpen").onclick = (e) => { e.stopPropagation(); const open = $("#waPanel").classList.toggle("open"); $("#waOpen").setAttribute("aria-expanded", String(open)); };
@@ -664,7 +703,6 @@ $("#pushSel").onclick = () => push([...document.querySelectorAll(".sel:checked")
 $("#pushAll").onclick = () => push(visiblePending().filter(ready).map(o => o.id));
 
 /* ---------- abandoned carts ---------- */
-let ab = { data: null, loading: false };
 function ensureAband() { if (!ab.data && !ab.loading) loadAband(); }
 async function loadAband() {
   if (ab.loading) return;
@@ -740,6 +778,174 @@ $("#abTest").onclick = async () => {
 };
 $("#abHidden").onchange = renderAband;
 
+/* ---------- marketing workflow: all orders, grouped into customers ---------- */
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function idb(mode, fn) {
+  return new Promise((resolve) => {
+    try {
+      const q = indexedDB.open("tcs-marketing", 1);
+      q.onupgradeneeded = () => q.result.createObjectStore("kv");
+      q.onerror = () => resolve(null);
+      q.onsuccess = () => {
+        try { const t = q.result.transaction("kv", mode), r = fn(t.objectStore("kv")); t.oncomplete = () => resolve(r && r.result !== undefined ? r.result : null); t.onerror = () => resolve(null); } catch (e) { resolve(null); }
+      };
+    } catch (e) { resolve(null); }
+  });
+}
+function idbGet() { return idb("readonly", s => s.get("data")); }
+function idbPut(v) { return idb("readwrite", s => s.put(v, "data")); }
+
+async function ensureMarketing() {
+  if (mk.loaded || mk.loading) return;
+  mk.loaded = true;
+  const d = await idbGet();
+  if (d && d.rows && d.rows.length) { mk.rows = d.rows; mk.at = d.at; mk.excluded = d.excluded || 0; mkReady(); }
+  else { $("#mkBody").innerHTML = '<tr><td class="empty">No orders loaded yet. Press "Refresh orders from Shopify" to load them (takes a few minutes the first time).</td></tr>'; $("#mkMeta").textContent = ""; }
+}
+function mkMsg(m) { $("#mkMeta").textContent = m; }
+async function mkStream(key, onCount) {
+  const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mk_data", store: key }) });
+  if (!r.ok) { let m = "HTTP " + r.status; try { m = (await r.json()).error || m; } catch (e) {} throw new Error(m); }
+  const reader = r.body.getReader(), dec = new TextDecoder(), out = []; let buf = "";
+  for (;;) {
+    const x = await reader.read(); if (x.done) break;
+    buf += dec.decode(x.value, { stream: true });
+    let i; while ((i = buf.indexOf("\n")) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line) out.push(JSON.parse(line)); }
+    onCount(out.length);
+  }
+  if (buf.trim()) out.push(JSON.parse(buf));
+  return out;
+}
+async function mkRefresh() {
+  if (mk.loading) return; mk.loading = true; $("#mkRefresh").disabled = true; log("");
+  try {
+    mkMsg("Asking Shopify to export all orders…");
+    const st = await post({ action: "mk_start" }), ids = {};
+    st.stores.forEach(s => { if (s.error) throw new Error(s.label + ": " + s.error); ids[s.key] = s.id; });
+    const t0 = Date.now();
+    for (;;) {
+      await sleep(4000);
+      const d = await post({ action: "mk_status" });
+      const bad = d.stores.find(s => ["FAILED", "CANCELED", "EXPIRED"].includes(s.status) && s.id === ids[s.key]);
+      if (bad) throw new Error(bad.label + ": Shopify's export " + bad.status.toLowerCase() + (bad.error ? " (" + bad.error + ")" : ""));
+      d.stores.forEach(s => { if (s.id && s.id !== ids[s.key] && s.status !== "COMPLETED") ids[s.key] = s.id; });
+      mkMsg("Shopify is preparing the export: " + d.stores.map(s => s.label + " " + (s.status === "COMPLETED" ? "ready" : s.count.toLocaleString("en-PK") + " records")).join(" · ") + " (" + Math.round((Date.now() - t0) / 1000) + "s)");
+      if (d.stores.every(s => s.id === ids[s.key] && s.status === "COMPLETED")) break;
+      if (Date.now() - t0 > 25 * 60e3) throw new Error("Shopify is taking too long. Try again in a few minutes.");
+    }
+    let all = [];
+    for (const s of st.stores) {
+      const base = all.length;
+      const rows = await mkStream(s.key, n => mkMsg("Downloading " + s.label + ": " + (base + n).toLocaleString("en-PK") + " orders…"));
+      all = all.concat(rows);
+    }
+    mk.excluded = all.filter(o => o.x).length;
+    mk.rows = all.filter(o => !o.x); mk.at = new Date().toISOString();
+    await idbPut({ rows: mk.rows, at: mk.at, excluded: mk.excluded });
+    mkReady();
+  } catch (e) { log("Couldn't load orders: " + e.message); mkMsg(mk.rows.length ? "Showing the earlier saved copy." : ""); }
+  finally { mk.loading = false; $("#mkRefresh").disabled = false; }
+}
+function mkReady() {
+  const oldest = mk.rows.reduce((m, o) => (o.d < m ? o.d : m), "9999");
+  $("#mkMeta").textContent = mk.rows.length.toLocaleString("en-PK") + " orders · oldest " + (mk.rows.length ? pkDay(oldest) : "–") + " · loaded " + when(mk.at);
+  $("#mkCsv").disabled = false;
+  mkRender();
+}
+
+function mkPeriodRange() {
+  const p = $("#mkPeriod").value, t = pkDay(new Date().toISOString());
+  if (p === "all") return [null, null];
+  if (p === "today") return [t, t];
+  if (p === "7d") return [addDays(t, -6), t];
+  if (p === "30d") return [addDays(t, -29), t];
+  if (p === "90d") return [addDays(t, -89), t];
+  if (p === "week") { const dow = (new Date(t + "T00:00:00Z").getUTCDay() + 6) % 7; return [addDays(t, -dow), t]; }
+  if (p === "month") return [t.slice(0, 8) + "01", t];
+  if (p === "lastmonth") { const first = t.slice(0, 8) + "01", prev = addDays(first, -1); return [prev.slice(0, 8) + "01", prev]; }
+  return [$("#mkFrom").value || null, $("#mkTo").value || null];
+}
+function mkSortOptions() {
+  const o = mk.view === "customers"
+    ? [["spend", "Highest total spent"], ["orders", "Most orders"], ["avg", "Highest average order"], ["recent", "Newest order"], ["oldest", "Oldest order"], ["name", "Name A–Z"]]
+    : [["recent", "Newest first"], ["oldest", "Oldest first"], ["amount", "Highest amount"], ["name", "Name A–Z"]];
+  const cur = $("#mkSort").value;
+  $("#mkSort").innerHTML = o.map(x => '<option value="' + x[0] + '">' + x[1] + "</option>").join("");
+  if (o.some(x => x[0] === cur)) $("#mkSort").value = cur; else $("#mkSort").value = mk.view === "customers" ? "spend" : "recent";
+}
+function mkCompute() {
+  const [a, b] = mkPeriodRange(), store = $("#mkStore").value, q = $("#mkSearch").value.trim().toLowerCase();
+  const orders = mk.rows.filter(o => (store === "all" || o.s === store) && (!a || pkDay(o.d) >= a) && (!b || pkDay(o.d) <= b));
+  // customers: same phone number = same person, across both stores
+  const map = new Map();
+  for (const o of orders) {
+    const key = /^03\d{9}$/.test(o.p) ? o.p : "o" + o.s + o.n;
+    let c = map.get(key);
+    if (!c) { c = { key, name: o.c, phone: /^03\d{9}$/.test(o.p) ? o.p : (o.p || ""), city: o.y, orders: 0, spent: 0, last: o.d, first: o.d, products: [], stores: {} }; map.set(key, c); }
+    c.orders++; c.spent += o.a; c.stores[o.s] = 1;
+    if (o.d > c.last) { c.last = o.d; if (o.c) c.name = o.c; if (o.y) c.city = o.y; }
+    if (o.d < c.first) c.first = o.d;
+    if (o.i && c.products.length < 3 && c.products.indexOf(o.i) < 0) c.products.push(o.i);
+  }
+  const all = [...map.values()];
+  const counts = { all: all.length, 1: 0, 2: 0, 3: 0 };
+  all.forEach(c => { counts[c.orders >= 3 ? 3 : c.orders]++; });
+  const g = $("#mkGroup").value;
+  const okC = c => (g === "all" || (g === "3" ? c.orders >= 3 : c.orders === Number(g)));
+  const hit = (txt) => !q || txt.toLowerCase().indexOf(q) >= 0;
+  return { orders, all, counts, g, okC, hit, revenue: orders.reduce((s, o) => s + o.a, 0) };
+}
+var mkView = [];
+function mkRender() {
+  if (!mk.rows.length) return;
+  mkSortOptions();
+  const c = mkCompute(), sort = $("#mkSort").value, lim = Number($("#mkLimit").value);
+  if (mk.view === "customers") {
+    let list = c.all.filter(x => c.okC(x) && c.hit(x.name + " " + x.phone));
+    const by = { spend: (x, y) => y.spent - x.spent, orders: (x, y) => y.orders - x.orders || y.spent - x.spent, avg: (x, y) => y.spent / y.orders - x.spent / x.orders, recent: (x, y) => (y.last > x.last ? 1 : -1), oldest: (x, y) => (x.last > y.last ? 1 : -1), name: (x, y) => String(x.name).localeCompare(String(y.name)) };
+    list.sort(by[sort] || by.spend);
+    if (lim) list = list.slice(0, lim);
+    mkView = list;
+    $("#mkHead").innerHTML = "<tr><th>#</th><th>Customer</th><th>Phone</th><th class=\"n\">Orders</th><th class=\"n\">Total spent</th><th class=\"n\">Average</th><th>Last order</th><th>Products bought</th></tr>";
+    $("#mkBody").innerHTML = list.length ? list.slice(0, mk.shown).map((x, i) =>
+      "<tr><td>" + (i + 1) + "</td><td><strong>" + esc(x.name || "–") + '</strong><div class="sub">' + esc(x.city) + (x.stores.house && x.stores.herbs ? " · both stores" : x.stores.herbs ? " · Herbs" : "") + "</div></td><td>" + esc(x.phone || "–") + '</td><td class="n"><strong>' + x.orders + '</strong></td><td class="n">' + rs(x.spent) + '</td><td class="n">' + rs(Math.round(x.spent / x.orders)) + "</td><td>" + esc(pkDay(x.last)) + "</td><td>" + esc(x.products.join(" · ")) + "</td></tr>").join("")
+      : '<tr><td colspan="8" class="empty">No customers match.</td></tr>';
+  } else {
+    const ok = new Set(c.all.filter(c.okC).map(x => x.key));
+    let list = c.orders.filter(o => { const key = /^03\d{9}$/.test(o.p) ? o.p : "o" + o.s + o.n; return (c.g === "all" || ok.has(key)) && c.hit(o.c + " " + o.p + " " + o.n); });
+    const by = { recent: (x, y) => (y.d > x.d ? 1 : -1), oldest: (x, y) => (x.d > y.d ? 1 : -1), amount: (x, y) => y.a - x.a, name: (x, y) => String(x.c).localeCompare(String(y.c)) };
+    list.sort(by[sort] || by.recent);
+    if (lim) list = list.slice(0, lim);
+    mkView = list;
+    $("#mkHead").innerHTML = "<tr><th>Order</th><th>Customer</th><th>Phone</th><th>Product bought</th><th class=\"n\">Amount</th><th>Date</th></tr>";
+    $("#mkBody").innerHTML = list.length ? list.slice(0, mk.shown).map(o =>
+      "<tr><td><strong>" + esc(o.n) + '</strong><div class="sub">' + (o.s === "herbs" ? "Chitral Herbs" : "Chitral House") + "</div></td><td>" + esc(o.c || "–") + '<div class="sub">' + esc(o.y) + "</div></td><td>" + esc(o.p || "–") + "</td><td>" + esc(o.i) + '</td><td class="n">' + rs(o.a) + "</td><td>" + when(o.d) + "</td></tr>").join("")
+      : '<tr><td colspan="6" class="empty">No orders match.</td></tr>';
+  }
+  $("#mkMore").hidden = mkView.length <= mk.shown;
+  $("#mkCount").textContent = "Showing " + Math.min(mk.shown, mkView.length).toLocaleString("en-PK") + " of " + mkView.length.toLocaleString("en-PK") + (mk.view === "customers" ? " customers" : " orders");
+  $("#cMk").textContent = c.all.length.toLocaleString("en-PK");
+  const card = (v, label, sub, grp) => '<' + (grp ? 'button type="button" class="mkcard click' + (c.g === grp ? " on" : "") + '" data-g="' + grp + '"' : 'div class="mkcard"') + '><div class="v">' + v + '</div><div class="s">' + label + (sub ? " · " + sub : "") + "</div></" + (grp ? "button" : "div") + ">";
+  const pct = (n) => (c.all.length ? Math.round(100 * n / c.all.length) + "%" : "–");
+  $("#mkCards").innerHTML = card(c.all.length.toLocaleString("en-PK"), "Customers", "", "all") + card(c.orders.length.toLocaleString("en-PK"), "Orders", "") + card(rs(c.revenue), "Sales", "") +
+    card(c.counts[1].toLocaleString("en-PK"), "Single order", pct(c.counts[1]), "1") + card(c.counts[2].toLocaleString("en-PK"), "Double order", pct(c.counts[2]), "2") + card(c.counts[3].toLocaleString("en-PK"), "3 or more", pct(c.counts[3]), "3");
+  document.querySelectorAll("#mkCards [data-g]").forEach(b => b.onclick = () => { $("#mkGroup").value = b.dataset.g; mk.shown = 100; mkRender(); });
+  $("#mkNote").textContent = (mk.excluded ? mk.excluded.toLocaleString("en-PK") + " cancelled, voided, refunded or fake orders are left out. " : "") + "Customers are matched by phone number across both stores. Returned parcels are not excluded yet, because Shopify does not record TCS returns.";
+}
+function mkCsv() {
+  const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const head = mk.view === "customers" ? ["Customer", "Phone", "City", "Orders", "Total spent", "Average order", "First order", "Last order", "Products"] : ["Order", "Store", "Customer", "Phone", "City", "Product", "Amount", "Date"];
+  const rows = mkView.map(x => mk.view === "customers" ? [x.name, x.phone, x.city, x.orders, x.spent, Math.round(x.spent / x.orders), pkDay(x.first), pkDay(x.last), x.products.join(" · ")] : [x.n, x.s === "herbs" ? "Chitral Herbs" : "Chitral House", x.c, x.p, x.y, x.i, x.a, pkDay(x.d)]);
+  const blob = new Blob(["﻿" + [head].concat(rows).map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "marketing-" + mk.view + "-" + pkDay(new Date().toISOString()) + ".csv"; document.body.appendChild(a); a.click(); a.remove();
+}
+document.querySelectorAll("#mkView button").forEach(b => b.onclick = () => { mk.view = b.dataset.v; mk.shown = 100; document.querySelectorAll("#mkView button").forEach(x => x.classList.toggle("on", x === b)); $("#mkSort").value = ""; mkRender(); });
+["#mkPeriod", "#mkGroup", "#mkSort", "#mkLimit", "#mkStore", "#mkFrom", "#mkTo"].forEach(id => { $(id).onchange = () => { if (id === "#mkPeriod") $("#mkCustom").hidden = $("#mkPeriod").value !== "custom"; mk.shown = 100; mkRender(); }; });
+$("#mkSearch").oninput = () => { mk.shown = 100; mkRender(); };
+$("#mkMore").onclick = () => { mk.shown += 200; mkRender(); };
+$("#mkRefresh").onclick = mkRefresh;
+$("#mkCsv").onclick = mkCsv;
+
 /* ---------- blocked devices ---------- */
 function renderBlocked() {
   const all = state.blocked || [];
@@ -768,7 +974,6 @@ function renderBlocked() {
 $("#blkSearch").oninput = renderBlocked;
 
 /* ---------- delivery problems: every in-process parcel ---------- */
-let pr = { data: null, loading: false };
 function ensureProblems() { if (!pr.data && !pr.loading) loadProblems(false); }
 async function loadProblems(refresh) {
   if (pr.loading) return;
@@ -999,6 +1204,7 @@ const TIPS = [
   ["#refresh", "Reload the latest orders from both stores."],
   ['.tab[data-tab="waiting"]', "New orders not yet booked on TCS. Check details, then push them to TCS."],
   ['.tab[data-tab="problems"]', "Every parcel still in process with TCS. Filter by status or order date, call the customer, then press Mark done."],
+  ['.tab[data-tab="marketing"]', "All orders from both stores, grouped into customers. Sort by date, spend or number of orders to pick who to message."],
   ['.tab[data-tab="abandoned"]', "People who started checkout and left their name and phone or email but didn't order. Contact them, then press Mark done."],
   ['.tab[data-tab="blocked"]', "Devices blocked on the website after a fake order. Unblock someone here if they should be allowed to order again."],
   ["#storeFilter", "Show orders from one store or both. Push all ready only books the orders shown."],

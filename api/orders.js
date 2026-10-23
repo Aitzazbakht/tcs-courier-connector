@@ -11,6 +11,7 @@ import { dailyReport } from "../lib/daily.js";
 import { inProcess } from "../lib/inprocess.js";
 import { listAbandoned, markAbandonedHandled, sendOffer, offerStats } from "../lib/abandoned.js";
 import { stores, withStore, splitId } from "../lib/store.js";
+import { startExport, exportStatus, streamStore } from "../lib/marketing.js";
 
 const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
 
@@ -71,6 +72,9 @@ export default async function handler(req, res) {
     if (body.action === "daily_report") {
       return res.status(200).json(await dailyReport(String(body.date || ""), { refresh: body.refresh === true, to: String(body.to || "") }));
     }
+    if (body.action === "mk_start") return res.status(200).json(await startExport());
+    if (body.action === "mk_status") return res.status(200).json(await exportStatus());
+    if (body.action === "mk_data") return await streamStore(String(body.store || ""), res);
     if (body.action === "abandoned") return res.status(200).json(await listAbandoned(String(body.from || ""), String(body.to || "")));
     if (body.action === "abandoned_stats") return res.status(200).json(await offerStats(String(body.from || ""), String(body.to || "")));
     if (body.action === "abandoned_offer") return res.status(200).json(await sendOffer(String(body.id || ""), { testTo: String(body.testTo || "") }));

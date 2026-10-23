@@ -37,6 +37,10 @@ Lists every parcel still in process with TCS (booked in the last 60 days, from b
 
 Replaces the old "Booked, last 2 days" tab. Lists checkouts from both stores that were started but never completed, only where the customer left a name and a phone number or email. Pick a From/To date (default last 7 days). **Mark done** is remembered in a shop metafield (`tcs_sync.abandoned_handled`) and the row becomes Handled; tick "Show handled" to see them again.
 
+### Marketing Workflow tab
+
+All orders from both stores, exported with Shopify's bulk export (runs on Shopify's side, no rate limits; a large history takes a few minutes) and kept in the browser (IndexedDB). Customers view groups orders by phone number across both stores; Orders view lists each order (name, order number, phone, product, amount, date). Filter by period (this week/month, last 7/30/90 days, custom), by number of orders (single, double, 3 or more), by store; sort by spend, order count, average, date. "Show" limits to the top N (e.g. a 2,000 batch). Download CSV exports the current view. Orders older than 60 days need the `read_all_orders` access scope on each app.
+
 ## Deploy (about 10 minutes)
 
 1. Put this folder in a new **private** GitHub repo.
