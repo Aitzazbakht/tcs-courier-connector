@@ -314,8 +314,18 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <label class="field">Sort <select id="mkSort"></select></label>
       <label class="field">Show <select id="mkLimit"><option value="0">All</option><option value="100">Top 100</option><option value="200">Top 200</option><option value="500">Top 500</option><option value="1000">Top 1000</option><option value="2000">Top 2000</option></select></label>
       <label class="field">Store <select id="mkStore"><option value="all">Both stores</option><option value="house">Chitral House</option><option value="herbs">Chitral Herbs</option></select></label>
+      <label class="field">Offer <select id="mkOffer"><option value="all">Any</option><option value="none">Not sent yet</option><option value="sent">Already sent</option></select></label>
       <label class="field"><input type="search" id="mkSearch" placeholder="Search name, phone or order"></label>
     </div>
+    <div class="toolbar" id="mkOfferBar">
+      <label class="field">Daily limit <input type="number" id="mkCap" min="1" max="2000" value="1500" style="width:80px;border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--ink)"></label>
+      <label class="field">Code valid for <select id="mkDays2"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select></label>
+      <button class="btn primary" id="mkSend" data-tip="Sends each customer shown below (customers view) their own one-time 10% code on WhatsApp. Customers who already got an offer are skipped. Stops at the daily limit.">Send 10% offer to shown customers</button>
+      <button class="btn" id="mkTest" data-tip="Sends the offer message for the first customer below to a phone number you type. Nothing is marked as sent.">Send a test</button>
+      <button class="btn" id="mkResBtn" data-tip="Counts how many of the codes were used on an order.">Check results</button>
+      <span class="stats" id="mkOfferMeta" style="margin-left:auto"></span>
+    </div>
+    <div id="mkResults" style="margin-bottom:12px"></div>
     <div class="mkcards" id="mkCards"></div>
     <div class="sheet"><div class="scroll"><table id="mkTable">
       <thead id="mkHead"></thead>
@@ -407,7 +417,7 @@ applyPreset("30d");
 let tot = { data: null, loading: false };
 let pr = { data: null, loading: false };
 let ab = { data: null, loading: false };
-let mk = { rows: [], at: null, loaded: false, loading: false, view: "customers", shown: 100, excluded: 0 };
+let mk = { rows: [], at: null, loaded: false, loading: false, view: "customers", shown: 100, excluded: 0, offers: {}, today: 0, sending: false };
 function ensureReport() { if (!rep.data && !rep.loading) runReport(); }
 
 /* ---------- total delivery report (one order day, both stores + local rider) ---------- */
@@ -800,6 +810,7 @@ async function ensureMarketing() {
   if (mk.loaded || mk.loading) return;
   mk.loaded = true;
   const d = await idbGet();
+  loadMkOffers();
   if (d && d.rows && d.rows.length) { mk.rows = d.rows; mk.at = d.at; mk.excluded = d.excluded || 0; mkReady(); }
   else { $("#mkBody").innerHTML = '<tr><td class="empty">No orders loaded yet. Press "Refresh orders from Shopify" to load them (takes a few minutes the first time).</td></tr>'; $("#mkMeta").textContent = ""; }
 }
@@ -882,9 +893,9 @@ function mkCompute() {
   for (const o of orders) {
     const key = /^03\d{9}$/.test(o.p) ? o.p : "o" + o.s + o.n;
     let c = map.get(key);
-    if (!c) { c = { key, name: o.c, phone: /^03\d{9}$/.test(o.p) ? o.p : (o.p || ""), city: o.y, orders: 0, spent: 0, last: o.d, first: o.d, products: [], stores: {} }; map.set(key, c); }
+    if (!c) { c = { key, store: o.s, name: o.c, phone: /^03\d{9}$/.test(o.p) ? o.p : (o.p || ""), city: o.y, orders: 0, spent: 0, last: o.d, first: o.d, products: [], stores: {} }; map.set(key, c); }
     c.orders++; c.spent += o.a; c.stores[o.s] = 1;
-    if (o.d > c.last) { c.last = o.d; if (o.c) c.name = o.c; if (o.y) c.city = o.y; }
+    if (o.d > c.last) { c.last = o.d; c.store = o.s; if (o.c) c.name = o.c; if (o.y) c.city = o.y; }
     if (o.d < c.first) c.first = o.d;
     if (o.i && c.products.length < 3 && c.products.indexOf(o.i) < 0) c.products.push(o.i);
   }
@@ -902,15 +913,16 @@ function mkRender() {
   mkSortOptions();
   const c = mkCompute(), sort = $("#mkSort").value, lim = Number($("#mkLimit").value);
   if (mk.view === "customers") {
-    let list = c.all.filter(x => c.okC(x) && c.hit(x.name + " " + x.phone));
+    const of = $("#mkOffer").value;
+    let list = c.all.filter(x => c.okC(x) && c.hit(x.name + " " + x.phone) && (of === "all" || (of === "sent") === !!mk.offers[x.phone]));
     const by = { spend: (x, y) => y.spent - x.spent, orders: (x, y) => y.orders - x.orders || y.spent - x.spent, avg: (x, y) => y.spent / y.orders - x.spent / x.orders, recent: (x, y) => (y.last > x.last ? 1 : -1), oldest: (x, y) => (x.last > y.last ? 1 : -1), name: (x, y) => String(x.name).localeCompare(String(y.name)) };
     list.sort(by[sort] || by.spend);
     if (lim) list = list.slice(0, lim);
     mkView = list;
-    $("#mkHead").innerHTML = "<tr><th>#</th><th>Customer</th><th>Phone</th><th class=\"n\">Orders</th><th class=\"n\">Total spent</th><th class=\"n\">Average</th><th>Last order</th><th>Products bought</th></tr>";
+    $("#mkHead").innerHTML = "<tr><th>#</th><th>Customer</th><th>Phone</th><th class=\"n\">Orders</th><th class=\"n\">Total spent</th><th class=\"n\">Average</th><th>Last order</th><th>Products bought</th><th>Offer</th></tr>";
     $("#mkBody").innerHTML = list.length ? list.slice(0, mk.shown).map((x, i) =>
-      "<tr><td>" + (i + 1) + "</td><td><strong>" + esc(x.name || "–") + '</strong><div class="sub">' + esc(x.city) + (x.stores.house && x.stores.herbs ? " · both stores" : x.stores.herbs ? " · Herbs" : "") + "</div></td><td>" + esc(x.phone || "–") + '</td><td class="n"><strong>' + x.orders + '</strong></td><td class="n">' + rs(x.spent) + '</td><td class="n">' + rs(Math.round(x.spent / x.orders)) + "</td><td>" + esc(pkDay(x.last)) + "</td><td>" + esc(x.products.join(" · ")) + "</td></tr>").join("")
-      : '<tr><td colspan="8" class="empty">No customers match.</td></tr>';
+      "<tr><td>" + (i + 1) + "</td><td><strong>" + esc(x.name || "–") + '</strong><div class="sub">' + esc(x.city) + (x.stores.house && x.stores.herbs ? " · both stores" : x.stores.herbs ? " · Herbs" : "") + "</div></td><td>" + esc(x.phone || "–") + '</td><td class="n"><strong>' + x.orders + '</strong></td><td class="n">' + rs(x.spent) + '</td><td class="n">' + rs(Math.round(x.spent / x.orders)) + "</td><td>" + esc(pkDay(x.last)) + "</td><td>" + esc(x.products.join(" · ")) + "</td><td>" + (mk.offers[x.phone] ? '<span class="chip ok" data-tip="Code ' + esc(mk.offers[x.phone][0]) + '">Sent ' + esc(pkDay(mk.offers[x.phone][1])) + "</span>" : "–") + "</td></tr>").join("")
+      : '<tr><td colspan="9" class="empty">No customers match.</td></tr>';
   } else {
     const ok = new Set(c.all.filter(c.okC).map(x => x.key));
     let list = c.orders.filter(o => { const key = /^03\d{9}$/.test(o.p) ? o.p : "o" + o.s + o.n; return (c.g === "all" || ok.has(key)) && c.hit(o.c + " " + o.p + " " + o.n); });
@@ -933,10 +945,57 @@ function mkRender() {
   document.querySelectorAll("#mkCards [data-g]").forEach(b => b.onclick = () => { $("#mkGroup").value = b.dataset.g; mk.shown = 100; mkRender(); });
   $("#mkNote").textContent = (mk.excluded ? mk.excluded.toLocaleString("en-PK") + " cancelled, voided, refunded or fake orders are left out. " : "") + "Customers are matched by phone number across both stores. Returned parcels are not excluded yet, because Shopify does not record TCS returns.";
 }
+
+async function loadMkOffers() {
+  try { const d = await post({ action: "mk_offers" }); mk.offers = d.sent || {}; mk.today = d.today || 0; $("#mkOfferMeta").textContent = d.total.toLocaleString("en-PK") + " offers sent so far · " + d.today.toLocaleString("en-PK") + " today"; if (mk.rows.length) mkRender(); }
+  catch (e) { $("#mkOfferMeta").textContent = "Couldn't load the sent-offers list: " + e.message; }
+}
+async function mkSendOffers() {
+  if (mk.sending) { mk.stop = true; return log("Stopping after the current batch…"); }
+  if (mk.view !== "customers") return log("Switch to the Customers view to send offers.");
+  const cap = Number($("#mkCap").value) || 1500, days = Number($("#mkDays2").value) || 14;
+  const todo = mkView.filter(x => /^03\d{9}$/.test(x.phone) && !mk.offers[x.phone]);
+  const room = Math.max(0, cap - mk.today), n = Math.min(todo.length, room);
+  if (!todo.length) return log("Nobody to message: every customer shown has already been sent an offer, or has no valid mobile number.");
+  if (!n) return log("The daily limit of " + cap + " is already used up today.");
+  if (!confirm("Send a unique one-time 10% code on WhatsApp to " + n.toLocaleString("en-PK") + " customer" + (n === 1 ? "" : "s") + (todo.length > n ? " (the daily limit allows " + n + " of the " + todo.length + " shown)" : "") + "?\n\nEstimated message cost: about Rs " + Math.round(n * 13.5).toLocaleString("en-PK") + ". Each code is valid for " + days + " days and works once.")) return;
+  mk.sending = true; mk.stop = false; $("#mkSend").textContent = "Stop sending";
+  let ok = 0, fail = 0, skip = 0;
+  const list = todo.slice(0, n);
+  try {
+    for (let i = 0; i < list.length && !mk.stop; i += 15) {
+      const batch = list.slice(i, i + 15).map(x => ({ phone: x.phone, name: x.name, store: x.store }));
+      log("Sending offers… " + (ok + fail + skip) + " of " + list.length);
+      const d = await post({ action: "mk_send", items: batch, days, cap });
+      d.results.forEach(r => { if (r.ok) ok++; else if (r.skipped) skip++; else { fail++; if (fail <= 3) log("Couldn't send to " + r.phone + ": " + r.error); } });
+      await loadMkOffers();
+      if (fail >= 10 && ok === 0) { log("Stopped: the first sends all failed. Check that the ch_reorder_offer template is approved."); break; }
+    }
+  } catch (e) { log("Stopped: " + e.message); }
+  mk.sending = false; $("#mkSend").textContent = "Send 10% offer to shown customers";
+  log(ok + " offer" + (ok === 1 ? "" : "s") + " sent" + (skip ? ", " + skip + " skipped" : "") + (fail ? ", " + fail + " failed" : "") + ".");
+}
+$("#mkSend").onclick = mkSendOffers;
+$("#mkOffer").onchange = () => { mk.shown = 100; mkRender(); };
+$("#mkTest").onclick = async () => {
+  const x = mkView[0]; if (!x || mk.view !== "customers") return log("Switch to the Customers view first.");
+  const to = prompt("Your own WhatsApp number (03XX XXXXXXX). The test uses the name " + x.name + " but is sent only to you:"); if (!to) return;
+  try { const d = await post({ action: "mk_send", items: [{ phone: x.phone, name: x.name, store: x.store }], days: Number($("#mkDays2").value) || 14, testTo: to }); const r = d.results[0]; log(r.ok ? "Test sent. Link: " + r.link : "Couldn't send the test: " + (r.error || r.skipped)); }
+  catch (e) { log("Couldn't send the test: " + e.message); }
+};
+$("#mkResBtn").onclick = async () => {
+  $("#mkResults").innerHTML = '<p class="note">Checking which codes were used…</p>';
+  try {
+    const d = await post({ action: "mk_results" });
+    const rows = d.orders.map(o => "<tr><td><strong>" + esc(o.name) + '</strong><div class="sub">' + esc(o.store) + "</div></td><td>" + esc(o.customer) + "</td><td>" + when(o.at) + '</td><td class="n">' + rs(o.amount) + '</td><td class="n">' + rs(o.discount) + "</td></tr>").join("");
+    $("#mkResults").innerHTML = '<div class="tbox"><h3>How the 10% offers worked</h3><table><tr><td>Offers sent</td><td class="n">' + d.sent + '</td></tr><tr><td>Codes used on an order</td><td class="n"><strong>' + d.used + "</strong>" + (d.sent ? " (" + (100 * d.used / d.sent).toFixed(1) + "%)" : "") + '</td></tr><tr><td>Sales from these orders</td><td class="n"><strong>' + rs(d.revenue) + '</strong></td></tr><tr><td>Discount given</td><td class="n">' + rs(d.discount) + "</td></tr></table>" +
+      (rows ? '<table style="margin-top:8px"><tr><th>Order</th><th>Customer</th><th>Placed</th><th class="n">Total</th><th class="n">Discount</th></tr>' + rows + "</table>" : "") + "</div>";
+  } catch (e) { $("#mkResults").innerHTML = '<p class="note">Couldn\'t load results: ' + esc(e.message) + "</p>"; }
+};
 function mkCsv() {
   const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-  const head = mk.view === "customers" ? ["Customer", "Phone", "City", "Orders", "Total spent", "Average order", "First order", "Last order", "Products"] : ["Order", "Store", "Customer", "Phone", "City", "Product", "Amount", "Date"];
-  const rows = mkView.map(x => mk.view === "customers" ? [x.name, x.phone, x.city, x.orders, x.spent, Math.round(x.spent / x.orders), pkDay(x.first), pkDay(x.last), x.products.join(" · ")] : [x.n, x.s === "herbs" ? "Chitral Herbs" : "Chitral House", x.c, x.p, x.y, x.i, x.a, pkDay(x.d)]);
+  const head = mk.view === "customers" ? ["Customer", "Phone", "City", "Orders", "Total spent", "Average order", "First order", "Last order", "Products", "Offer sent"] : ["Order", "Store", "Customer", "Phone", "City", "Product", "Amount", "Date"];
+  const rows = mkView.map(x => mk.view === "customers" ? [x.name, x.phone, x.city, x.orders, x.spent, Math.round(x.spent / x.orders), pkDay(x.first), pkDay(x.last), x.products.join(" · "), mk.offers[x.phone] ? pkDay(mk.offers[x.phone][1]) : ""] : [x.n, x.s === "herbs" ? "Chitral Herbs" : "Chitral House", x.c, x.p, x.y, x.i, x.a, pkDay(x.d)]);
   const blob = new Blob(["﻿" + [head].concat(rows).map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "marketing-" + mk.view + "-" + pkDay(new Date().toISOString()) + ".csv"; document.body.appendChild(a); a.click(); a.remove();
 }
