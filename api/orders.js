@@ -16,6 +16,7 @@ import { offerState, sendBatch, offerResults } from "../lib/reoffer.js";
 import { startExport, exportStatus, streamStore } from "../lib/marketing.js";
 import { profitReport } from "../lib/profit.js";
 import { adSpend } from "../lib/ads.js";
+import { herbsOrders } from "../lib/herbs.js";
 
 const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
 
@@ -34,6 +35,16 @@ export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
   const url = new URL(req.url, "http://x");
+  if (req.method === "GET" && url.searchParams.get("herbs_orders")) {
+    // Read-only Chitral Herbs orders for one day, for the scheduled daily sales report. It has its own key (HERBS_FEED_KEY)
+    // that opens nothing else, so the main connector key never has to be pasted into a scheduled task.
+    res.setHeader("Cache-Control", "no-store");
+    const want = String(process.env.HERBS_FEED_KEY || "");
+    if (want.length < 16) return res.status(403).json({ error: "The Herbs feed is off. Set HERBS_FEED_KEY (16 or more characters) in Vercel and redeploy." });
+    if (!timingSafeEqual(sha(url.searchParams.get("feed_key") ?? ""), sha(want))) { await new Promise((r) => setTimeout(r, 800)); return res.status(403).json({ error: "Forbidden" }); }
+    try { return res.status(200).json(await herbsOrders(String(url.searchParams.get("herbs_orders")))); }
+    catch (e) { return res.status(500).json({ error: e.message }); }
+  }
   if (!keyOk(url.searchParams.get("key"))) return res.status(403).json({ error: "Forbidden" });
   res.setHeader("Cache-Control", "no-store");
   try {

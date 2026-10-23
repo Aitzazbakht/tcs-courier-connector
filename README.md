@@ -77,3 +77,9 @@ PIN-protected. Set `SETUP_PIN` in Vercel. Pick an order date (Pakistan time), pr
 It uses the same data as the Total delivery report: every order placed that day from both stores, followed to its outcome (TCS delivered / returned / open, ISB/RWP rider from the courier sheet, or not traced), whenever it was booked. Each order is then costed per product.
 Ad spend: press **Fetch from Windsor** (needs `WINDSOR_API_KEY`, and the Meta / TikTok / Google Ads accounts connected in Windsor.ai).
 Accounts Windsor cannot find stay blank and are typed in by hand.
+
+## Chitral Herbs orders feed (for the scheduled daily sales report)
+
+Read-only: `GET /api/orders?herbs_orders=YYYY-MM-DD&feed_key=<HERBS_FEED_KEY>` returns that Pakistan day's Chitral Herbs orders
+straight from the Herbs Shopify store (totals, payment type, items, time of the latest order). It uses its own key, `HERBS_FEED_KEY`
+(16+ characters), which opens nothing else. It replaces the Windsor "shopify" connector for Herbs.
