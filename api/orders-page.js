@@ -930,7 +930,7 @@ function mkRender() {
   $("#mkCards").innerHTML = card(c.all.length.toLocaleString("en-PK"), "Customers", "", "all") + card(c.orders.length.toLocaleString("en-PK"), "Orders", "") + card(rs(c.revenue), "Sales", "") +
     card(c.counts[1].toLocaleString("en-PK"), "Single order", pct(c.counts[1]), "1") + card(c.counts[2].toLocaleString("en-PK"), "Double order", pct(c.counts[2]), "2") + card(c.counts[3].toLocaleString("en-PK"), "3 or more", pct(c.counts[3]), "3");
   document.querySelectorAll("#mkCards [data-g]").forEach(b => b.onclick = () => { $("#mkGroup").value = b.dataset.g; mk.shown = 100; mkRender(); });
-  $("#mkNote").textContent = (mk.excluded ? mk.excluded.toLocaleString("en-PK") + " cancelled, voided, refunded or fake orders are left out. " : "") + "Customers are matched by phone number across both stores. Returned parcels are not excluded yet, because Shopify does not record TCS returns.";
+  $("#mkNote").textContent = (mk.excluded ? mk.excluded.toLocaleString("en-PK") + " cancelled, voided, refunded or fake orders are left out. " : "") + "Only the last 2 months of orders are loaded. Customers are matched by phone number across both stores. Returned parcels are not excluded yet, because Shopify does not record TCS returns.";
 }
 function mkCsv() {
   const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
