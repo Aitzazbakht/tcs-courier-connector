@@ -464,8 +464,9 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
         <span class="stats" id="pfMeta" style="margin-left:auto"></span>
       </div>
       <div class="sheet" style="padding:14px 16px;margin-bottom:14px">
-        <div style="font-weight:700">Ad spend for the order date (PKR)</div>
-        <p class="note" style="margin:2px 0 6px">Type what each account spent that day. The report adds them up.</p>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-weight:700">Ad spend for the order date (PKR)</div><button class="btn" id="prFetchAds" type="button">Fetch from Windsor</button></div>
+        <p class="note" style="margin:2px 0 6px">Fetch fills what Windsor knows. Anything it cannot find stays blank: type it in. The report adds them up.</p>
+        <div class="note" id="prAdNote" style="margin:0 0 8px" aria-live="polite"></div>
         <div class="adgrid" id="prAds"></div>
         <div class="sub" id="prAdTotal"></div>
       </div>
@@ -803,7 +804,28 @@ function prInit() {
   $("#prRun").onclick = () => runProfit(false);
   $("#pfRefresh").onclick = () => runProfit(true);
   $("#prPdf").onclick = prPdf;
+  $("#prFetchAds").onclick = prFetchAds;
   prAdsLoad();
+}
+async function prFetchAds() {
+  const date = $("#pfDate").value;
+  if (!date) return log("Pick the order date.");
+  const btn = $("#prFetchAds"), note = $("#prAdNote");
+  btn.disabled = true; note.textContent = "Asking Windsor...";
+  try {
+    const r = await post({ action: "ad_spend", pin: setupPin, date: date });
+    const missing = [];
+    PR_ADS.forEach((a) => {
+      const st = r.status[a[0]] || {};
+      if (st.ok) $("#ad_" + a[0]).value = r.amounts[a[0]] ? r.amounts[a[0]] : "";
+      else missing.push(a[1] + " (" + (st.note || "not found") + ")");
+    });
+    prAdsSave();
+    note.textContent = missing.length ? "Filled from Windsor. Still to type in: " + missing.join("; ") + "." : "All accounts filled from Windsor.";
+  } catch (e) {
+    if (e.message === "Wrong PIN") setupLock("The PIN was not accepted. Enter it again.");
+    else note.textContent = "Could not fetch ad spend: " + e.message;
+  } finally { btn.disabled = false; }
 }
 function renderProfit() {
   const d = pf.data; if (!d) return;
@@ -1641,6 +1663,7 @@ const TIPS = [
   ['.tab[data-tab="setup"]', "Locked settings area. Enter the PIN to open it."],
   ["#setupGo", "Checks the PIN with the server. Nothing opens until it is correct."],
   ["#pfDate", "The day the orders were placed (Pakistan time). Defaults to yesterday."],
+  ["#prFetchAds", "Reads that day's spend for each ad account from Windsor.ai and fills the boxes. Accounts Windsor cannot find stay blank."],
   ["#prShip", "The day those parcels were booked on TCS. Defaults to the day after the order date."],
   ["#prRun", "Reads that day's orders from both stores, matches them to the TCS parcels, and works out sales and profit."],
   ["#pfRefresh", "Ask TCS again for every parcel instead of using the results saved in the last 15 minutes."],

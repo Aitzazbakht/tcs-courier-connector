@@ -70,3 +70,10 @@ If TCS only gave you sandbox credentials, set `TCS_ENV=sandbox`.
 ## If something doesn't work
 
 The TCS guide is unclear in places (for example, whether GET calls take parameters in the query string or a body). This connector sends GET parameters as a query string. If a call returns an error after you add real credentials, open Vercel → **Logs**, copy the error, and send it over — the fix is usually a one-line change in `lib/tcs.js`.
+
+## Setup tab (Daily Sales & Profit Report)
+
+PIN-protected. Set `SETUP_PIN` in Vercel. Pick an order date (Pakistan time), press **Build report**, then **Download PDF**.
+Orders come from both Shopify stores and are matched to the TCS parcels booked the next day by CN number, then order number.
+Ad spend: press **Fetch from Windsor** (needs `WINDSOR_API_KEY`, and the Meta / TikTok / Google Ads accounts connected in Windsor.ai).
+Accounts Windsor cannot find stay blank and are typed in by hand.

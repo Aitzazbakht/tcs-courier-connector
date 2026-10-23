@@ -15,6 +15,7 @@ import { stores, withStore, splitId } from "../lib/store.js";
 import { offerState, sendBatch, offerResults } from "../lib/reoffer.js";
 import { startExport, exportStatus, streamStore } from "../lib/marketing.js";
 import { profitReport } from "../lib/profit.js";
+import { adSpend } from "../lib/ads.js";
 
 const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
 
@@ -114,6 +115,10 @@ export default async function handler(req, res) {
         date: String(body.date || ""), ship: String(body.ship || ""),
         ads: body.ads && typeof body.ads === "object" ? body.ads : {}, refresh: body.refresh === true,
       }));
+    }
+    if (body.action === "ad_spend") {
+      if (!(await pinGate(res, body.pin))) return;
+      return res.status(200).json(await adSpend(String(body.date || "")));
     }
     if (body.action === "env_check") {
       const names = ["CONNECTOR_KEY", "TCS_BEARER_TOKEN", "TCS_USERNAME", "TCS_PASSWORD", "TCS_ENV",
