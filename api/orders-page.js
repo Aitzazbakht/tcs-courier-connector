@@ -1367,13 +1367,14 @@ function renderAband() {
   const all = ab.data.rows, open = all.filter(r => !r.handled);
   $("#cAband").textContent = open.length;
   const list = $("#abHidden").checked ? all : open;
-  $("#abMeta").textContent = open.length + " to follow up · " + (all.length - open.length) + " handled";
+  const od = open.filter(r => r.ordered).length;
+  $("#abMeta").textContent = open.length + " to follow up · " + (all.length - open.length) + " handled" + (od ? " · " + od + " already ordered (no offer will be sent)" : "");
   $("#abBody").innerHTML = list.length ? list.map(r =>
-    "<tr><td><strong>" + esc(r.name) + "</strong>" + storeBadge(r) + '<div class="sub">' + esc(r.city) + "</div></td>" +
+    '<tr' + (r.ordered ? ' class="dup"' : "") + '><td><strong>' + esc(r.name) + "</strong>" + storeBadge(r) + '<div class="sub">' + esc(r.city) + "</div>" + (r.ordered ? '<div><span class="chip bad">Already ordered</span></div><div class="sub dupnote">Order ' + esc(r.ordered) + " from the same number or email</div>" : "") + "</td>" +
     "<td>" + (r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + "</a>" + (r.wa ? ' · <a href="https://wa.me/92' + esc(r.wa.slice(1)) + '" target="_blank" rel="noopener">WhatsApp</a>' : "") : "") + (r.email ? '<div class="sub"><a href="mailto:' + esc(r.email) + '">' + esc(r.email) + "</a></div>" : "") + "</td>" +
     "<td>" + esc(r.items || "No items") + '<div class="sub">Rs ' + esc(r.amount) + (r.url ? ' · <a href="' + esc(r.url) + '" target="_blank" rel="noopener">Checkout link</a>' : "") + "</div></td>" +
     "<td>" + when(r.createdAt) + "</td>" +
-    "<td>" + (r.offered ? '<span class="chip wait" data-tip="10% offer sent on WhatsApp">Offer sent</span> ' : (r.wa && !r.handled ? '<button class="btn" data-aboffer="' + esc(r.id) + '">Send 10% offer</button> ' : "")) + (r.handled ? '<span class="chip ok">Handled</span>' : '<button class="btn" data-abdone="' + esc(r.id) + '">Mark done</button>') + "</td></tr>").join("")
+    "<td>" + (r.offered ? '<span class="chip wait" data-tip="10% offer sent on WhatsApp">Offer sent</span> ' : (r.wa && !r.handled && !r.ordered ? '<button class="btn" data-aboffer="' + esc(r.id) + '">Send 10% offer</button> ' : "")) + (r.handled ? '<span class="chip ok">Handled</span>' : '<button class="btn" data-abdone="' + esc(r.id) + '">Mark done</button>') + "</td></tr>").join("")
     : '<tr><td colspan="5" class="empty">No abandoned carts with contact details in this range.</td></tr>';
   document.querySelectorAll("[data-aboffer]").forEach(b => b.onclick = async () => {
     if (!confirm("Send this customer a WhatsApp message with a one-time 10% discount link?")) return;
@@ -1402,7 +1403,7 @@ async function loadAbStats(from, to) {
 $("#abRun").onclick = loadAband;
 $("#abAll").onclick = async () => {
   if (!ab.data) return log("Press Show first.");
-  const todo = ab.data.rows.filter(r => r.wa && !r.offered && !r.handled);
+  const todo = ab.data.rows.filter(r => r.wa && !r.offered && !r.handled && !r.ordered);
   if (!todo.length) return log("Nobody left to message: every cart with a mobile number has been messaged or marked done.");
   if (!confirm("Send the WhatsApp 10% offer to " + todo.length + " customer" + (todo.length === 1 ? "" : "s") + "? Each one gets their own one-time code and is marked done after the message is sent.")) return;
   $("#abAll").disabled = true; let ok = 0, fail = 0, streak = 0;
