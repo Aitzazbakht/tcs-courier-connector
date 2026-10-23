@@ -95,6 +95,9 @@ nav.tabs{display:flex;flex-direction:column;gap:3px}
 
 /* WhatsApp setup popover */
 #waPanel{display:none;position:absolute;right:16px;top:62px;width:min(380px,calc(100vw - 40px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 12px 32px rgba(28,40,38,.14);z-index:20}
+tr.dup td{background:var(--rust-soft)}
+tr.dup td:first-child{box-shadow:inset 3px 0 0 var(--rust)}
+.dupnote{color:var(--rust)!important;font-weight:600}
 #waPanel.open{display:block;color:var(--ink)}
 #waPanel h3{margin:0 0 4px;font-size:15px}
 #waPanel p{margin:0 0 12px;color:var(--mute);font-size:13px}
@@ -1020,21 +1023,34 @@ function summaryHtml(p, readyN, cod) {
   return "<strong>" + readyN + "</strong> ready to push · " + (p.length - readyN) + " waiting on confirmation or details · " + rs(cod) + " COD" +
     (p.length !== state.pending.length ? " · showing " + p.length + " of " + state.pending.length + " orders" : "");
 }
+function phoneKey(v) { const d = String(v || "").replace(/\D/g, ""); return d.length >= 10 ? d.slice(-10) : ""; }
+function dupMap() {
+  const g = {};
+  state.pending.forEach(o => { const k = phoneKey(o.phone); if (k) (g[k] = g[k] || []).push(o); });
+  const m = {};
+  Object.keys(g).forEach(k => { if (g[k].length > 1) g[k].forEach(o => { m[o.id] = g[k].filter(x => x.id !== o.id).map(x => x.name); }); });
+  return m;
+}
+function dupTail(p) {
+  const d = dupMap(), n = p.filter(o => d[o.id]).length;
+  return n ? ' · <strong style="color:var(--rust)">' + n + " duplicate orders</strong>" : "";
+}
 function renderWaiting() {
   setSwitch($("#auto"), state.auto); setSwitch($("#waSw"), state.waOn);
   $("#onlyConfWrap").hidden = !state.waOn;
-  const p = visiblePending();
+  const p = visiblePending(); const dups = dupMap();
   const readyN = p.filter(ready).length;
   const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
   $("#cWaiting").textContent = state.pending.length;
   $("#storeFilter").hidden = !(state.stores && state.stores.length > 1);
-  $("#summary").innerHTML = summaryHtml(p, readyN, cod);
+  $("#summary").innerHTML = summaryHtml(p, readyN, cod) + dupTail(p);
   $("#pending").innerHTML = p.length ? p.map(o => {
     const other = o.issues.filter(i => !i.startsWith("City"));
     const fuzzy = o.city_match && !["exact", "alias", "manual"].includes(o.city_match);
-    return '<tr data-row="' + esc(o.id) + '">' +
+    const dp = dups[o.id];
+    return '<tr data-row="' + esc(o.id) + '"' + (dp ? ' class="dup"' : "") + ">" +
       '<td><input type="checkbox" class="sel" value="' + esc(o.id) + '"' + (o.processing ? " disabled" : "") + ' aria-label="Select ' + esc(o.name) + '"></td>' +
-      '<td><span class="order">' + esc(o.name) + "</span>" + storeBadge(o) + '<div class="sub">' + when(o.createdAt) + "</div></td>" +
+      '<td><span class="order">' + esc(o.name) + "</span>" + storeBadge(o) + '<div class="sub">' + when(o.createdAt) + "</div>" + (dp ? '<div><span class="chip bad">Duplicate</span></div><div class="sub dupnote">Same number as ' + dp.map(esc).join(", ") + "</div>" : "") + "</td>" +
       "<td>" + esc(o.customer) + '<div class="sub">' + esc(o.phone) + '</div><div class="sub">' + esc(o.address) + "</div></td>" +
       '<td><select data-id="' + esc(o.id) + '" class="' + (o.city_code ? (fuzzy ? "fuzzy" : "") : "bad") + '" aria-label="TCS city">' + cityOptions(cityVal(o.city_code, o.city_name)) + "</select>" +
         '<div class="sub">Typed: ' + esc(o.city_input) + (fuzzy ? ' <span class="flag">Check city</span>' : "") + "</div></td>" +
@@ -1070,7 +1086,7 @@ function renderWaiting() {
 }
 function renderSummaryOnly() {
   const p = visiblePending(); const readyN = p.filter(ready).length; const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
-  $("#summary").innerHTML = summaryHtml(p, readyN, cod);
+  $("#summary").innerHTML = summaryHtml(p, readyN, cod) + dupTail(p);
 }
 $("#onlyConf").onchange = renderSummaryOnly;
 function updateSel() { $("#pushSel").disabled = !document.querySelectorAll(".sel:checked").length; }
