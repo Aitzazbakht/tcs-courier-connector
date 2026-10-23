@@ -314,10 +314,12 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       <label class="field">Sort <select id="mkSort"></select></label>
       <label class="field">Show <select id="mkLimit"><option value="0">All</option><option value="100">Top 100</option><option value="200">Top 200</option><option value="500">Top 500</option><option value="1000">Top 1000</option><option value="2000">Top 2000</option></select></label>
       <label class="field">Store <select id="mkStore"><option value="all">Both stores</option><option value="house">Chitral House</option><option value="herbs">Chitral Herbs</option></select></label>
+      <label class="field">Last order <select id="mkLast"><option value="any">Any time</option><option value="0-30">Within 30 days</option><option value="30-90">30 to 90 days ago</option><option value="90+">Over 90 days ago</option></select></label>
       <label class="field">Offer <select id="mkOffer"><option value="all">Any</option><option value="none">Not sent yet</option><option value="sent">Already sent</option></select></label>
       <label class="field"><input type="search" id="mkSearch" placeholder="Search name, phone or order"></label>
     </div>
     <div class="toolbar" id="mkOfferBar">
+      <label class="field">Group name <input type="text" id="mkGroupName" maxlength="40" placeholder="e.g. Last order 30-90 days" style="width:200px;border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--ink)"></label>
       <label class="field">Daily limit <input type="number" id="mkCap" min="1" max="2000" value="1500" style="width:80px;border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--ink)"></label>
       <label class="field">Message <select id="mkTpl"><option value="img">With picture (ch_reorder_offer_img)</option><option value="text">Text only (ch_reorder_offer)</option></select></label>
       <label class="field">Code valid for <select id="mkDays2"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select></label>
@@ -760,7 +762,7 @@ async function loadAbStats(from, to) {
     const d = await post({ action: "abandoned_stats", from: from || ab.data.from, to: to || ab.data.to });
     const rows = d.orders.map(o => "<tr><td><strong>" + esc(o.name) + "</strong><div class=\"sub\">" + esc(o.store) + "</div></td><td>" + esc(o.customer) + "</td><td>" + when(o.at) + '</td><td class="n">' + rs(o.amount) + '</td><td class="n">' + rs(o.discount) + "</td></tr>").join("");
     $("#abStats").innerHTML = '<div class="tbox"><h3>How the 10% offers worked (' + esc(d.from) + " to " + esc(d.to) + ")</h3>" +
-      '<table><tr><td>Offers sent</td><td class="n">' + d.sent + "</td></tr><tr><td>Carts recovered (ordered with their code)</td><td class=\"n\"><strong>" + d.recovered + "</strong>" + (d.rate == null ? "" : " (" + d.rate + "%)") + "</td></tr><tr><td>Sales recovered</td><td class=\"n\"><strong>" + rs(d.revenue) + "</strong></td></tr><tr><td>Discount given</td><td class=\"n\">" + rs(d.discount) + "</td></tr></table>" +
+      '<table><tr><th>Group</th><th class="n">Sent</th><th class="n">Used</th><th class="n">Rate</th><th class="n">Sales</th><th class="n">Discount</th></tr>' + (d.groups || []).map(g => "<tr><td><strong>" + esc(g.name) + '</strong></td><td class="n">' + g.sent + '</td><td class="n">' + g.used + '</td><td class="n"><strong>' + g.rate + '%</strong></td><td class="n">' + rs(g.revenue) + '</td><td class="n">' + rs(g.discount) + "</td></tr>").join("") + '</table><table style="margin-top:8px"><tr><td>Offers sent (all groups)</td><td class="n">' + d.sent + "</td></tr><tr><td>Carts recovered (ordered with their code)</td><td class=\"n\"><strong>" + d.recovered + "</strong>" + (d.rate == null ? "" : " (" + d.rate + "%)") + "</td></tr><tr><td>Sales recovered</td><td class=\"n\"><strong>" + rs(d.revenue) + "</strong></td></tr><tr><td>Discount given</td><td class=\"n\">" + rs(d.discount) + "</td></tr></table>" +
       (d.sent ? '<p class="sub">Counts offers sent in this date range. Cancelled orders are not counted. An offer only counts when the customer orders with the code we sent.</p>' : '<p class="sub">No offers sent in this date range yet.</p>') +
       (rows ? '<table style="margin-top:8px"><tr><th>Order</th><th>Customer</th><th>Placed</th><th class="n">Total</th><th class="n">Discount</th></tr>' + rows + "</table>" : "") + "</div>";
   } catch (e) { $("#abStats").innerHTML = '<p class="note">Couldn\'t load offer results: ' + esc(e.message) + "</p>"; }
@@ -886,6 +888,11 @@ function mkSortOptions() {
   $("#mkSort").innerHTML = o.map(x => '<option value="' + x[0] + '">' + x[1] + "</option>").join("");
   if (o.some(x => x[0] === cur)) $("#mkSort").value = cur; else $("#mkSort").value = mk.view === "customers" ? "spend" : "recent";
 }
+function mkLastOk(x) {
+  const f = $("#mkLast").value; if (f === "any") return true;
+  const age = (Date.parse(pkDay(new Date().toISOString())) - Date.parse(pkDay(x.last))) / 86400000;
+  return f === "0-30" ? age <= 30 : f === "30-90" ? age > 30 && age <= 90 : age > 90;
+}
 function mkCompute() {
   const [a, b] = mkPeriodRange(), store = $("#mkStore").value, q = $("#mkSearch").value.trim().toLowerCase();
   const orders = mk.rows.filter(o => (store === "all" || o.s === store) && (!a || pkDay(o.d) >= a) && (!b || pkDay(o.d) <= b));
@@ -915,7 +922,7 @@ function mkRender() {
   const c = mkCompute(), sort = $("#mkSort").value, lim = Number($("#mkLimit").value);
   if (mk.view === "customers") {
     const of = $("#mkOffer").value;
-    let list = c.all.filter(x => c.okC(x) && c.hit(x.name + " " + x.phone) && (of === "all" || (of === "sent") === !!mk.offers[x.phone]));
+    let list = c.all.filter(x => c.okC(x) && c.hit(x.name + " " + x.phone) && (of === "all" || (of === "sent") === !!mk.offers[x.phone]) && mkLastOk(x));
     const by = { spend: (x, y) => y.spent - x.spent, orders: (x, y) => y.orders - x.orders || y.spent - x.spent, avg: (x, y) => y.spent / y.orders - x.spent / x.orders, recent: (x, y) => (y.last > x.last ? 1 : -1), oldest: (x, y) => (x.last > y.last ? 1 : -1), name: (x, y) => String(x.name).localeCompare(String(y.name)) };
     list.sort(by[sort] || by.spend);
     if (lim) list = list.slice(0, lim);
@@ -955,6 +962,8 @@ async function mkSendOffers() {
   if (mk.sending) { mk.stop = true; return log("Stopping after the current batch…"); }
   if (mk.view !== "customers") return log("Switch to the Customers view to send offers.");
   const cap = Number($("#mkCap").value) || 1500, days = Number($("#mkDays2").value) || 14;
+  const grp = $("#mkGroupName").value.trim();
+  if (!grp) return log("Type a Group name first (for example: Last order 30-90 days), so the results can be compared by group.");
   const todo = mkView.filter(x => /^03\d{9}$/.test(x.phone) && !mk.offers[x.phone]);
   const room = Math.max(0, cap - mk.today), n = Math.min(todo.length, room);
   if (!todo.length) return log("Nobody to message: every customer shown has already been sent an offer, or has no valid mobile number.");
@@ -967,7 +976,7 @@ async function mkSendOffers() {
     for (let i = 0; i < list.length && !mk.stop; i += 15) {
       const batch = list.slice(i, i + 15).map(x => ({ phone: x.phone, name: x.name, store: x.store }));
       log("Sending offers… " + (ok + fail + skip) + " of " + list.length);
-      const d = await post({ action: "mk_send", items: batch, days, cap, image: $("#mkTpl").value === "img" });
+      const d = await post({ action: "mk_send", items: batch, days, cap, image: $("#mkTpl").value === "img", group: grp });
       d.results.forEach(r => { if (r.ok) ok++; else if (r.skipped) skip++; else { fail++; if (fail <= 3) log("Couldn't send to " + r.phone + ": " + r.error); } });
       await loadMkOffers();
       if (fail >= 10 && ok === 0) { log("Stopped: the first sends all failed. Check that the template is approved."); break; }
@@ -1001,7 +1010,7 @@ function mkCsv() {
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "marketing-" + mk.view + "-" + pkDay(new Date().toISOString()) + ".csv"; document.body.appendChild(a); a.click(); a.remove();
 }
 document.querySelectorAll("#mkView button").forEach(b => b.onclick = () => { mk.view = b.dataset.v; mk.shown = 100; document.querySelectorAll("#mkView button").forEach(x => x.classList.toggle("on", x === b)); $("#mkSort").value = ""; mkRender(); });
-["#mkPeriod", "#mkGroup", "#mkSort", "#mkLimit", "#mkStore", "#mkFrom", "#mkTo"].forEach(id => { $(id).onchange = () => { if (id === "#mkPeriod") $("#mkCustom").hidden = $("#mkPeriod").value !== "custom"; mk.shown = 100; mkRender(); }; });
+["#mkPeriod", "#mkGroup", "#mkLast", "#mkSort", "#mkLimit", "#mkStore", "#mkFrom", "#mkTo"].forEach(id => { $(id).onchange = () => { if (id === "#mkPeriod") $("#mkCustom").hidden = $("#mkPeriod").value !== "custom"; mk.shown = 100; mkRender(); }; });
 $("#mkSearch").oninput = () => { mk.shown = 100; mkRender(); };
 $("#mkMore").onclick = () => { mk.shown += 200; mkRender(); };
 $("#mkRefresh").onclick = mkRefresh;
