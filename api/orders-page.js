@@ -46,8 +46,8 @@ header.top{background:#15211D;color:#E6ECE9;border-bottom:1px solid #0E1613;posi
 .brand span{color:#93A09B;font-weight:500;font-size:13px;margin-left:2px}
 .logo{width:30px;height:30px;border-radius:9px;background:#6FC39A;color:#0D1A14;display:grid;place-items:center;font-style:normal;font-weight:800}
 .menu-btn{display:none}
-header.top .ctrl,header.top .btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:#E6ECE9}
-header.top .ctrl:hover,header.top .btn:hover{border-color:rgba(255,255,255,.4)}
+header.top .bar .ctrl,header.top .bar .btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:#E6ECE9}
+header.top .bar .ctrl:hover,header.top .bar .btn:hover{border-color:rgba(255,255,255,.4)}
 header.top .switch{background:rgba(255,255,255,.22)}
 header.top .ctrl[aria-checked="true"] .switch{background:#6FC39A}
 .shell{display:flex;align-items:flex-start}
@@ -85,7 +85,7 @@ nav.tabs{display:flex;flex-direction:column;gap:3px}
 
 /* WhatsApp setup popover */
 #waPanel{display:none;position:absolute;right:16px;top:62px;width:min(380px,calc(100vw - 40px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 12px 32px rgba(28,40,38,.14);z-index:20}
-#waPanel.open{display:block}
+#waPanel.open{display:block;color:var(--ink)}
 #waPanel h3{margin:0 0 4px;font-size:15px}
 #waPanel p{margin:0 0 12px;color:var(--mute);font-size:13px}
 #waPanel .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
