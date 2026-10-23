@@ -457,7 +457,6 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     <div id="setupBody" hidden>
       <div class="toolbar" style="align-items:flex-end">
         <label class="adf">Orders of <input type="date" id="pfDate"></label>
-        <label class="adf">Shipped (booked on TCS) on <input type="date" id="prShip"></label>
         <button class="btn primary" id="prRun">Build report</button>
         <button class="btn" id="pfRefresh">Refresh TCS status</button>
         <button class="btn" id="prPdf" disabled>Download PDF</button>
@@ -711,10 +710,10 @@ function prUl(items, max) {
 function prHtml(d) {
   const k = d.kpi, p = d.pnl, n = d.notes;
   const pct = (x) => (x == null ? "-" : x + "%");
-  const pcl = (c) => c + (c === 1 ? " parcel" : " parcels");
+  const pcl = (c) => c + (c === 1 ? " order" : " orders");
   const kpi =(label, val, cls) => '<td class="kpi' + (cls ? " " + cls : "") + '"><small>' + esc(label) + "</small><b>" + val + "</b></td>";
   let h = "<h1>Daily Sales &amp; Profit Report</h1>";
-  h += '<div class="sub">Chitral House + Chitral Herbs (+ WhatsApp) | Orders of ' + esc(prDL(d.date)) + " (shipped " + esc(prD(d.ship)) + ") | Currency: PKR</div>";
+  h += '<div class="sub">Chitral House + Chitral Herbs (+ WhatsApp) | Orders of ' + esc(prDL(d.date)) + " | Currency: PKR</div>";
   h += '<table class="kpis"><tr>' + kpi("Orders booked", prN(k.orders)) + kpi("Booked sales", prN(k.bookedSales)) + kpi("Delivered", prN(k.delivered) + " of " + prN(k.shipped)) +
     kpi("Delivered sales", prN(k.deliveredSales)) + kpi("Net profit (delivered)", prM(k.net), k.net < 0 ? "neg" : "") + "</tr></table>";
 
@@ -730,59 +729,56 @@ function prHtml(d) {
 
   const perParcel = k.delivered ? Math.round(p.net / k.delivered) : 0;
   const adShare = p.deliveredSales ? (100 * p.adSpend / p.deliveredSales).toFixed(1) : "-";
-  h += '<div class="keep"><h2>Profit &amp; loss (delivered parcels)</h2>' + prT([["Item"], ["PKR", 1], ["Detail"]], [
-    ["Delivered sales", prM(p.deliveredSales), prN(k.delivered) + " delivered parcels"],
-    ["Less: product cost of delivered units", prM(-p.productCost), p.costMissing ? "Missing for " + prN(p.costMissing) + " delivered parcels (see warning below)" : "Returned units go back to stock"],
-    ["Less: delivery", prM(-p.delivery), prN(p.shipped) + " shipped parcels x " + prN(p.deliveryPer)],
+  h += '<div class="keep"><h2>Profit &amp; loss (delivered orders)</h2>' + prT([["Item"], ["PKR", 1], ["Detail"]], [
+    ["Delivered sales", prM(p.deliveredSales), prN(k.delivered) + " delivered orders (" + prN(d.delivery.tcs) + " by TCS, " + prN(d.delivery.rider) + " by our ISB/RWP rider)"],
+    ["Less: product cost of delivered units", prM(-p.productCost), "Returned units go back to stock"],
+    ["Less: delivery", prM(-p.delivery), prN(p.parcels) + " TCS parcels x " + prN(p.deliveryPer)],
     ["Less: ad spend", prM(-p.adSpend), "All accounts"],
     ["Less: " + p.feePct + "% of delivered sales", prM(-p.fee), ""]
   ], ["Net profit (delivered)", prM(p.net), pct(p.marginPct) + " of delivered sales"]);
-  if (p.costMissing) h += '<p class="note" style="color:#b3261e;font-weight:700">Product cost is missing for ' + prN(p.costMissing) + " delivered parcel" + (p.costMissing === 1 ? "" : "s") + " (Rs " + prN(p.costMissingSales) + " of sales) because their orders could not be found. The profit above is too high by their product cost. Press Build report again; if it stays, see the Notes section.</p>";
-  h += prT([["If more parcels deliver"], ["PKR", 1], ["Detail"]], [
-    ["Extra profit if the " + prN(p.inProcessCount) + " in-process parcels deliver", prM(p.inProcessExtra), "Sales less product cost and " + p.feePct + "%"],
-    ["Profit if in-process parcels deliver", prM(p.profitIfInProcess), ""],
-    ["Extra profit if the " + prN(p.notDeliveredCount) + " not-delivered parcels had delivered", prM(p.notDeliveredExtra), "Sales less product cost and " + p.feePct + "%"],
-    ["Profit if every shipped parcel had delivered", prM(p.profitAllDelivered), ""]
+  h += prT([["If more orders deliver"], ["PKR", 1], ["Detail"]], [
+    ["Extra profit if the " + prN(p.inProcessCount) + (p.inProcessCount === 1 ? " in-process order delivers" : " in-process orders deliver"), prM(p.inProcessExtra), "Sales less product cost and " + p.feePct + "%"],
+    ["Profit if in-process orders deliver", prM(p.profitIfInProcess), ""],
+    ["Extra profit if the " + prN(p.notDeliveredCount) + (p.notDeliveredCount === 1 ? " not-delivered order had delivered" : " not-delivered orders had delivered"), prM(p.notDeliveredExtra), "Sales less product cost and " + p.feePct + "%"],
+    ["Profit if every shipped order had delivered", prM(p.profitAllDelivered), ""]
   ]);
-  h += '<p class="note">Net margin ' + pct(p.marginPct) + " of delivered sales (" + prM(perParcel) + " per delivered parcel). Ad spend is " + adShare + "% of delivered sales. Ads and the delivery charge are paid on every shipped parcel, but sales only count once a parcel is delivered, so the delivered figure is the lowest the day can end at.</p></div>";
+  h += '<p class="note">Net margin ' + pct(p.marginPct) + " of delivered sales (" + prM(perParcel) + " per delivered order). Ad spend is " + adShare + "% of delivered sales. Ads and the delivery charge are paid on every shipped order, but sales only count once an order is delivered, so the delivered figure is the lowest the day can end at.</p></div>";
 
-  h += "<h2>TCS delivery status by source</h2>" + prT([["Source"], ["Shipped", 1], ["Delivered", 1], ["In process", 1], ["Not delivered", 1], ["Delivered sales", 1], ["Delivery rate", 1]],
+  h += "<h2>Delivery status by source</h2>" + prT([["Source"], ["Shipped", 1], ["Delivered", 1], ["In process", 1], ["Not delivered", 1], ["Delivered sales", 1], ["Delivery rate", 1]],
     d.tcs.rows.map((r) => [esc(r.label), prN(r.shipped), prN(r.delivered), prN(r.inProcess), prN(r.notDelivered), prN(r.deliveredSales), pct(r.rate)]),
     ["Total", prN(d.tcs.total.shipped), prN(d.tcs.total.delivered), prN(d.tcs.total.inProcess), prN(d.tcs.total.notDelivered), prN(d.tcs.total.deliveredSales), pct(d.tcs.total.rate)]);
-  h += '<p class="note">Delivery rate = delivered / shipped. A parcel TCS shows as refused or returned counts as not delivered.</p>';
+  h += '<p class="note">Delivery rate = delivered / shipped, the same way the Total delivery report counts it. An order TCS shows as refused or returned counts as not delivered.</p>';
 
   const who = (r) => esc(r.customer) + (r.order ? ' <span class="muted">' + esc(r.order) + "</span>" : "");
-  h += "<h2>Not delivered</h2>" + prT([["Customer"], ["Product"], ["COD", 1], ["TCS status"]],
+  h += "<h2>Not delivered</h2>" + prT([["Customer"], ["Product"], ["Sales", 1], ["Status"]],
     d.notDelivered.rows.map((r) => [who(r), esc(r.product), prN(r.cod), esc(r.status)]), ["Total (" + pcl(d.notDelivered.rows.length) + ")", "",prN(d.notDelivered.total), ""]);
-  h += "<h2>Still in process</h2>" + prT([["Customer"], ["Product"], ["COD", 1], ["TCS status"]],
+  h += "<h2>Still in process</h2>" + prT([["Customer"], ["Product"], ["Sales", 1], ["Status"]],
     d.inProcess.rows.map((r) => [who(r), esc(r.product), prN(r.cod), esc(r.status)]), ["Total (" + pcl(d.inProcess.rows.length) + ")", "",prN(d.inProcess.total), ""]);
 
-  h += "<h2>Notes from the TCS match</h2>";
-  h += '<p class="note"><b>' + prN(k.shipped - n.unmatched.length) + " of " + prN(k.shipped) + " shipped parcels</b> belong to orders placed on this day. Parcels are matched by CN number or order number, because TCS does not return phone numbers.</p>";
+  h += "<h2>Notes</h2>";
+  const rf = d.delivery.ref;
+  h += '<p class="note">Every order placed on this day is followed to its outcome, whenever it was booked. ' + (rf ? "This matches the Total delivery report: <b>" + prN(rf.delivered) + " of " + prN(rf.counted) + " shipped orders delivered (" + pct(rf.ratio) + ")</b>, " + prN(rf.riderDelivered) + " of them by our own ISB/RWP rider." : "") + "</p>";
   const sec = (title, items, max) => '<p class="note" style="margin-top:8px"><b>' + esc(title) + " (" + items.length + ")</b></p>" + prUl(items, max);
-  h += sec("TCS parcels with no order from this day (included in shipped; delivered ones are in delivered sales)", n.unmatched.map((r) =>
-    esc("CN " + r.cn + (r.ref ? " (ref " + r.ref + ")" : "") + " | " + r.customer + " | " + r.product + " | Rs " + prN(r.sales) + " | " + r.status + " | " + (r.counts === "delivered" ? "in delivered sales" : "not delivered yet") + (r.from !== "no order found" ? " | " + r.from : "") + (r.note ? " | " + r.note : ""))));
-  h += sec("Orders not shipped (count in booked sales only)", n.notShipped.map((r) => esc(r.order + " " + r.customer + " | Rs " + prN(r.sales) + " | " + r.note)));
+  h += sec("Orders not traced (not shipped, or not on the courier sheet; they count in booked sales only)", n.untraced.map((r) => esc(r.order + " " + r.customer + " | Rs " + prN(r.sales) + " | " + r.note)));
   h += sec("Prepaid, zero-amount or free orders", n.flagged.map((r) => esc(r.order + " " + r.customer + " | " + r.note)));
-  h += sec("COD differs from the order total (label mismatch)", n.mismatches.map((r) => esc(r.order + " (CN " + r.cn + ") | TCS COD Rs " + prN(r.cod) + " | order total Rs " + prN(r.orderTotal))));
   h += sec("Duplicates merged (same customer counted once)", n.duplicates.map((r) => esc(r.order + " (" + r.customer + ", Rs " + prN(r.sales) + ") counted once with " + r.kept)));
   h += sec("Same customer with separate orders (all counted)", n.repeat.map((r) => esc(r.customer + ": " + r.orders.join(", "))));
   h += sec("Cancelled or fake orders left out", n.excluded.map((r) => esc(r.order + " " + r.customer + " | Rs " + prN(r.sales) + " | " + r.reason)));
-  h += sec("Cancelled TCS parcels (not counted as shipped)", n.cancelledParcels.map((r) => esc("CN " + r.cn + (r.ref ? " (ref " + r.ref + ")" : "") + " | COD Rs " + prN(r.cod))));
   h += sec("Items not in the cost list (cost counted as 0)", n.unmapped.map((r) => esc(r.order + " | " + r.title)));
   if (d.warnings && d.warnings.length) h += sec("Warnings", d.warnings.map((w) => esc(w)));
 
   const costs = d.assumptions.costs.map((c) => c.label + " " + prN(c.cost)).join(", ");
   h += "<h2>Assumptions</h2><ul>" + [
     "Unit costs (PKR): " + costs + ". Loose sachets are costed per sachet. 60g + 10g free counts as 2 units (" + prN(1430) + ").",
-    "Net profit = delivered sales - cost of delivered units - (all shipped parcels x " + d.assumptions.deliveryPer + ") - total ad spend - " + d.assumptions.feePct + "% of delivered sales.",
+    "Net profit = delivered sales - cost of delivered units - (TCS parcels x " + d.assumptions.deliveryPer + ") - total ad spend - " + d.assumptions.feePct + "% of delivered sales.",
     "Pakistan day: orders created 00:00 to 23:59 PKT on the order date, from both Shopify stores. WhatsApp orders on the Chitral House store are shown as their own source.",
-    "Shipped parcels are the ones TCS shows as booked on " + prD(d.ship) + ". Orders without a parcel from that day are not shipped and only count in booked sales.",
+    "Orders are followed to their outcome whenever they were booked (same data as the Total delivery report): delivered or returned by TCS, delivered by our own ISB/RWP rider (courier sheet), or still open. Orders that cannot be traced count in booked sales only.",
+    "The delivery charge is counted for TCS parcels only. Orders delivered by our own rider carry no TCS charge.",
     "Sales are the order total (COD including the delivery fee). A zero-amount order is counted at list price.",
-    "Cancelled and fake orders are left out. The same customer with the same order is counted once.",
+    "Cancelled and fake orders are left out. The same customer with the same order is counted once, only when one of the two could not be traced.",
     "Only delivered units are costed: returned units go back to stock.",
     "Ad spend is typed in by hand for the date. Meta Chitral Herbs is the account named Not use.",
-    "TCS data was pulled live on " + new Date(d.generatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + "."
+    "Delivery status was read live on " + new Date(d.generatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + "."
   ].map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
   return h;
 }
@@ -799,9 +795,9 @@ function prInit() {
   if (pf.ready) return;
   pf.ready = true;
   $("#prAds").innerHTML = PR_ADS.map((a) => '<label class="adf">' + esc(a[1]) + ' <input type="number" min="0" step="1" inputmode="numeric" placeholder="0" id="ad_' + a[0] + '"></label>').join("");
-  $("#pfDate").value = yesterdayPK(); $("#prShip").value = prAddDay($("#pfDate").value, 1);
+  $("#pfDate").value = yesterdayPK();
   PR_ADS.forEach((a) => { $("#ad_" + a[0]).oninput = prAdsSave; });
-  $("#pfDate").onchange = () => { if ($("#pfDate").value) $("#prShip").value = prAddDay($("#pfDate").value, 1); prAdsLoad(); };
+  $("#pfDate").onchange = prAdsLoad;
   $("#prRun").onclick = () => runProfit(false);
   $("#pfRefresh").onclick = () => runProfit(true);
   $("#prPdf").onclick = prPdf;
@@ -838,12 +834,12 @@ function renderProfit() {
 }
 async function runProfit(refresh) {
   if (pf.loading) return;
-  const date = $("#pfDate").value, ship = $("#prShip").value || prAddDay(date, 1);
+  const date = $("#pfDate").value;
   if (!date) return log("Pick the order date.");
   pf.loading = true; $("#prRun").disabled = true; $("#pfRefresh").disabled = true; $("#prPdf").disabled = true; log("");
   $("#prBody").innerHTML = '<p class="note">Reading both stores and checking every parcel with TCS... this can take up to a minute.</p>';
   try {
-    pf.data = await post({ action: "profit_report", pin: setupPin, date: date, ship: ship, ads: prAdsRead(), refresh: !!refresh });
+    pf.data = await post({ action: "profit_report", pin: setupPin, date: date, ads: prAdsRead(), refresh: !!refresh });
     renderProfit();
   } catch (e) {
     pf.data = null;
@@ -1665,7 +1661,6 @@ const TIPS = [
   ["#setupGo", "Checks the PIN with the server. Nothing opens until it is correct."],
   ["#pfDate", "The day the orders were placed (Pakistan time). Defaults to yesterday."],
   ["#prFetchAds", "Reads that day's spend for each ad account from Windsor.ai and fills the boxes. Accounts Windsor cannot find stay blank."],
-  ["#prShip", "The day those parcels were booked on TCS. Defaults to the day after the order date."],
   ["#prRun", "Reads that day's orders from both stores, matches them to the TCS parcels, and works out sales and profit."],
   ["#pfRefresh", "Ask TCS again for every parcel instead of using the results saved in the last 15 minutes."],
   ["#prPdf", "Opens a print view of the report. Choose Save as PDF in the print window; the file is named Sales_Profit_Report_<date>."],

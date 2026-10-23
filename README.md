@@ -74,6 +74,6 @@ The TCS guide is unclear in places (for example, whether GET calls take paramete
 ## Setup tab (Daily Sales & Profit Report)
 
 PIN-protected. Set `SETUP_PIN` in Vercel. Pick an order date (Pakistan time), press **Build report**, then **Download PDF**.
-Orders come from both Shopify stores and are matched to the TCS parcels booked the next day by CN number, then order number.
+It uses the same data as the Total delivery report: every order placed that day from both stores, followed to its outcome (TCS delivered / returned / open, ISB/RWP rider from the courier sheet, or not traced), whenever it was booked. Each order is then costed per product.
 Ad spend: press **Fetch from Windsor** (needs `WINDSOR_API_KEY`, and the Meta / TikTok / Google Ads accounts connected in Windsor.ai).
 Accounts Windsor cannot find stay blank and are typed in by hand.

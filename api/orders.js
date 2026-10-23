@@ -112,7 +112,7 @@ export default async function handler(req, res) {
       // Everything on the Setup tab checks the PIN again on the server, so the data can't be fetched without it.
       if (!(await pinGate(res, body.pin))) return;
       return res.status(200).json(await profitReport({
-        date: String(body.date || ""), ship: String(body.ship || ""),
+        date: String(body.date || ""),
         ads: body.ads && typeof body.ads === "object" ? body.ads : {}, refresh: body.refresh === true,
       }));
     }
