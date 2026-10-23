@@ -121,6 +121,9 @@ tbody tr:hover td{background:color-mix(in srgb,var(--soft) 45%,transparent)}
 .order{font-weight:700}
 .empty{padding:48px 16px;text-align:center;color:var(--mute)}
 .note{color:var(--mute);font-size:13px;margin:0 0 12px}
+.adgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:8px 0}
+.adf{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mute)}
+.adf input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--surface);color:var(--ink)}
 
 .badge{display:inline-block;white-space:nowrap;font-size:11px;font-weight:700;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
 .store-house{background:var(--house-soft);color:var(--house)}
@@ -451,7 +454,23 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
       </form>
       <p class="note" id="setupMsg" style="margin:12px 0 0" aria-live="polite"></p>
     </div>
-    <div id="setupBody" hidden></div>
+    <div id="setupBody" hidden>
+      <div class="toolbar" style="align-items:flex-end">
+        <label class="adf">Orders of <input type="date" id="pfDate"></label>
+        <label class="adf">Shipped (booked on TCS) on <input type="date" id="prShip"></label>
+        <button class="btn primary" id="prRun">Build report</button>
+        <button class="btn" id="pfRefresh">Refresh TCS status</button>
+        <button class="btn" id="prPdf" disabled>Download PDF</button>
+        <span class="stats" id="pfMeta" style="margin-left:auto"></span>
+      </div>
+      <div class="sheet" style="padding:14px 16px;margin-bottom:14px">
+        <div style="font-weight:700">Ad spend for the order date (PKR)</div>
+        <p class="note" style="margin:2px 0 6px">Type what each account spent that day. The report adds them up.</p>
+        <div class="adgrid" id="prAds"></div>
+        <div class="sub" id="prAdTotal"></div>
+      </div>
+      <div id="prBody"><p class="note">Pick the order date, enter the ad spend, then press Build report.</p></div>
+    </div>
   </section>
 </main>
 </div></div>
@@ -627,18 +646,194 @@ async function runDash() {
 let setupOpen = false;
 function ensureSetup() {
   $("#setupGate").hidden = setupOpen; $("#setupBody").hidden = !setupOpen;
-  if (!setupOpen) setTimeout(() => $("#setupPin").focus(), 0);
+  if (!setupOpen) setTimeout(() => $("#setupPin").focus(), 0); else prInit();
 }
+function setupLock(msg) { setupOpen = false; setupPin = ""; $("#setupMsg").textContent = msg || ""; ensureSetup(); }
 $("#setupForm").onsubmit = async (e) => {
   e.preventDefault();
   const pin = $("#setupPin").value.trim(); if (!pin) return;
   $("#setupGo").disabled = true; $("#setupMsg").textContent = "Checking…";
   try {
     await post({ action: "setup_unlock", pin: pin });
-    setupOpen = true; $("#setupMsg").textContent = "";
+    setupOpen = true; setupPin = pin; $("#setupMsg").textContent = "";
   } catch (err) { $("#setupMsg").textContent = err.message; }
   finally { $("#setupPin").value = ""; $("#setupGo").disabled = false; ensureSetup(); }
 };
+
+/* ---------- profit report (Setup tab) ---------- */
+let setupPin = "";
+let pf = { data: null, loading: false, ready: false };
+const PR_ADS = [["metaHouse", "Meta: Chitral House (Myadaccount)"], ["metaHerbs", "Meta: Chitral Herbs (Not use)"], ["tiktokHouse", "TikTok: Chitral House SMC PVT LTD1119"], ["tiktokNew", "TikTok: CHouse new"], ["google", "Google Ads (790-385-1046)"], ["otherMeta", "Other Chitral Meta accounts (expected 0)"]];
+/* PR-RENDER-START */
+const PR_MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const PR_DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const prN = (x) => Number(x || 0).toLocaleString("en-PK");
+const prM = (x) => (Number(x) < 0 ? "-" : "") + prN(Math.abs(Number(x) || 0));
+function prD(iso) { const d = new Date(iso + "T00:00:00Z"); return d.getUTCDate() + " " + PR_MON[d.getUTCMonth()] + " " + d.getUTCFullYear(); }
+function prDL(iso) { const d = new Date(iso + "T00:00:00Z"); return PR_DAY[d.getUTCDay()] + ", " + prD(iso); }
+function prFile(iso) { return "Sales_Profit_Report_" + prD(iso).replace(/ /g, ""); }
+function prAddDay(iso, n) { return new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10); }
+const PR_CSS = [
+  ".pr{font:12px/1.4 Arial,Helvetica,sans-serif;color:#111;background:#fff;padding:18px 20px;border:1px solid #DCE2DF;border-radius:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
+  ".pr h1{font-size:21px;margin:0 0 2px;color:#2E5E45}",
+  ".pr .sub{color:#555;margin:0 0 12px;font-size:11px}",
+  ".pr h2{font-size:13.5px;margin:18px 0 6px;color:#2E5E45;border-bottom:2px solid #2E5E45;padding-bottom:2px;page-break-after:avoid}",
+  ".pr table{width:100%;min-width:0;border-collapse:collapse;margin:0 0 4px}",
+  ".pr table.kpis{border-collapse:separate;border-spacing:5px 0;margin:0 -5px 6px;width:calc(100% + 10px)}",
+  ".pr td.kpi{width:20%;border:1px solid #BFD6C9;background:#F1F7F3;border-radius:6px;padding:8px 10px;vertical-align:top}",
+  ".pr td.kpi small{display:block;color:#555;font-size:10px}",
+  ".pr td.kpi b{display:block;font-size:17px;margin-top:2px}",
+  ".pr td.kpi.neg b{color:#B0302A}",
+  ".pr th{background:#2E5E45;color:#fff;text-align:left;padding:5px 7px;font-size:11px;font-weight:700;border:0}",
+  ".pr td{padding:4px 7px;border-bottom:1px solid #DCE8E1;font-size:11px;vertical-align:top;color:#111}",
+  ".pr tbody tr:nth-child(even) td{background:#EAF3EE}",
+  ".pr .n{text-align:right;white-space:nowrap}",
+  ".pr tr.tot td{font-weight:700;border-top:2px solid #2E5E45;background:#D6E8DC}",
+  ".pr tr{page-break-inside:avoid}",
+  ".pr .keep{page-break-inside:avoid;break-inside:avoid}",
+  ".pr thead{display:table-header-group}",
+  ".pr .note{color:#444;font-size:11px;margin:4px 0}",
+  ".pr .muted{color:#666}",
+  ".pr ul{margin:2px 0 6px 18px;padding:0;font-size:11px}",
+  ".pr li{margin:1px 0}"
+].join("");
+function prT(cols, rows, tot) {
+  const th = cols.map((c) => "<th" + (c[1] ? ' class="n"' : "") + ">" + esc(c[0]) + "</th>").join("");
+  const tr = (cells, cls) => "<tr" + (cls ? ' class="' + cls + '"' : "") + ">" + cells.map((c, i) => "<td" + (cols[i] && cols[i][1] ? ' class="n"' : "") + ">" + c + "</td>").join("") + "</tr>";
+  return "<table><thead><tr>" + th + "</tr></thead><tbody>" + (rows.length ? rows.map((r) => tr(r)).join("") : '<tr><td colspan="' + cols.length + '">None.</td></tr>') + (tot ? tr(tot, "tot") : "") + "</tbody></table>";
+}
+function prUl(items, max) {
+  max = max || 30;
+  if (!items.length) return '<p class="note">None.</p>';
+  return "<ul>" + items.slice(0, max).map((x) => "<li>" + x + "</li>").join("") + (items.length > max ? "<li>...and " + (items.length - max) + " more</li>" : "") + "</ul>";
+}
+function prHtml(d) {
+  const k = d.kpi, p = d.pnl, n = d.notes;
+  const pct = (x) => (x == null ? "-" : x + "%");
+  const pcl = (c) => c + (c === 1 ? " parcel" : " parcels");
+  const kpi =(label, val, cls) => '<td class="kpi' + (cls ? " " + cls : "") + '"><small>' + esc(label) + "</small><b>" + val + "</b></td>";
+  let h = "<h1>Daily Sales &amp; Profit Report</h1>";
+  h += '<div class="sub">Chitral House + Chitral Herbs (+ WhatsApp) | Orders of ' + esc(prDL(d.date)) + " (shipped " + esc(prD(d.ship)) + ") | Currency: PKR</div>";
+  h += '<table class="kpis"><tr>' + kpi("Orders booked", prN(k.orders)) + kpi("Booked sales", prN(k.bookedSales)) + kpi("Delivered", prN(k.delivered) + " of " + prN(k.shipped)) +
+    kpi("Delivered sales", prN(k.deliveredSales)) + kpi("Net profit (delivered)", prM(k.net), k.net < 0 ? "neg" : "") + "</tr></table>";
+
+  h += "<h2>Orders &amp; sales by source</h2>" + prT([["Source"], ["Orders", 1], ["Units", 1], ["Sales", 1], ["Product cost", 1]],
+    d.sources.map((r) => [esc(r.label), prN(r.orders), prN(r.units), prN(r.sales), prN(r.cost)]),
+    ["Total", prN(d.sourcesTotal.orders), prN(d.sourcesTotal.units), prN(d.sourcesTotal.sales), prN(d.sourcesTotal.cost)]);
+
+  h += "<h2>Product-wise sales</h2>" + prT([["Product"], ["Orders", 1], ["Units", 1], ["Sales", 1], ["Unit cost total", 1], ["Share of sales", 1]],
+    d.products.map((r) => [esc(r.label), prN(r.orders), prN(r.units), prN(r.sales), prN(r.cost), r.share + "%"]),
+    ["Total", prN(d.sourcesTotal.orders), prN(d.sourcesTotal.units), prN(d.sourcesTotal.sales), prN(d.sourcesTotal.cost), "100%"]);
+
+  h += "<h2>Campaign cost per account</h2>" + prT([["Account"], ["Spend (PKR)", 1]], d.ads.rows.map((r) => [esc(r.label), prN(r.amount)]), ["Total ad spend", prN(d.ads.total)]);
+
+  const perParcel = k.delivered ? Math.round(p.net / k.delivered) : 0;
+  const adShare = p.deliveredSales ? (100 * p.adSpend / p.deliveredSales).toFixed(1) : "-";
+  h += '<div class="keep"><h2>Profit &amp; loss (delivered parcels)</h2>' + prT([["Item"], ["PKR", 1], ["Detail"]], [
+    ["Delivered sales", prM(p.deliveredSales), prN(k.delivered) + " delivered parcels"],
+    ["Less: product cost of delivered units", prM(-p.productCost), "Returned units go back to stock"],
+    ["Less: delivery", prM(-p.delivery), prN(p.shipped) + " shipped parcels x " + prN(p.deliveryPer)],
+    ["Less: ad spend", prM(-p.adSpend), "All accounts"],
+    ["Less: " + p.feePct + "% of delivered sales", prM(-p.fee), ""]
+  ], ["Net profit (delivered)", prM(p.net), pct(p.marginPct) + " of delivered sales"]);
+  h += prT([["If more parcels deliver"], ["PKR", 1], ["Detail"]], [
+    ["Extra profit if the " + prN(p.inProcessCount) + " in-process parcels deliver", prM(p.inProcessExtra), "Sales less product cost and " + p.feePct + "%"],
+    ["Profit if in-process parcels deliver", prM(p.profitIfInProcess), ""],
+    ["Extra profit if the " + prN(p.notDeliveredCount) + " not-delivered parcels had delivered", prM(p.notDeliveredExtra), "Sales less product cost and " + p.feePct + "%"],
+    ["Profit if every shipped parcel had delivered", prM(p.profitAllDelivered), ""]
+  ]);
+  h += '<p class="note">Net margin ' + pct(p.marginPct) + " of delivered sales (" + prM(perParcel) + " per delivered parcel). Ad spend is " + adShare + "% of delivered sales. Ads and the delivery charge are paid on every shipped parcel, but sales only count once a parcel is delivered, so the delivered figure is the lowest the day can end at.</p></div>";
+
+  h += "<h2>TCS delivery status by source</h2>" + prT([["Source"], ["Shipped", 1], ["Delivered", 1], ["In process", 1], ["Not delivered", 1], ["Delivered sales", 1], ["Delivery rate", 1]],
+    d.tcs.rows.map((r) => [esc(r.label), prN(r.shipped), prN(r.delivered), prN(r.inProcess), prN(r.notDelivered), prN(r.deliveredSales), pct(r.rate)]),
+    ["Total", prN(d.tcs.total.shipped), prN(d.tcs.total.delivered), prN(d.tcs.total.inProcess), prN(d.tcs.total.notDelivered), prN(d.tcs.total.deliveredSales), pct(d.tcs.total.rate)]);
+  h += '<p class="note">Delivery rate = delivered / shipped. A parcel TCS shows as refused or returned counts as not delivered.</p>';
+
+  const who = (r) => esc(r.customer) + (r.order ? ' <span class="muted">' + esc(r.order) + "</span>" : "");
+  h += "<h2>Not delivered</h2>" + prT([["Customer"], ["Product"], ["COD", 1], ["TCS status"]],
+    d.notDelivered.rows.map((r) => [who(r), esc(r.product), prN(r.cod), esc(r.status)]), ["Total (" + pcl(d.notDelivered.rows.length) + ")", "",prN(d.notDelivered.total), ""]);
+  h += "<h2>Still in process</h2>" + prT([["Customer"], ["Product"], ["COD", 1], ["TCS status"]],
+    d.inProcess.rows.map((r) => [who(r), esc(r.product), prN(r.cod), esc(r.status)]), ["Total (" + pcl(d.inProcess.rows.length) + ")", "",prN(d.inProcess.total), ""]);
+
+  h += "<h2>Notes from the TCS match</h2>";
+  h += '<p class="note"><b>' + prN(k.shipped - n.unmatched.length) + " of " + prN(k.shipped) + " shipped parcels</b> belong to orders placed on this day. Parcels are matched by CN number or order number, because TCS does not return phone numbers.</p>";
+  const sec = (title, items, max) => '<p class="note" style="margin-top:8px"><b>' + esc(title) + " (" + items.length + ")</b></p>" + prUl(items, max);
+  h += sec("TCS parcels with no order from this day (included in shipped; delivered ones are in delivered sales)", n.unmatched.map((r) =>
+    esc("CN " + r.cn + (r.ref ? " (ref " + r.ref + ")" : "") + " | " + r.customer + " | " + r.product + " | Rs " + prN(r.sales) + " | " + r.status + " | " + (r.counts === "delivered" ? "in delivered sales" : "not delivered yet") + (r.from !== "no order found" ? " | " + r.from : "") + (r.note ? " | " + r.note : ""))));
+  h += sec("Orders not shipped (count in booked sales only)", n.notShipped.map((r) => esc(r.order + " " + r.customer + " | Rs " + prN(r.sales) + " | " + r.note)));
+  h += sec("Prepaid, zero-amount or free orders", n.flagged.map((r) => esc(r.order + " " + r.customer + " | " + r.note)));
+  h += sec("COD differs from the order total (label mismatch)", n.mismatches.map((r) => esc(r.order + " (CN " + r.cn + ") | TCS COD Rs " + prN(r.cod) + " | order total Rs " + prN(r.orderTotal))));
+  h += sec("Duplicates merged (same customer counted once)", n.duplicates.map((r) => esc(r.order + " (" + r.customer + ", Rs " + prN(r.sales) + ") counted once with " + r.kept)));
+  h += sec("Same customer with separate orders (all counted)", n.repeat.map((r) => esc(r.customer + ": " + r.orders.join(", "))));
+  h += sec("Cancelled or fake orders left out", n.excluded.map((r) => esc(r.order + " " + r.customer + " | Rs " + prN(r.sales) + " | " + r.reason)));
+  h += sec("Cancelled TCS parcels (not counted as shipped)", n.cancelledParcels.map((r) => esc("CN " + r.cn + (r.ref ? " (ref " + r.ref + ")" : "") + " | COD Rs " + prN(r.cod))));
+  h += sec("Items not in the cost list (cost counted as 0)", n.unmapped.map((r) => esc(r.order + " | " + r.title)));
+  if (d.warnings && d.warnings.length) h += sec("Warnings", d.warnings.map((w) => esc(w)));
+
+  const costs = d.assumptions.costs.map((c) => c.label + " " + prN(c.cost)).join(", ");
+  h += "<h2>Assumptions</h2><ul>" + [
+    "Unit costs (PKR): " + costs + ". Loose sachets are costed per sachet. 60g + 10g free counts as 2 units (" + prN(1430) + ").",
+    "Net profit = delivered sales - cost of delivered units - (all shipped parcels x " + d.assumptions.deliveryPer + ") - total ad spend - " + d.assumptions.feePct + "% of delivered sales.",
+    "Pakistan day: orders created 00:00 to 23:59 PKT on the order date, from both Shopify stores. WhatsApp orders on the Chitral House store are shown as their own source.",
+    "Shipped parcels are the ones TCS shows as booked on " + prD(d.ship) + ". Orders without a parcel from that day are not shipped and only count in booked sales.",
+    "Sales are the order total (COD including the delivery fee). A zero-amount order is counted at list price.",
+    "Cancelled and fake orders are left out. The same customer with the same order is counted once.",
+    "Only delivered units are costed: returned units go back to stock.",
+    "Ad spend is typed in by hand for the date. Meta Chitral Herbs is the account named Not use.",
+    "TCS data was pulled live on " + new Date(d.generatedAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + "."
+  ].map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
+  return h;
+}
+/* PR-RENDER-END */
+function prAdsRead() { const o = {}; PR_ADS.forEach((a) => { o[a[0]] = Number($("#ad_" + a[0]).value) || 0; }); return o; }
+function prAdsSum() { const t = Object.values(prAdsRead()).reduce((s, x) => s + x, 0); $("#prAdTotal").textContent = "Total ad spend: Rs " + prN(t); }
+function prAdsSave() { try { localStorage.setItem("prAds:" + $("#pfDate").value, JSON.stringify(prAdsRead())); } catch (e) {} prAdsSum(); }
+function prAdsLoad() {
+  let v = {}; try { v = JSON.parse(localStorage.getItem("prAds:" + $("#pfDate").value) || "{}"); } catch (e) {}
+  PR_ADS.forEach((a) => { $("#ad_" + a[0]).value = v[a[0]] ? v[a[0]] : ""; });
+  prAdsSum();
+}
+function prInit() {
+  if (pf.ready) return;
+  pf.ready = true;
+  $("#prAds").innerHTML = PR_ADS.map((a) => '<label class="adf">' + esc(a[1]) + ' <input type="number" min="0" step="1" inputmode="numeric" placeholder="0" id="ad_' + a[0] + '"></label>').join("");
+  $("#pfDate").value = yesterdayPK(); $("#prShip").value = prAddDay($("#pfDate").value, 1);
+  PR_ADS.forEach((a) => { $("#ad_" + a[0]).oninput = prAdsSave; });
+  $("#pfDate").onchange = () => { if ($("#pfDate").value) $("#prShip").value = prAddDay($("#pfDate").value, 1); prAdsLoad(); };
+  $("#prRun").onclick = () => runProfit(false);
+  $("#pfRefresh").onclick = () => runProfit(true);
+  $("#prPdf").onclick = prPdf;
+  prAdsLoad();
+}
+function renderProfit() {
+  const d = pf.data; if (!d) return;
+  if (!$("#prStyle")) { const s = document.createElement("style"); s.id = "prStyle"; s.textContent = PR_CSS; document.head.appendChild(s); }
+  $("#prBody").innerHTML = '<div class="pr">' + prHtml(d) + "</div>";
+  $("#prPdf").disabled = false;
+  $("#pfMeta").textContent = "Built " + new Date(d.generatedAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) + (d.cache ? " · " + d.cache.fetched + " parcels checked with TCS, " + d.cache.reused + " reused" : "");
+  log((d.warnings || []).join("  ·  "));
+}
+async function runProfit(refresh) {
+  if (pf.loading) return;
+  const date = $("#pfDate").value, ship = $("#prShip").value || prAddDay(date, 1);
+  if (!date) return log("Pick the order date.");
+  pf.loading = true; $("#prRun").disabled = true; $("#pfRefresh").disabled = true; $("#prPdf").disabled = true; log("");
+  $("#prBody").innerHTML = '<p class="note">Reading both stores and checking every parcel with TCS... this can take up to a minute.</p>';
+  try {
+    pf.data = await post({ action: "profit_report", pin: setupPin, date: date, ship: ship, ads: prAdsRead(), refresh: !!refresh });
+    renderProfit();
+  } catch (e) {
+    pf.data = null;
+    if (e.message === "Wrong PIN") setupLock("The PIN was not accepted. Enter it again.");
+    else { $("#prBody").innerHTML = '<p class="note">Could not build the report: ' + esc(e.message) + "</p>"; log(e.message); }
+  } finally { pf.loading = false; $("#prRun").disabled = false; $("#pfRefresh").disabled = false; }
+}
+function prPdf() {
+  const d = pf.data; if (!d) return;
+  const w = window.open("", "_blank"); if (!w) return log("Allow pop-ups to open the print view.");
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(prFile(d.date)) + "</title><style>@page{size:A4;margin:11mm}body{margin:0;background:#fff}" + PR_CSS + ".pr{padding:0;border:0;border-radius:0}</style></head><body><div class=\"pr\">" + prHtml(d) + "</div></body></html>");
+  w.document.close(); setTimeout(() => { w.focus(); w.print(); }, 400);
+}
 
 /* ---------- tabs ---------- */
 function showTab(name) {
@@ -1445,6 +1640,11 @@ const TIPS = [
   ['.tab[data-tab="total"]', "The delivery ratio of every order placed on one day, from both stores: TCS parcels tracked live plus orders delivered locally in Islamabad and Rawalpindi (ISB/RWP delivery, from the courier sheet) (from the courier sheet)."],
   ['.tab[data-tab="setup"]', "Locked settings area. Enter the PIN to open it."],
   ["#setupGo", "Checks the PIN with the server. Nothing opens until it is correct."],
+  ["#pfDate", "The day the orders were placed (Pakistan time). Defaults to yesterday."],
+  ["#prShip", "The day those parcels were booked on TCS. Defaults to the day after the order date."],
+  ["#prRun", "Reads that day's orders from both stores, matches them to the TCS parcels, and works out sales and profit."],
+  ["#pfRefresh", "Ask TCS again for every parcel instead of using the results saved in the last 15 minutes."],
+  ["#prPdf", "Opens a print view of the report. Choose Save as PDF in the print window; the file is named Sales_Profit_Report_<date>."],
   ["#repRun", "Pull the parcels booked between the two dates from TCS and rebuild the report. Ranges of 3 months or more can take up to a minute."],
   ["#p-delivery th:nth-child(8)", "Delivered ÷ (delivered + returned) by number of parcels. Parcels still on the way are left out until they finish."],
   ["#p-delivery th:nth-child(6)", "COD value of the delivered parcels in this city."],

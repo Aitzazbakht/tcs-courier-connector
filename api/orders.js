@@ -14,8 +14,20 @@ import { listAbandoned, markAbandonedHandled, sendOffer, offerStats } from "../l
 import { stores, withStore, splitId } from "../lib/store.js";
 import { offerState, sendBatch, offerResults } from "../lib/reoffer.js";
 import { startExport, exportStatus, streamStore } from "../lib/marketing.js";
+import { profitReport } from "../lib/profit.js";
 
 const hookAllStores = () => Promise.all(stores().map((st) => withStore(st.key, () => shop.ensureWebhook(`${publicBase()}/api/shopify-webhook${st.key === "house" ? "" : "?store=" + st.key}`)).catch((e) => ({ store: st.label, error: e.message }))));
+
+// The Setup tab PIN lives in the SETUP_PIN environment variable and is never sent to the browser.
+const sha = (s) => createHash("sha256").update(String(s)).digest();
+async function pinGate(res, pin) {
+  const want = String(process.env.SETUP_PIN || "");
+  if (!want) { res.status(400).json({ error: "No Setup PIN is set yet. Add SETUP_PIN in Vercel and redeploy." }); return false; }
+  if (timingSafeEqual(sha(pin ?? ""), sha(want))) return true;
+  await new Promise((r) => setTimeout(r, 800));
+  res.status(403).json({ error: "Wrong PIN" });
+  return false;
+}
 
 export const config = { api: { bodyParser: false } };
 
@@ -92,15 +104,16 @@ export default async function handler(req, res) {
       return res.status(200).json(await notify.markProblemHandled(body.id));
     }
     if (body.action === "setup_unlock") {
-      // PIN for the Setup tab. It lives in the SETUP_PIN environment variable and is never sent to the browser.
-      const want = String(process.env.SETUP_PIN || "");
-      if (!want) return res.status(400).json({ error: "No Setup PIN is set yet. Add SETUP_PIN in Vercel and redeploy." });
-      const h = (s) => createHash("sha256").update(String(s)).digest();
-      if (!timingSafeEqual(h(body.pin ?? ""), h(want))) {
-        await new Promise((r) => setTimeout(r, 800));
-        return res.status(403).json({ error: "Wrong PIN" });
-      }
+      if (!(await pinGate(res, body.pin))) return;
       return res.status(200).json({ ok: true });
+    }
+    if (body.action === "profit_report") {
+      // Everything on the Setup tab checks the PIN again on the server, so the data can't be fetched without it.
+      if (!(await pinGate(res, body.pin))) return;
+      return res.status(200).json(await profitReport({
+        date: String(body.date || ""), ship: String(body.ship || ""),
+        ads: body.ads && typeof body.ads === "object" ? body.ads : {}, refresh: body.refresh === true,
+      }));
     }
     if (body.action === "env_check") {
       const names = ["CONNECTOR_KEY", "TCS_BEARER_TOKEN", "TCS_USERNAME", "TCS_PASSWORD", "TCS_ENV",
