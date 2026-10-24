@@ -344,6 +344,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
         <input type="date" id="wFrom" aria-label="From date"><span class="arr">→</span><input type="date" id="wTo" aria-label="To date">
       </span>
       <label class="check" id="onlyConfWrap" hidden><input type="checkbox" id="onlyConf" checked> Only confirmed</label>
+      <button class="btn" id="resendConf" hidden data-tip="Send the WhatsApp confirmation again to waiting orders from an order number onward. Use it when the first messages never arrived. WhatsApp orders, confirmed and cancelled ones are skipped.">Resend confirmations</button>
       <button class="btn" id="pushSel" disabled>Push selected</button>
       <button class="btn primary" id="pushAll">Push all ready</button>
     </div>
@@ -1235,6 +1236,21 @@ $("#dateSeg").onclick = (e) => {
   if (dateMode === "custom" && !$("#wFrom").value && !$("#wTo").value) { const t = pkDay(new Date().toISOString()); $("#wFrom").value = addDays(t, -6); $("#wTo").value = t; }
   $("#all").checked = false; renderWaiting();
 };
+$("#resendConf").onclick = async () => {
+  const from = prompt("Resend the WhatsApp confirmation to waiting orders from this order number onward (for example 52057). WhatsApp orders and orders that already replied are skipped:", "52057");
+  if (!from) return; const n = Number(String(from).replace(/\D/g, "")); if (!n) return log("Enter an order number like 52057.");
+  const list = state.pending.filter(o => (Number(String(o.name).replace(/\D/g, "")) || 0) >= n && o.wa !== "confirmed" && o.wa !== "cancelled").sort((a, b) => (Number(String(a.name).replace(/\D/g, "")) || 0) - (Number(String(b.name).replace(/\D/g, "")) || 0));
+  if (!list.length) return log("No waiting orders from #" + n + " onward need a confirmation.");
+  if (!confirm("Send the WhatsApp confirmation again to " + list.length + " waiting order" + (list.length === 1 ? "" : "s") + " (#" + n + " onward)? Orders placed on WhatsApp are skipped automatically.")) return;
+  $("#resendConf").disabled = true; let ok = 0, skip = 0, fail = 0;
+  for (const o of list) {
+    log("Resending confirmations… " + (ok + skip + fail) + " of " + list.length);
+    try { const d = await post({ action: "wa_confirm_send", id: o.id, force: true }); if (d.sent) { ok++; o.wa = "sent"; } else skip++; }
+    catch (e) { fail++; log("Couldn't send to " + o.name + ": " + e.message); if (fail >= 3) break; }
+  }
+  $("#resendConf").disabled = false; renderWaiting();
+  log(ok + " confirmation" + (ok === 1 ? "" : "s") + " sent" + (skip ? ", " + skip + " skipped (WhatsApp orders or already answered)" : "") + (fail ? ", " + fail + " failed" : "") + ".");
+};
 $("#wFrom").onchange = $("#wTo").onchange = () => { $("#all").checked = false; renderWaiting(); };
 const cityVal = (code, name) => code ? code + "|" + name : "";
 function cityOptions(sel) {
@@ -1254,7 +1270,7 @@ function storeBadge(o) {
 function waChip(o) {
   if (o.wa === "confirmed") return '<span class="chip ok">Confirmed</span>';
   if (o.wa === "cancelled") return '<span class="chip bad">Customer cancelled</span>';
-  if (o.wa === "sent") return '<span class="chip wait">Awaiting reply</span>';
+  if (o.wa === "sent") return '<span class="chip wait">Awaiting reply</span> <button class="link" data-resend="' + esc(o.id) + '" data-tip="The first message may not have arrived. Send it again.">Resend</button>';
   return state.waOn ? '<button class="link" data-conf="' + esc(o.id) + '">Send confirmation</button>' : "";
 }
 function summaryHtml(p, readyN, cod) {
@@ -1275,7 +1291,7 @@ function dupTail(p) {
 }
 function renderWaiting() {
   setSwitch($("#auto"), state.auto); setSwitch($("#waSw"), state.waOn);
-  $("#onlyConfWrap").hidden = !state.waOn;
+  $("#onlyConfWrap").hidden = !state.waOn; $("#resendConf").hidden = !state.waOn;
   const p = visiblePending(); const dups = dupMap();
   const readyN = p.filter(ready).length;
   const cod = p.reduce((s, o) => s + (o.cod || 0), 0);
@@ -1305,6 +1321,11 @@ function renderWaiting() {
   document.querySelectorAll("[data-conf]").forEach(b => b.onclick = async () => {
     b.disabled = true; b.textContent = "Sending…";
     try { const d = await post({ action: "wa_confirm_send", id: b.dataset.conf }); b.outerHTML = d.sent ? '<span class="chip wait">Awaiting reply</span>' : '<span class="chip bad">' + esc(d.error || d.skipped || "Not sent") + "</span>"; }
+    catch (e) { b.textContent = "Couldn't send: " + e.message; }
+  });
+  document.querySelectorAll("[data-resend]").forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = "Sending…";
+    try { const d = await post({ action: "wa_confirm_send", id: b.dataset.resend, force: true }); b.outerHTML = d.sent ? '<span class="chip ok">Sent again</span>' : '<span class="chip bad">' + esc(d.error || d.skipped || "Not sent") + "</span>"; }
     catch (e) { b.textContent = "Couldn't send: " + e.message; }
   });
   document.querySelectorAll("[data-cancel]").forEach(b => b.onclick = async () => {

@@ -165,7 +165,7 @@ export default async function handler(req, res) {
     }
     if (body.action === "wa_confirm_send") {
       const { store, gid } = splitId(body.id);
-      return res.status(200).json(await withStore(store, async () => notify.sendConfirm(await shop.getOrder(gid))));
+      return res.status(200).json(await withStore(store, async () => notify.sendConfirm(await shop.getOrder(gid), { force: body.force === true })));
     }
     if (body.action === "wa_tracking_run") {
       return res.status(200).json(await notify.runTracking({ dryRun: !!body.dryRun }));
