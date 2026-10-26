@@ -338,7 +338,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
         <option value="all">All stores</option><option value="house">Chitral House</option><option value="herbs">Chitral Herbs</option>
       </select>
       <div class="seg" id="dateSeg" role="group" aria-label="Order date">
-        <button type="button" data-d="all" class="on">All time</button><button type="button" data-d="today">Today</button><button type="button" data-d="7d">7 days</button><button type="button" data-d="30d">30 days</button><button type="button" data-d="custom">Custom</button>
+        <button type="button" data-d="all" class="on">All time</button><button type="button" data-d="today">Today</button><button type="button" data-d="yest">Yesterday</button><button type="button" data-d="dby" id="dbyBtn">Day before</button><button type="button" data-d="custom">Custom</button>
       </div>
       <span class="daterange" id="dateCustom" hidden>
         <input type="date" id="wFrom" aria-label="From date"><span class="arr">→</span><input type="date" id="wTo" aria-label="To date">
@@ -1219,8 +1219,8 @@ let dateMode = "all";
 function dateRange() {
   const m = dateMode, today = pkDay(new Date().toISOString());
   if (m === "today") return [today, today];
-  if (m === "7d") return [addDays(today, -6), today];
-  if (m === "30d") return [addDays(today, -29), today];
+  if (m === "yest") return [addDays(today, -1), addDays(today, -1)];
+  if (m === "dby") return [addDays(today, -2), addDays(today, -2)];
   if (m === "custom") return [$("#wFrom").value || "", $("#wTo").value || ""];
   return ["", ""];
 }
@@ -1228,6 +1228,7 @@ function visiblePending() {
   const [a, b] = dateRange();
   return state.pending.filter(o => (storeFilter === "all" || o.store === storeFilter) && (!a || (o.createdAt && pkDay(o.createdAt) >= a)) && (!b || (o.createdAt && pkDay(o.createdAt) <= b)));
 }
+{ const t = pkDay(new Date().toISOString()), x = addDays(t, -2); $("#dbyBtn").textContent = new Date(x + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }); $("#dbyBtn").setAttribute("data-tip", "Orders placed the day before yesterday"); }
 $("#dateSeg").onclick = (e) => {
   const b = e.target.closest && e.target.closest("button[data-d]"); if (!b) return;
   dateMode = b.dataset.d;
