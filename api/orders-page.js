@@ -104,6 +104,8 @@ tr.dup td{background:var(--rust-soft)}
 tr.dup td:first-child{box-shadow:inset 3px 0 0 var(--rust)}
 .dupnote{color:var(--rust)!important;font-weight:600}
 #waPanel.open{display:block;color:var(--ink)}
+#ctrlHold:not(:empty){display:flex;flex-direction:column;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+#ctrlHold .ctrl{justify-content:space-between;width:100%}
 #waPanel h3{margin:0 0 4px;font-size:15px}
 #waPanel p{margin:0 0 12px;color:var(--mute);font-size:13px}
 #waPanel .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
@@ -258,22 +260,31 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   .brand{margin-right:auto;flex:none}
 }
 @media (max-width:720px){
-  main{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+  html,body{overflow-x:hidden}
+  main{padding-bottom:calc(40px + env(safe-area-inset-bottom));overflow-x:hidden}
   input,select,textarea{font-size:16px}
   .btn{padding:9px 14px;min-height:40px}
   .toolbar{gap:8px}
   table{min-width:0}
-  .scroll table:not(.t-sm) thead{display:none}
-  .scroll table:not(.t-sm),.scroll table:not(.t-sm) tbody{display:block;width:100%}
-  .scroll table:not(.t-sm) tr{display:block;padding:10px 12px;border-bottom:8px solid var(--bg)}
-  .scroll table:not(.t-sm) td{display:block;position:relative;border:0;padding:4px 0 4px 92px;width:100%;text-align:left;min-height:26px}
-  .scroll table:not(.t-sm) td.num{text-align:left}
-  .scroll table:not(.t-sm) td::before{content:attr(data-label);position:absolute;left:0;top:6px;width:84px;color:var(--mute);font-size:12px;font-weight:600}
-  .scroll table:not(.t-sm) td[data-label=""]::before,.scroll table:not(.t-sm) td:not([data-label])::before{display:none}
-  .scroll table:not(.t-sm) td.empty{padding:16px 0;text-align:center}
-  .scroll table:not(.t-sm) td[data-label=""]{padding-left:0}
-  .scroll table:not(.t-sm) tr.dup td:first-child{box-shadow:none}
-  .scroll table:not(.t-sm) tr.dup{box-shadow:inset 3px 0 0 var(--rust)}
+  /* wide tables become cards (set by labelTables) */
+  table.cardt{min-width:0}
+  table.cardt thead,table.cardt tr.hrow{display:none!important}
+  table.cardt,table.cardt tbody{display:block;width:100%}
+  table.cardt tr{display:block;padding:10px 12px;border-bottom:8px solid var(--bg)}
+  table.cardt td{display:block;border:0;padding:5px 0;width:100%;text-align:left;font-size:14px}
+  table.cardt td.num{text-align:left}
+  table.cardt td::before{content:attr(data-label);display:block;color:var(--mute);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px}
+  table.cardt td[data-label=""]::before,table.cardt td:not([data-label])::before{display:none}
+  table.cardt td.empty{padding:16px 0;text-align:center}
+  table.cardt tr.dup td:first-child{box-shadow:none}
+  table.cardt tr.dup{box-shadow:inset 3px 0 0 var(--rust)}
+  /* number tables (group results, city table): name on top, figures in two columns */
+  table.cardn tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}
+  table.cardn td:first-child{grid-column:1/-1;font-size:15px}
+  table.cardn td{padding:3px 0}
+  table.cardn td:first-child::before{display:none}
+  table.cardn td.n,table.cardn td.num{text-align:left}
+  .sheet,.tbox{overflow:hidden}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .stalerts{display:flex;flex-wrap:wrap;gap:8px}
@@ -315,6 +326,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     </button>
   </div>
   <div id="waPanel" role="dialog" aria-label="WhatsApp setup">
+    <div id="ctrlHold"></div>
     <h3>WhatsApp setup</h3>
     <p>Only needed when setting up or changing the WhatsApp number.</p>
     <div class="row"><button class="btn" id="waStatus">Check number status</button><button class="btn" id="waTpl">Check templates</button></div>
@@ -781,7 +793,7 @@ function prChart(series, field, title, note, pos, fmt) {
   fmt = fmt || ((v) => prN(Math.round(v)));
   if (!series || series.length < 2) return "";
   field = field || "net";
-  const W = 760, H = 230, L = 62, R = 10, T = 18, B = 52, pw = W - L - R, ph = H - T - B;
+  const W = chartW(), H = 230, L = 62, R = 10, T = 18, B = 52, pw = W - L - R, ph = H - T - B;
   const vals = series.map((x) => x[field]);
   const hi = Math.max(0, Math.max.apply(null, vals)), lo = Math.min(0, Math.min.apply(null, vals));
   const span = hi - lo || 1, y = (v) => T + ph * (hi - v) / span;
@@ -1863,16 +1875,18 @@ function volumeChart(cities) {
     '<div class="key"><span><i class="c-del"></i>Delivered</span><span><i class="c-ret"></i>Returned</span><span><i class="c-pro"></i>In process</span></div></div>';
 }
 
+// Chart width follows the screen so numbers stay readable on a phone.
+function chartW() { const m = document.querySelector("main"); return Math.max(300, Math.min(760, ((m && m.clientWidth) || 760) - 70)); }
 function niceMax(m) { if (m <= 5) return 5; const p = Math.pow(10, Math.floor(Math.log10(m))); const f = m / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
 function dayBars(title, cap, days, series) {
   if (!days.length) return "";
-  const W = 760, H = 230, L = 34, B = 34, T = 8, R = 6;
+  const W = chartW(), H = 230, L = 34, B = 34, T = 8, R = 6;
   const max = niceMax(Math.max(1, ...days.map(d => Math.max(...series.map(s => d[s.k] || 0)))));
   const pw = (W - L - R) / days.length, bw = Math.max(1.5, Math.min(26, pw * 0.8 / series.length));
   const y = v => T + (H - T - B) * (1 - v / max);
   let g = "";
   for (let i = 0; i <= 4; i++) { const v = max * i / 4; g += '<line class="g" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + Math.round(v) + "</text>"; }
-  const step = Math.max(1, Math.ceil(days.length / 14));
+  const step = Math.max(1, Math.ceil(days.length / Math.max(3, Math.floor((W - L) / 52))));
   let bars = "", lab = "";
   days.forEach((d, i) => {
     const x0 = L + i * pw + (pw - bw * series.length) / 2;
@@ -1889,13 +1903,13 @@ function dayBars(title, cap, days, series) {
 
 function ratioBars(days) {
   if (!days || !days.length) return "";
-  const W = 760, H = 250, L = 38, B = 34, R = 6;
+  const W = chartW(), H = 250, L = 38, B = 34, R = 6;
   const pw = (W - L - R) / days.length, bw = Math.max(3, Math.min(30, pw * 0.38));
   const vert = bw < 20, T = vert ? 36 : 18; // many days: the numbers are written upright above each bar
   const y = v => T + (H - T - B) * (1 - v / 100);
   let g = "", bars = "", lab = "";
   [0, 25, 50, 75, 100].forEach(v => { g += '<line class="g" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + "%</text>"; });
-  const step = Math.max(1, Math.ceil(days.length / 14)), showVal = true;
+  const step = Math.max(1, Math.ceil(days.length / Math.max(3, Math.floor((W - L) / 52)))), showVal = true;
   days.forEach((d, i) => {
     const x0 = L + i * pw + (pw - bw * 2) / 2;
     const dt = new Date(d.day + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
@@ -2076,14 +2090,30 @@ function applyTips(root) {
     .observe(document.body, { childList: true, subtree: true });
 })();
 
+/* ---------- phone: the three switches move into the settings panel ---------- */
+const smallScreen = window.matchMedia("(max-width:900px)");
+function placeCtrls() {
+  const hold = $("#ctrlHold"), bar = document.querySelector("header.top .bar"), anchor = $("#installBtn");
+  ["waSw", "auto", "webSw"].forEach(id => { const el = $("#" + id); if (smallScreen.matches) hold.appendChild(el); else bar.insertBefore(el, anchor); });
+}
+placeCtrls();
+if (smallScreen.addEventListener) smallScreen.addEventListener("change", placeCtrls);
+
 /* ---------- phone: label table cells so rows can show as cards ---------- */
 let labelQueued = false;
 function labelTables() {
   labelQueued = false;
-  document.querySelectorAll(".scroll table:not(.t-sm)").forEach(t => {
-    const heads = [...t.querySelectorAll("thead th")].map(h => (h.textContent || "").trim());
-    if (!heads.length) return;
-    t.querySelectorAll("tbody tr").forEach(r => {
+  document.querySelectorAll("main table").forEach(t => {
+    let heads = [...t.querySelectorAll("thead th")].map(h => (h.textContent || "").trim());
+    let headRow = null;
+    if (!heads.length) { headRow = [...t.querySelectorAll("tr")].find(r => r.children.length && [...r.children].every(c => c.tagName === "TH")) || null; if (headRow) heads = [...headRow.children].map(h => (h.textContent || "").trim()); }
+    if (heads.length < 3) return;
+    t.classList.add("cardt");
+    if (headRow) headRow.classList.add("hrow");
+    const first = [...t.querySelectorAll("tr")].find(r => r !== headRow && r.querySelector("td"));
+    if (first && first.children.length > 3) { const nn = [...first.children].slice(1).filter(c => c.classList.contains("n") || c.classList.contains("num")).length; t.classList.toggle("cardn", nn >= (first.children.length - 1) * 0.6); }
+    t.querySelectorAll("tr").forEach(r => {
+      if (r === headRow || !r.querySelector("td")) return;
       if (r.dataset.lab === "1" && r.dataset.labn === String(heads.length)) return;
       [...r.children].forEach((c, i) => { if (c.tagName === "TD" && !c.hasAttribute("colspan")) c.setAttribute("data-label", heads[i] || ""); });
       r.dataset.lab = "1"; r.dataset.labn = String(heads.length);
