@@ -407,6 +407,15 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   .field{flex-direction:column;align-items:stretch;gap:var(--m-s1);font-size:var(--m-t0);font-weight:700;color:var(--mute);flex:1 1 140px;min-width:0}
   .field input,.field select{width:100%;border-radius:var(--m-r1);font-size:16px;font-weight:500;color:var(--ink)}
   .check{min-height:var(--m-tap)}
+  /* iOS gives date inputs a wide intrinsic width: make them shrink to their cell */
+  input[type=date]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;max-width:100%;text-align:left;background:var(--surface);margin:0}
+  input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.3em}
+  input[type=date]::-webkit-calendar-picker-indicator{margin-left:auto}
+  .field,.adf,.daterange,.toolbar>*{min-width:0}
+  .field>input,.field>select,.adf>input{min-width:0;max-width:100%}
+  .toolbar>.field,.toolbar>.adf{flex:1 1 calc(50% - var(--m-s2))}
+  .toolbar>.btn{flex:1 1 auto}
+  .daterange input[type=date]{width:auto;flex:1 1 0;min-width:0;background:transparent}
   .field:has(input[type=checkbox]){flex-direction:row;align-items:center;gap:var(--m-s2);min-height:var(--m-tap);flex:1 0 100%;font-size:var(--m-t1);font-weight:600;color:var(--ink)}
   .field input[type=checkbox]{width:22px;height:22px;min-height:0;flex:none}
   .link{min-height:var(--m-tap);display:inline-flex;align-items:center;padding:0 var(--m-s3);font-size:var(--m-t1)}
@@ -530,7 +539,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   .dcard .dl{font-size:var(--m-t0);gap:var(--m-s2);padding:var(--m-s1) 0;flex-wrap:nowrap;align-items:baseline}.dcard .dl span{min-width:0}.dcard .dl b{flex:none}
   .dcard .dl:first-of-type{margin-top:var(--m-s2)}
   #dGrid .dcard:nth-child(1),#dGrid .dcard:nth-child(2){grid-column:auto}
-  #p-dashboard .toolbar{display:grid;grid-template-columns:1fr 1fr;gap:var(--m-s2)}
+  #p-dashboard .toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--m-s2)}
   #p-dashboard .toolbar .seg,#p-dashboard .toolbar .sub,#p-dashboard #dRun{grid-column:1/-1}
   #p-dashboard #dMeta{font-size:var(--m-t0);color:var(--mute)}
 
@@ -592,7 +601,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   #setupForm{flex-direction:column}
   #setupForm .btn{width:100%}
   #setupPin{text-align:center;font-size:22px!important;letter-spacing:.3em;border-radius:var(--m-r1)!important}
-  #setupBody .toolbar{display:grid;grid-template-columns:1fr 1fr;gap:var(--m-s2);align-items:end!important}
+  #setupBody .toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--m-s2);align-items:end!important}
   #setupBody .toolbar .adf{font-weight:700;font-size:var(--m-t0)}
   #setupBody .toolbar .adf input{width:100%;font-size:16px;font-weight:500;color:var(--ink)}
   #setupBody .toolbar #prRun,#setupBody .toolbar #pfMeta{grid-column:1/-1}
