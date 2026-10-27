@@ -543,6 +543,30 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   #p-dashboard .toolbar .seg,#p-dashboard .toolbar .sub,#p-dashboard #dRun{grid-column:1/-1}
   #p-dashboard #dMeta{font-size:var(--m-t0);color:var(--mute)}
 
+  /* marketing: compact customer / order cards (was 760px wide with right-aligned cells) */
+  #mkTable{min-width:0!important;width:100%}
+  #mkTable tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px var(--m-s2);padding:var(--m-s3) var(--m-s4);margin-bottom:var(--m-s2)}
+  #mkTable td,#mkTable td.n{grid-column:1/-1;padding:2px 0;text-align:left!important;white-space:normal!important;min-width:0;overflow-wrap:anywhere}
+  #mkTable td::before{margin-bottom:0}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(1){font-size:var(--m-t0);font-weight:800;color:var(--mute)}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(1)::before{display:inline;content:"#"}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(2){font-size:var(--m-t2)}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(2)::before,#mkTable tr:has(>td:nth-child(9)) td:nth-child(3)::before,#mkTable tr:has(>td:nth-child(9)) td:nth-child(9)::before{display:none}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(3){color:var(--mute);padding-bottom:var(--m-s2)}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(n+4):nth-child(-n+6){grid-column:auto;background:var(--soft);border-radius:var(--m-r1);padding:var(--m-s2) var(--m-s3);font-weight:800;font-size:var(--m-t1)}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(n+4):nth-child(-n+6)::before{font-size:var(--m-t0);font-weight:700;letter-spacing:0;text-transform:none}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(7){display:flex;gap:var(--m-s2);align-items:baseline;padding-top:var(--m-s2)}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(7)::before{display:inline}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(8){color:var(--mute);font-size:var(--m-t0);line-height:1.4}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(8)::before{margin-bottom:2px}
+  #mkTable tr:has(>td:nth-child(9)) td:nth-child(9){padding-top:var(--m-s1)}
+  #mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(1){grid-column:1/3}
+  #mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(5){grid-column:3;grid-row:1;font-weight:800;font-size:var(--m-t2);text-align:right!important}
+  #mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(1)::before,#mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(5)::before{display:none}
+  #mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(2){font-weight:700}
+  #mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(2)::before,#mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(3)::before,#mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(6)::before{display:none}
+  #mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(3){color:var(--mute)}
+  #mkTable tr:has(>td:nth-child(6):last-child) td:nth-child(6){color:var(--mute);font-size:var(--m-t0)}
   /* cards & charts */
   .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--m-s3)}
   .card{border-radius:var(--m-r2);box-shadow:var(--m-sh1);padding:var(--m-s3) var(--m-s4)}
