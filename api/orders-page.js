@@ -1865,19 +1865,22 @@ function dayBars(title, cap, days, series) {
 
 function ratioBars(days) {
   if (!days || !days.length) return "";
-  const W = 760, H = 250, L = 38, B = 34, T = 18, R = 6;
+  const W = 760, H = 250, L = 38, B = 34, R = 6;
   const pw = (W - L - R) / days.length, bw = Math.max(3, Math.min(30, pw * 0.38));
+  const vert = bw < 20, T = vert ? 36 : 18; // many days: the numbers are written upright above each bar
   const y = v => T + (H - T - B) * (1 - v / 100);
   let g = "", bars = "", lab = "";
   [0, 25, 50, 75, 100].forEach(v => { g += '<line class="g" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + "%</text>"; });
-  const step = Math.max(1, Math.ceil(days.length / 14)), showVal = days.length <= 10;
+  const step = Math.max(1, Math.ceil(days.length / 14)), showVal = true;
   days.forEach((d, i) => {
     const x0 = L + i * pw + (pw - bw * 2) / 2;
     const dt = new Date(d.day + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
     [[d.ratio, "f-del", 0], [d.localRatio, "f-bk", 1]].forEach(([v, cls, j]) => {
       if (v == null) return;
       bars += '<rect class="' + cls + '" x="' + (x0 + j * bw).toFixed(1) + '" y="' + y(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + ((H - T - B) * v / 100).toFixed(1) + '" rx="2"></rect>';
-      if (showVal) bars += '<text x="' + (x0 + j * bw + bw / 2).toFixed(1) + '" y="' + (y(v) - 4).toFixed(1) + '" text-anchor="middle" style="font-size:10px">' + Math.round(v) + "</text>";
+      if (showVal) { const tx = x0 + j * bw + bw / 2, ty = y(v) - 4;
+        bars += vert ? '<text transform="translate(' + (tx + 3).toFixed(1) + " " + ty.toFixed(1) + ') rotate(-90)" text-anchor="start" style="font-size:' + (bw < 7 ? 8 : 9) + 'px">' + Math.round(v) + "</text>"
+          : '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle" style="font-size:10px">' + Math.round(v) + "</text>"; }
     });
     const tip = dt + " — Overall: " + (d.ratio == null ? "–" : d.ratio + "%") + " (" + d.delivered + " of " + d.counted + ") · ISB/RWP: " + (d.localRatio == null ? "no orders" : d.localRatio + "% (" + d.riderDelivered + " of " + d.riderTotal + ")");
     bars += '<rect x="' + (L + i * pw).toFixed(1) + '" y="' + T + '" width="' + pw.toFixed(1) + '" height="' + (H - T - B) + '" fill="transparent" data-tip="' + esc(tip) + '"></rect>';
