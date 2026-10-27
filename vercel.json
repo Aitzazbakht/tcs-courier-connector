@@ -23,6 +23,9 @@
     },
     "api/cron-stock.js": {
       "maxDuration": 60
+    },
+    "api/pwa.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
@@ -33,6 +36,18 @@
     {
       "source": "/g.js",
       "destination": "/api/guard?js=1"
+    },
+    {
+      "source": "/orders/:key/manifest.webmanifest",
+      "destination": "/api/pwa?f=manifest&key=:key"
+    },
+    {
+      "source": "/orders/:key/sw.js",
+      "destination": "/api/pwa?f=sw&key=:key"
+    },
+    {
+      "source": "/pwa-icon-:size.png",
+      "destination": "/api/pwa?f=icon&s=:size"
     },
     {
       "source": "/orders/:key",

@@ -15,6 +15,10 @@ const PAGE = String.raw`<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#15211D">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Orders"><meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="/pwa-icon-180.png"><link rel="icon" type="image/png" href="/pwa-icon-192.png">
 <title>TCS Orders</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -32,6 +36,7 @@ const PAGE = String.raw`<!doctype html>
   --house:#8CC4EA; --house-soft:#1A2B37; --herbs:#E5BE7A; --herbs-soft:#33291A;
 }}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
 button,input,select{font:inherit;color:inherit}
@@ -252,6 +257,24 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   .scrim.on{display:block;position:fixed;inset:56px 0 0 0;background:rgba(0,0,0,.45);z-index:35}
   .brand{margin-right:auto;flex:none}
 }
+@media (max-width:720px){
+  main{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+  input,select,textarea{font-size:16px}
+  .btn{padding:9px 14px;min-height:40px}
+  .toolbar{gap:8px}
+  table{min-width:0}
+  .scroll table:not(.t-sm) thead{display:none}
+  .scroll table:not(.t-sm),.scroll table:not(.t-sm) tbody{display:block;width:100%}
+  .scroll table:not(.t-sm) tr{display:block;padding:10px 12px;border-bottom:8px solid var(--bg)}
+  .scroll table:not(.t-sm) td{display:block;position:relative;border:0;padding:4px 0 4px 92px;width:100%;text-align:left;min-height:26px}
+  .scroll table:not(.t-sm) td.num{text-align:left}
+  .scroll table:not(.t-sm) td::before{content:attr(data-label);position:absolute;left:0;top:6px;width:84px;color:var(--mute);font-size:12px;font-weight:600}
+  .scroll table:not(.t-sm) td[data-label=""]::before,.scroll table:not(.t-sm) td:not([data-label])::before{display:none}
+  .scroll table:not(.t-sm) td.empty{padding:16px 0;text-align:center}
+  .scroll table:not(.t-sm) td[data-label=""]{padding-left:0}
+  .scroll table:not(.t-sm) tr.dup td:first-child{box-shadow:none}
+  .scroll table:not(.t-sm) tr.dup{box-shadow:inset 3px 0 0 var(--rust)}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .stalerts{display:flex;flex-wrap:wrap;gap:8px}
 .stchip{font-size:12px;padding:6px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);white-space:nowrap}
@@ -285,6 +308,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
     <button class="ctrl" id="waSw" role="switch" aria-checked="false">WhatsApp messages <span class="switch"></span></button>
     <button class="ctrl" id="auto" role="switch" aria-checked="false">Auto-book <span class="switch"></span></button>
     <button class="ctrl" id="webSw" role="switch" aria-checked="true">Website blocking <span class="switch"></span></button>
+    <button class="btn" id="installBtn" hidden>Install app</button>
     <button class="btn icon-btn" id="waOpen" aria-expanded="false" aria-controls="waPanel" aria-label="WhatsApp setup" data-tip="WhatsApp setup"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     <button class="btn icon-btn" id="refresh" aria-label="Refresh">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
@@ -2051,6 +2075,32 @@ function applyTips(root) {
   new MutationObserver(() => { if (q) return; q = true; requestAnimationFrame(() => { q = false; applyTips(document); }); })
     .observe(document.body, { childList: true, subtree: true });
 })();
+
+/* ---------- phone: label table cells so rows can show as cards ---------- */
+let labelQueued = false;
+function labelTables() {
+  labelQueued = false;
+  document.querySelectorAll(".scroll table:not(.t-sm)").forEach(t => {
+    const heads = [...t.querySelectorAll("thead th")].map(h => (h.textContent || "").trim());
+    if (!heads.length) return;
+    t.querySelectorAll("tbody tr").forEach(r => {
+      if (r.dataset.lab === "1" && r.dataset.labn === String(heads.length)) return;
+      [...r.children].forEach((c, i) => { if (c.tagName === "TD" && !c.hasAttribute("colspan")) c.setAttribute("data-label", heads[i] || ""); });
+      r.dataset.lab = "1"; r.dataset.labn = String(heads.length);
+    });
+  });
+}
+new MutationObserver(() => { if (!labelQueued) { labelQueued = true; requestAnimationFrame(labelTables); } }).observe(document.querySelector("main"), { childList: true, subtree: true });
+
+/* ---------- installable app (home screen icon on Android and iPhone) ---------- */
+try {
+  const ml = document.createElement("link"); ml.rel = "manifest"; ml.href = "/orders/" + encodeURIComponent(KEY) + "/manifest.webmanifest"; document.head.appendChild(ml);
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/orders/" + encodeURIComponent(KEY) + "/sw.js", { scope: "/orders/" + encodeURIComponent(KEY) }).catch(() => {});
+  let installEv = null;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEv = e; $("#installBtn").hidden = false; });
+  $("#installBtn").onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) {} installEv = null; $("#installBtn").hidden = true; };
+  window.addEventListener("appinstalled", () => { $("#installBtn").hidden = true; });
+} catch (e) {}
 
 /* ---------- load ---------- */
 async function load() {
