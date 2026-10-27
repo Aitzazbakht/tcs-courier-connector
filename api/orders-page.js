@@ -290,7 +290,28 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   table.cardn td.n,table.cardn td.num{text-align:left}
   .sheet,.tbox{overflow:hidden}
 }
-#bnav,#moreSheet{display:none}
+#bnav,#moreSheet,#p-menu{display:none}
+@media (max-width:900px){
+  #p-menu:not([hidden]){display:block}
+  .mhello{padding:6px 4px 16px}
+  .mh1{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+  .mh2{color:var(--mute);font-size:14px;margin-top:4px}
+  #menuGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .mtile{display:flex;flex-direction:column;justify-content:space-between;gap:18px;min-height:132px;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:22px;padding:16px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent;transition:transform .12s ease}
+  .mtile:active{transform:scale(.97)}
+  .mtile .mi{width:44px;height:44px;border-radius:14px;background:var(--pine-soft);color:var(--pine);display:flex;align-items:center;justify-content:center}
+  .mtile .mi svg{width:23px;height:23px}
+  .mtile .ml{font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+  .mtile .ms{font-size:12.5px;color:var(--mute);margin-top:3px;font-weight:500}
+  .mtile .mc{position:absolute;top:14px;right:14px;min-width:26px;height:26px;border-radius:13px;background:var(--soft);color:var(--ink);font-size:13px;font-weight:800;line-height:26px;text-align:center;padding:0 8px}
+  .mtile .mc:empty{display:none}
+  .mtile .mc.alert{background:var(--rust);color:#fff}
+  .mtile.wide{grid-column:1/-1;min-height:0;flex-direction:row;align-items:center;justify-content:flex-start;gap:14px;padding:16px}
+  .mtile.hero{background:#15211D;border-color:#15211D;color:#fff}
+  .mtile.hero .mi{background:#6FC39A;color:#0D1A14}
+  .mtile.hero .ms{color:#9FB0A9}
+  .mtile.hero .mc{background:#2A3B35;color:#fff}
+}
 @media (max-width:900px){
   /* phone / small tablet: app-style layout with a bottom menu instead of the sidebar */
   .menu-btn,.btn.menu-btn,.side,.scrim,.scrim.on{display:none!important}
@@ -387,6 +408,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
 <div class="scrim" id="scrim"></div>
 <div class="content">
 <main class="wrap">
+  <section class="panel" id="p-menu" hidden><div class="mhello"><div class="mh1" id="mHi">Menu</div><div class="mh2" id="mDate"></div></div><div id="menuGrid"></div></section>
   <div id="log" aria-live="polite"></div>
 
   <section class="panel" id="p-dashboard" hidden>
@@ -589,7 +611,6 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
 </main>
 </div></div>
 <nav id="bnav" aria-label="Main menu"></nav>
-<div id="moreSheet" hidden><div class="msback" id="msBack"></div><div class="mssheet" role="dialog" aria-label="More pages"><div class="mshead">More</div><div id="moreList"></div></div></div>
 <div id="tip" role="tooltip"></div>
 
 <script>
@@ -1199,8 +1220,7 @@ function stInit() {
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
   $("#side").classList.remove("open"); $("#scrim").classList.remove("on");
-  document.querySelectorAll("#bnav .btab,#moreList button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
-  { const mb = document.querySelector("#bMore"); if (mb) mb.setAttribute("aria-selected", String(!BN_MAIN.some(m => m[0] === name))); }
+  document.querySelectorAll("#bnav .btab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
   document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "p-" + name);
   try { history.replaceState(null, "", "#" + name); } catch (e) {}
   if (name === "dashboard") ensureDash();
@@ -1214,27 +1234,30 @@ function showTab(name) {
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
 /* ---------- phone: bottom menu (Dashboard, Waiting, Problems, Carts, More) ---------- */
-const BN_MAIN = [["dashboard", "Home"], ["waiting", "Waiting"], ["problems", "Problems"], ["abandoned", "Carts"]];
+function smallMQ() { try { return window.matchMedia("(max-width:900px)").matches; } catch (e) { return false; } }
+const BN_MAIN = [["menu", "Menu"], ["dashboard", "Home"], ["waiting", "Waiting"], ["problems", "Problems"], ["abandoned", "Carts"]];
+const GRID_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>';
+const SUBS = { dashboard: "Overview of everything", waiting: "Orders to confirm and book", problems: "Parcels needing attention", abandoned: "Recover lost checkouts", marketing: "10% offer flow", blocked: "Blocked orders", delivery: "TCS delivered / returned", total: "Overall delivery ratio", stock: "Inventory levels", setup: "Connections and settings" };
 try {
   const tabs = [...document.querySelectorAll(".tab")];
   const info = (name) => { const t = tabs.find(x => x.dataset.tab === name); const sv = t && t.querySelector("svg"); const lb = t && t.querySelector(".tl"); const b = t && t.querySelector("b"); return { svg: sv ? sv.outerHTML : "", label: lb ? lb.textContent : name, cid: b ? b.id : "" }; };
-  $("#bnav").innerHTML = BN_MAIN.map(m => { const i = info(m[0]); return '<button class="btab" data-tab="' + m[0] + '" aria-selected="false">' + i.svg + "<span>" + m[1] + "</span>" + (i.cid ? '<i class="bb" data-src="' + i.cid + '"></i>' : "") + "</button>"; }).join("") +
-    '<button id="bMore" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg><span>More</span></button>';
-  $("#moreList").innerHTML = tabs.filter(t => !BN_MAIN.some(m => m[0] === t.dataset.tab)).map(t => { const i = info(t.dataset.tab); return '<button data-tab="' + t.dataset.tab + '" aria-selected="false">' + i.svg + "<span>" + esc(i.label) + "</span>" + (i.cid ? '<span class="cnt" data-src="' + i.cid + '"></span>' : "") + "</button>"; }).join("");
+  const iconOf = (n) => n === "menu" ? GRID_SVG : info(n).svg;
+  $("#bnav").innerHTML = BN_MAIN.map(m => { const i = info(m[0]); return '<button class="btab" data-tab="' + m[0] + '" aria-selected="false">' + iconOf(m[0]) + "<span>" + m[1] + "</span>" + (i.cid ? '<i class="bb" data-src="' + i.cid + '"></i>' : "") + "</button>"; }).join("");
+  $("#menuGrid").innerHTML = tabs.map(t => { const n = t.dataset.tab; const i = info(n); const cls = n === "dashboard" ? " wide hero" : n === "setup" ? " wide" : "";
+    return '<button class="mtile' + cls + '" data-tab="' + n + '"><span class="mi">' + i.svg + '</span><span><div class="ml">' + esc(i.label) + '</div><div class="ms">' + esc(SUBS[n] || "") + "</div></span>" + (i.cid ? '<span class="mc" data-src="' + i.cid + '"></span>' : "") + "</button>"; }).join("");
+  try { const h = new Date().getHours(); $("#mHi").textContent = (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + ", Usman"; $("#mDate").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }); } catch (e) {}
   const sync = () => document.querySelectorAll("[data-src]").forEach(e => { const src = document.querySelector("#" + e.dataset.src); const v = src ? src.textContent : ""; e.textContent = /^[0-9]/.test(v) ? v : ""; e.setAttribute("data-v", v);
-    if (e.classList.contains("bb")) { const tb = document.querySelector('.tab[data-tab="problems"]'); const isP = e.dataset.src === "cProblems"; e.classList.toggle("alert", !!(isP && tb && tb.classList.contains("alert"))); } });
+    if (e.classList.contains("bb") || e.classList.contains("mc")) { const tb = document.querySelector('.tab[data-tab="problems"]'); const isP = e.dataset.src === "cProblems"; e.classList.toggle("alert", !!(isP && tb && tb.classList.contains("alert"))); } });
   sync();
   if (typeof MutationObserver !== "undefined") new MutationObserver(sync).observe(document.querySelector("#side"), { childList: true, characterData: true, subtree: true, attributes: true });
-  const openMore = (o) => { $("#moreSheet").hidden = !o; };
-  $("#bMore").onclick = () => openMore(true); $("#msBack").onclick = () => openMore(false);
-  document.querySelectorAll("#bnav .btab,#moreList button").forEach(b => b.onclick = () => { showTab(b.dataset.tab); openMore(false); window.scrollTo(0, 0); });
+  document.querySelectorAll("#bnav .btab,.mtile").forEach(b => b.onclick = () => { showTab(b.dataset.tab); window.scrollTo(0, 0); });
 } catch (e) {}
 document.querySelectorAll("#dPreset button").forEach(b => b.onclick = () => { dashSet(Number(b.dataset.d)); runDash(); });
 $("#dRun").onclick = () => runDash(); $("#dFrom").onchange = () => { if ($("#dTo").value < $("#dFrom").value) $("#dTo").value = $("#dFrom").value; runDash(); }; $("#dTo").onchange = () => runDash();
 $("#brandHome").onclick = (e) => { e.preventDefault(); showTab("dashboard"); window.scrollTo(0, 0); };
 $("#menuBtn").onclick = () => { const o = $("#side").classList.toggle("open"); $("#scrim").classList.toggle("on", o); };
 $("#scrim").onclick = () => { $("#side").classList.remove("open"); $("#scrim").classList.remove("on"); };
-showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total", "stock", "setup"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "waiting");
+showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total", "stock", "setup", "menu"].includes(location.hash.slice(1)) && !(location.hash === "#menu" && !smallMQ()) ? location.hash.slice(1) : (smallMQ() ? "menu" : "waiting"));
 
 /* ---------- WhatsApp setup popover ---------- */
 $("#waOpen").onclick = (e) => { e.stopPropagation(); const open = $("#waPanel").classList.toggle("open"); $("#waOpen").setAttribute("aria-expanded", String(open)); };
