@@ -1025,6 +1025,15 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   html[data-theme="dark"]{color-scheme:dark}html[data-theme="light"]{color-scheme:light}
 }
 @media (max-width:900px) and (prefers-reduced-motion:reduce){#splash{animation:spOut .01s linear .7s forwards}.splogo{animation:none}}
+
+@media (max-width:900px){
+  .mribbon{left:calc(-1*var(--m-s4));right:auto;top:-8px;width:100vw;height:150px}
+  .mtop{justify-content:flex-end}
+  /* no accidental text selection, copy/look-up bubbles or link previews on touch */
+  html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  input,textarea,select,[contenteditable],#waOut{-webkit-user-select:text;user-select:text}
+  a,button,img,svg{-webkit-touch-callout:none}
+}
 </style></head>
 <body>
 <div id="splash" aria-hidden="true"><img id="spLogo" class="splogo" alt=""></div>
@@ -1072,7 +1081,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
 <div class="content">
 <main class="wrap">
   <div id="phead" hidden><button type="button" id="pBack" aria-label="Back to Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 id="pTitle"></h1><button type="button" id="pMore" aria-label="Page options" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button></div>
-  <section class="panel" id="p-menu" hidden><svg class="mribbon" viewBox="0 0 400 140" aria-hidden="true" focusable="false"><path d="M-10 70 C 60 10, 130 10, 200 60 S 330 120, 420 40" fill="none" stroke="currentColor" stroke-width="46" stroke-linecap="round"/></svg><div class="mtop"><img class="mlogo" id="mLogo" alt="Chitral House"><button type="button" class="mavatar" id="mSet" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div><div class="mhello"><div class="mh1" id="mHi">Menu</div><div class="mh2" id="mDate"></div></div><div id="menuGrid"></div><div class="msec"><h2>Recent activity</h2><button type="button" class="mall" id="mAll">See all</button></div><div id="mRecent"></div></section>
+  <section class="panel" id="p-menu" hidden><svg class="mribbon" viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><path d="M-40 92 C 50 22, 150 22, 220 72 S 360 132, 450 52" fill="none" stroke="currentColor" stroke-width="46" stroke-linecap="round"/></svg><div class="mtop"><button type="button" class="mavatar" id="mSet" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div><div class="mhello"><div class="mh1" id="mHi">Menu</div><div class="mh2" id="mDate"></div></div><div id="menuGrid"></div><div class="msec"><h2>Recent activity</h2><button type="button" class="mall" id="mAll">See all</button></div><div id="mRecent"></div></section>
   <div id="log" aria-live="polite"></div>
 
   <section class="panel" id="p-dashboard" hidden>
@@ -1924,7 +1933,7 @@ try {
   $("#menuGrid").innerHTML = tabs.map(t => { const n = t.dataset.tab; const i = info(n); const cls = (n === "dashboard" ? " wide hero mt-dark" : n === "setup" ? " wide mt-white" : " " + (MT[n] || "mt-white"));
     return '<button class="mtile' + cls + '" data-tab="' + n + '"><span class="mi">' + i.svg + '</span><span><div class="ml">' + esc(i.label) + '</div><div class="ms">' + esc(SUBS[n] || "") + "</div></span>" + (i.cid ? '<span class="mc" data-src="' + i.cid + '"></span>' : "") + "</button>"; }).join("");
   $("#mRecent").innerHTML = RECENT.map(r => { const i = info(r[0]); return '<button type="button" class="mrow" data-tab="' + r[0] + '"><span class="mri">' + i.svg + '</span><span class="mrt"><b data-src="' + i.cid + '"></b> ' + esc(r[1]) + '</span><span class="mrg" aria-hidden="true">&rsaquo;</span></button>'; }).join("");
-  $("#mLogo").src = LOGO; $("#spLogo").src = LOGO;
+  $("#spLogo").src = LOGO;
   $("#mSet").onclick = (e) => { e.stopPropagation(); $("#waOpen").click(); };
   $("#mAll").onclick = () => { showTab("dashboard"); window.scrollTo(0, 0); };
   try { $("#mHi").textContent = "Hello, Chitral House"; $("#mDate").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }); } catch (e) {}
