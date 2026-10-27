@@ -2091,12 +2091,12 @@ function applyTips(root) {
 })();
 
 /* ---------- phone: the three switches move into the settings panel ---------- */
-const smallScreen = window.matchMedia("(max-width:900px)");
+const smallScreen = window.matchMedia ? window.matchMedia("(max-width:900px)") : { matches: false };
 function placeCtrls() {
   const hold = $("#ctrlHold"), bar = document.querySelector("header.top .bar"), anchor = $("#installBtn");
-  ["waSw", "auto", "webSw"].forEach(id => { const el = $("#" + id); if (smallScreen.matches) hold.appendChild(el); else bar.insertBefore(el, anchor); });
+  ["waSw", "auto", "webSw"].forEach(id => { const el = $("#" + id); if (smallScreen.matches) hold.appendChild(el); else if (el.parentNode !== bar) bar.insertBefore(el, anchor); });
 }
-placeCtrls();
+if (smallScreen.matches) placeCtrls();
 if (smallScreen.addEventListener) smallScreen.addEventListener("change", placeCtrls);
 
 /* ---------- phone: label table cells so rows can show as cards ---------- */
