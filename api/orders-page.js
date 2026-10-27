@@ -987,6 +987,39 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   .psback,.psbody{animation:none}
   #pBack:active,#pMore:active,.mrow:active,.mtile:active,#bnav button:active{transform:none}
 }
+
+@media (max-width:900px){
+  :root{--hh:env(safe-area-inset-top,0px)}
+  header.top{height:0!important;min-height:0;padding:0!important;background:none!important;border:0!important;overflow:visible;z-index:70}
+  header.top .bar{display:none!important}
+  #waPanel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;right:12px;width:auto;z-index:71}
+  #waPanel.open{max-height:calc(100vh - 140px)}
+  main{padding-top:calc(env(safe-area-inset-top,0px) + 12px)!important}
+  html,body{overscroll-behavior-y:none}
+  .mtop{padding-bottom:var(--m-s3)}
+  .mlogo{height:52px;width:auto;display:block;filter:invert(1)}
+  .mavatar{border:0;cursor:pointer;background:var(--b-card);color:var(--b-ink);transition:transform .15s}
+  .mavatar:active{transform:scale(.92)}
+  .mavatar svg{width:24px;height:24px}
+  .mribbon{top:-8px}
+  /* menu tiles: icon on top, number in the middle, label at the bottom; dashboard fills the gap under Problems */
+  .mtile.mt-tall{justify-content:flex-start}
+  .mtile.mt-tall .mi{order:0}
+  .mtile.mt-tall .mc{order:1;margin-top:var(--m-s3)}
+  .mtile.mt-tall>span:not(.mi):not(.mc){order:2;margin-top:auto}
+  .mtile.wide.mt-dark,.mtile.hero.mt-dark{grid-column:2;min-height:0}
+  .mtile.mt-dark{flex-direction:column;align-items:flex-start;justify-content:space-between;gap:var(--m-s3)}
+  .mtile[data-tab="problems"]{min-height:120px}
+  #ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);width:44px;height:44px;margin-left:0;border-radius:50%;background:var(--b-card);color:var(--b-ink);box-shadow:var(--b-sh2);display:grid;place-items:center;z-index:75;opacity:0;pointer-events:none;transform:translate(-50%,0)}
+  #ptr svg{width:22px;height:22px}
+  #ptr.ready{background:var(--b-dark);color:var(--b-dark-ink)}
+  #ptr.spin svg{animation:mSpin .8s linear infinite}
+  @keyframes mSpin{to{transform:rotate(360deg)}}
+}
+@media (max-width:900px) and (prefers-color-scheme:dark){.mlogo{filter:none}.mtile.attn .mi,.mtile[data-tab="waiting"].attn .mi,.mtile.mt-tall .mi{background:rgba(255,255,255,.14);color:inherit}}
+@media (max-width:900px) and (prefers-reduced-motion:reduce){#ptr.spin svg{animation:none}}
+#ptr{display:none}
+@media (max-width:900px){#ptr{display:grid}}
 </style></head>
 <body>
 <header class="top">
@@ -1031,8 +1064,8 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
 <div class="scrim" id="scrim"></div>
 <div class="content">
 <main class="wrap">
-  <div id="phead" hidden><button type="button" id="pBack" aria-label="Back to Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Menu</button><h1 id="pTitle"></h1><button type="button" id="pMore" aria-label="Page options" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button></div>
-  <section class="panel" id="p-menu" hidden><svg class="mribbon" viewBox="0 0 400 140" aria-hidden="true" focusable="false"><path d="M-10 70 C 60 10, 130 10, 200 60 S 330 120, 420 40" fill="none" stroke="currentColor" stroke-width="46" stroke-linecap="round"/></svg><div class="mtop"><span class="mstore"><i></i><span id="mStoreName">Chitral House + Herbs</span></span><span class="mavatar" aria-hidden="true">U</span></div><div class="mhello"><div class="mh1" id="mHi">Menu</div><div class="mh2" id="mDate"></div></div><div id="menuGrid"></div><div class="msec"><h2>Recent activity</h2><button type="button" class="mall" id="mAll">See all</button></div><div id="mRecent"></div></section>
+  <div id="phead" hidden><button type="button" id="pBack" aria-label="Back to Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 id="pTitle"></h1><button type="button" id="pMore" aria-label="Page options" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button></div>
+  <section class="panel" id="p-menu" hidden><svg class="mribbon" viewBox="0 0 400 140" aria-hidden="true" focusable="false"><path d="M-10 70 C 60 10, 130 10, 200 60 S 330 120, 420 40" fill="none" stroke="currentColor" stroke-width="46" stroke-linecap="round"/></svg><div class="mtop"><img class="mlogo" id="mLogo" alt="Chitral House"><button type="button" class="mavatar" id="mSet" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div><div class="mhello"><div class="mh1" id="mHi">Menu</div><div class="mh2" id="mDate"></div></div><div id="menuGrid"></div><div class="msec"><h2>Recent activity</h2><button type="button" class="mall" id="mAll">See all</button></div><div id="mRecent"></div></section>
   <div id="log" aria-live="polite"></div>
 
   <section class="panel" id="p-dashboard" hidden>
@@ -1235,6 +1268,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   </section>
 </main>
 </div></div>
+<div id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>
 <div id="pSheet" hidden><div class="psback" id="psBack"></div><div class="psbody" role="dialog" aria-label="Page options"><div class="psgrab"></div><button type="button" id="psRefresh">Refresh this page</button><button type="button" id="psSettings">Settings</button><button type="button" id="psMenu">Back to Menu</button></div></div>
 <nav id="bnav" aria-label="Main menu"></nav>
 <div id="tip" role="tooltip"></div>
@@ -1882,6 +1916,8 @@ try {
   $("#menuGrid").innerHTML = tabs.map(t => { const n = t.dataset.tab; const i = info(n); const cls = (n === "dashboard" ? " wide hero mt-dark" : n === "setup" ? " wide mt-white" : " " + (MT[n] || "mt-white"));
     return '<button class="mtile' + cls + '" data-tab="' + n + '"><span class="mi">' + i.svg + '</span><span><div class="ml">' + esc(i.label) + '</div><div class="ms">' + esc(SUBS[n] || "") + "</div></span>" + (i.cid ? '<span class="mc" data-src="' + i.cid + '"></span>' : "") + "</button>"; }).join("");
   $("#mRecent").innerHTML = RECENT.map(r => { const i = info(r[0]); return '<button type="button" class="mrow" data-tab="' + r[0] + '"><span class="mri">' + i.svg + '</span><span class="mrt"><b data-src="' + i.cid + '"></b> ' + esc(r[1]) + '</span><span class="mrg" aria-hidden="true">&rsaquo;</span></button>'; }).join("");
+  try { $("#mLogo").src = document.querySelector(".logoimg").src; } catch (e) {}
+  $("#mSet").onclick = () => $("#waOpen").click();
   $("#mAll").onclick = () => { showTab("dashboard"); window.scrollTo(0, 0); };
   try { $("#mHi").textContent = "Hello, Chitral House"; $("#mDate").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }); } catch (e) {}
   const sync = () => document.querySelectorAll("[data-src]").forEach(e => { const src = document.querySelector("#" + e.dataset.src); const v = src ? src.textContent : ""; e.textContent = /^[0-9]/.test(v) ? v : ""; e.setAttribute("data-v", v);
@@ -1899,6 +1935,14 @@ function refreshPanel(hard) { const p = document.querySelector(".panel:not([hidd
 const psShow = (on) => { $("#pSheet").hidden = !on; $("#pMore").setAttribute("aria-expanded", String(on)); };
 $("#pMore").onclick = () => psShow($("#pSheet").hidden);
 $("#psBack").onclick = () => psShow(false);
+(function () {
+  const ind = $("#ptr"); let y0 = null, dy = 0, pull = false;
+  const reset = () => { ind.classList.remove("on", "ready", "spin"); ind.style.transform = ""; ind.style.opacity = ""; y0 = null; dy = 0; pull = false; };
+  addEventListener("touchstart", (e) => { if (!smallMQ() || window.scrollY > 0 || e.touches.length !== 1 || !$("#pSheet").hidden || (e.target.closest && e.target.closest(".prsc,.seg,#waPanel,input,select,textarea,#bnav"))) { y0 = null; return; } y0 = e.touches[0].clientY; dy = 0; pull = false; }, { passive: true });
+  addEventListener("touchmove", (e) => { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (dy > 8 && window.scrollY <= 0) { pull = true; const t = Math.min(dy * 0.45, 64); ind.classList.add("on"); ind.classList.toggle("ready", dy > 110); ind.style.transform = "translate(-50%," + t + "px) rotate(" + Math.min(dy * 2, 270) + "deg)"; ind.style.opacity = String(Math.min(1, dy / 90)); } else if (dy < 0) reset(); }, { passive: true });
+  addEventListener("touchend", () => { const go = y0 != null && pull && dy > 110; y0 = null; pull = false; if (go) { ind.classList.add("spin"); ind.style.transform = "translate(-50%,40px)"; refreshPanel(false); setTimeout(reset, 900); } else reset(); }, { passive: true });
+  addEventListener("touchcancel", reset, { passive: true });
+})();
 $("#psRefresh").onclick = () => { psShow(false); refreshPanel(true); };
 $("#psSettings").onclick = () => { psShow(false); $("#waOpen").click(); window.scrollTo(0, 0); };
 $("#psMenu").onclick = () => { psShow(false); showTab("menu"); window.scrollTo(0, 0); };
