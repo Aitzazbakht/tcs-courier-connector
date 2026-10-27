@@ -290,6 +290,35 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   table.cardn td.n,table.cardn td.num{text-align:left}
   .sheet,.tbox{overflow:hidden}
 }
+#bnav,#moreSheet{display:none}
+@media (max-width:900px){
+  /* phone / small tablet: app-style layout with a bottom menu instead of the sidebar */
+  .menu-btn,.btn.menu-btn,.side,.scrim,.scrim.on{display:none!important}
+  main{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+  #bnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:#15211D;border-top:1px solid #0E1613;padding:6px 6px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;box-shadow:0 -6px 18px rgba(0,0,0,.18)}
+  #bnav button{flex:1;min-width:0;border:0;background:none;color:#9FB0A9;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:12px;font-size:10.5px;font-weight:700;position:relative;cursor:pointer}
+  #bnav button svg{width:22px;height:22px}
+  #bnav button[aria-selected="true"]{color:#0D1A14;background:#6FC39A}
+  #bnav .bb{position:absolute;top:1px;left:50%;margin-left:6px;min-width:17px;height:17px;border-radius:9px;background:#3A4A44;color:#E6ECE9;font-size:10px;line-height:17px;text-align:center;padding:0 4px}
+  #bnav button[aria-selected="true"] .bb{background:#0D1A14;color:#6FC39A}
+  #bnav .bb.alert{background:var(--rust);color:#fff}
+  #bnav .bb:empty,#bnav .bb[data-v="–"]{display:none}
+  #moreSheet:not([hidden]){display:block;position:fixed;inset:0;z-index:60}
+  #moreSheet .msback{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+  #moreSheet .mssheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:10px 14px calc(18px + env(safe-area-inset-bottom));max-height:78vh;overflow-y:auto;box-shadow:0 -10px 30px rgba(0,0,0,.3)}
+  #moreSheet .mshead{font-weight:800;font-size:15px;padding:6px 6px 10px}
+  #moreSheet .mssheet::before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 8px}
+  #moreList button{display:flex;align-items:center;gap:14px;width:100%;border:0;background:none;padding:13px 8px;border-radius:12px;font-size:15px;font-weight:600;color:var(--ink);text-align:left;cursor:pointer}
+  #moreList button:active{background:var(--soft)}
+  #moreList button[aria-selected="true"]{background:var(--pine-soft);color:var(--pine)}
+  #moreList button span.cnt:empty{display:none}
+  #moreList button span.cnt{margin-left:auto;font-size:12px;font-weight:700;background:var(--soft);border-radius:999px;padding:1px 9px;color:var(--mute)}
+  .seg{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .seg button{flex:none}
+  .dgrid{grid-template-columns:minmax(0,1fr)}
+  .dcard .dv{font-size:30px}
+  .panel>.toolbar:first-child{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .stalerts{display:flex;flex-wrap:wrap;gap:8px}
 .stchip{font-size:12px;padding:6px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);white-space:nowrap}
@@ -559,6 +588,8 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   </section>
 </main>
 </div></div>
+<nav id="bnav" aria-label="Main menu"></nav>
+<div id="moreSheet" hidden><div class="msback" id="msBack"></div><div class="mssheet" role="dialog" aria-label="More pages"><div class="mshead">More</div><div id="moreList"></div></div></div>
 <div id="tip" role="tooltip"></div>
 
 <script>
@@ -1168,6 +1199,8 @@ function stInit() {
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
   $("#side").classList.remove("open"); $("#scrim").classList.remove("on");
+  document.querySelectorAll("#bnav .btab,#moreList button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  { const mb = document.querySelector("#bMore"); if (mb) mb.setAttribute("aria-selected", String(!BN_MAIN.some(m => m[0] === name))); }
   document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "p-" + name);
   try { history.replaceState(null, "", "#" + name); } catch (e) {}
   if (name === "dashboard") ensureDash();
@@ -1180,6 +1213,22 @@ function showTab(name) {
   if (name === "stock") ensureStock();
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
+/* ---------- phone: bottom menu (Dashboard, Waiting, Problems, Carts, More) ---------- */
+const BN_MAIN = [["dashboard", "Home"], ["waiting", "Waiting"], ["problems", "Problems"], ["abandoned", "Carts"]];
+try {
+  const tabs = [...document.querySelectorAll(".tab")];
+  const info = (name) => { const t = tabs.find(x => x.dataset.tab === name); const sv = t && t.querySelector("svg"); const lb = t && t.querySelector(".tl"); const b = t && t.querySelector("b"); return { svg: sv ? sv.outerHTML : "", label: lb ? lb.textContent : name, cid: b ? b.id : "" }; };
+  $("#bnav").innerHTML = BN_MAIN.map(m => { const i = info(m[0]); return '<button class="btab" data-tab="' + m[0] + '" aria-selected="false">' + i.svg + "<span>" + m[1] + "</span>" + (i.cid ? '<i class="bb" data-src="' + i.cid + '"></i>' : "") + "</button>"; }).join("") +
+    '<button id="bMore" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg><span>More</span></button>';
+  $("#moreList").innerHTML = tabs.filter(t => !BN_MAIN.some(m => m[0] === t.dataset.tab)).map(t => { const i = info(t.dataset.tab); return '<button data-tab="' + t.dataset.tab + '" aria-selected="false">' + i.svg + "<span>" + esc(i.label) + "</span>" + (i.cid ? '<span class="cnt" data-src="' + i.cid + '"></span>' : "") + "</button>"; }).join("");
+  const sync = () => document.querySelectorAll("[data-src]").forEach(e => { const src = document.querySelector("#" + e.dataset.src); const v = src ? src.textContent : ""; e.textContent = /^[0-9]/.test(v) ? v : ""; e.setAttribute("data-v", v);
+    if (e.classList.contains("bb")) { const tb = document.querySelector('.tab[data-tab="problems"]'); const isP = e.dataset.src === "cProblems"; e.classList.toggle("alert", !!(isP && tb && tb.classList.contains("alert"))); } });
+  sync();
+  if (typeof MutationObserver !== "undefined") new MutationObserver(sync).observe(document.querySelector("#side"), { childList: true, characterData: true, subtree: true, attributes: true });
+  const openMore = (o) => { $("#moreSheet").hidden = !o; };
+  $("#bMore").onclick = () => openMore(true); $("#msBack").onclick = () => openMore(false);
+  document.querySelectorAll("#bnav .btab,#moreList button").forEach(b => b.onclick = () => { showTab(b.dataset.tab); openMore(false); window.scrollTo(0, 0); });
+} catch (e) {}
 document.querySelectorAll("#dPreset button").forEach(b => b.onclick = () => { dashSet(Number(b.dataset.d)); runDash(); });
 $("#dRun").onclick = () => runDash(); $("#dFrom").onchange = () => { if ($("#dTo").value < $("#dFrom").value) $("#dTo").value = $("#dFrom").value; runDash(); }; $("#dTo").onchange = () => runDash();
 $("#brandHome").onclick = (e) => { e.preventDefault(); showTab("dashboard"); window.scrollTo(0, 0); };
