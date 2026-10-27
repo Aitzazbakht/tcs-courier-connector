@@ -626,6 +626,16 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   #prBody .pr td.kpi:last-child b{font-size:var(--m-t4);color:var(--pine)}
   #prBody .pr td.kpi.neg{border-color:var(--rust);background:var(--rust-soft)}
   #prBody .pr td.kpi.neg b{color:var(--rust)}
+  /* collapsible sections (phone only; built by prHtml) */
+  #prBody .pr details.prfold{margin:var(--m-s3) 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--m-r2);box-shadow:var(--m-sh1);padding:0 var(--m-s4)}
+  #prBody .pr details.prfold>summary{display:flex;align-items:center;gap:var(--m-s2);min-height:52px;cursor:pointer;list-style:none;font-size:var(--m-t2);font-weight:800;color:var(--pine)}
+  #prBody .pr details.prfold>summary::-webkit-details-marker{display:none}
+  #prBody .pr details.prfold>summary::after{content:"";margin-left:auto;width:10px;height:10px;border-right:2.5px solid var(--mute);border-bottom:2.5px solid var(--mute);transform:rotate(45deg);transition:transform .15s}
+  #prBody .pr details.prfold[open]>summary::after{transform:rotate(-135deg)}
+  #prBody .pr details.prfold .prn{font-size:var(--m-t1);font-weight:700;color:var(--mute);background:var(--soft);border-radius:999px;padding:0 var(--m-s2)}
+  #prBody .pr details.prfold[open]{padding-bottom:var(--m-s3)}
+  #prBody .pr details.prfold table.cardt tr{background:var(--bg)}
+  #prBody .pr table.cardt td:empty{display:none}
   /* report tables -> light cards */
   #prBody .pr th,#prBody .pr td{font-size:var(--m-t1)}
   #prBody .pr table:not(.cardt):not(.kpis) th{background:var(--soft);color:var(--ink);padding:var(--m-s2) var(--m-s3)}
@@ -1159,12 +1169,13 @@ function prChart(series, field, title, note, pos, fmt) {
   g += "</svg>"; if (sc) g = '<div class="prsc">' + g + "</div>";
   return '<div class="keep"><h2>' + title + "</h2>" + g + '<p class="note">' + note.replace("{tot}", prM(tot)) + "</p></div>";
 }
-function prHtml(d) {
+function prHtml(d, fold) {
   const k = d.kpi, p = d.pnl, n = d.notes;
   const pct = (x) => (x == null ? "-" : x + "%");
   const pcl = (c) => c + (c === 1 ? " order" : " orders");
   const kpi =(label, val, cls) => '<td class="kpi' + (cls ? " " + cls : "") + '"><small>' + esc(label) + "</small><b>" + val + "</b></td>";
   let h = "<h1>Daily Sales &amp; Profit Report</h1>";
+  const wrap = (from, title, cnt) => { if (!fold) return; const part = h.slice(from).replace("<h2>" + title + "</h2>", ""); h = h.slice(0, from) + '<details class="prfold"><summary>' + title + (cnt == null ? "" : ' <span class="prn">' + cnt + "</span>") + "</summary>" + part + "</details>"; };
   h += '<div class="sub">Chitral House + Chitral Herbs (+ WhatsApp) | Orders of ' + (d.dateTo && d.dateTo !== d.date ? esc(prD(d.date)) + " to " + esc(prD(d.dateTo)) : esc(prDL(d.date))) + " | Currency: PKR</div>";
   h += prChart(d.series, "net", "Profit per day", "Net profit by order date, same rules as the table below (delivered orders only). Days add up to {tot}. Ad spend for the range is shared across the days by Windsor's daily spend. Orders still in process add to their day later.");
   h += prChart(d.series, "adSpend", "Total campaign cost per day (PKR)", "Ad spend of all accounts for each day of the range. Total {tot}. Not including the USD-PKR cost.", true);
@@ -1177,9 +1188,11 @@ function prHtml(d) {
     d.sources.map((r) => [esc(r.label), prN(r.orders), prN(r.units), prN(r.sales), prN(r.cost)]),
     ["Total", prN(d.sourcesTotal.orders), prN(d.sourcesTotal.units), prN(d.sourcesTotal.sales), prN(d.sourcesTotal.cost)]);
 
+  const m1 = h.length;
   h += "<h2>Product-wise sales</h2>" + prT([["Product"], ["Orders", 1], ["Units", 1], ["Sales", 1], ["Unit cost total", 1], ["Share of sales", 1]],
     d.products.map((r) => [esc(r.label), prN(r.orders), prN(r.units), prN(r.sales), prN(r.cost), r.share + "%"]),
     ["Total", prN(d.sourcesTotal.orders), prN(d.sourcesTotal.units), prN(d.sourcesTotal.sales), prN(d.sourcesTotal.cost), "100%"]);
+  wrap(m1, "Product-wise sales");
 
   h += "<h2>Campaign cost per account</h2>" + prT([["Account"], ["Spend (PKR)", 1]], d.ads.rows.map((r) => [esc(r.label), prN(r.amount)]), ["Total ad spend", prN(d.ads.total)]);
 
@@ -1207,10 +1220,14 @@ function prHtml(d) {
   h += '<p class="note">Delivery rate = delivered / shipped, the same way the Total delivery report counts it. An order TCS shows as refused or returned counts as not delivered.</p>';
 
   const who = (r) => esc(r.customer) + (r.order ? ' <span class="muted">' + esc(r.order) + "</span>" : "");
+  const m2 = h.length;
   h += "<h2>Not delivered</h2>" + prT([["Customer"], ["Product"], ["Sales", 1], ["Status"]],
     d.notDelivered.rows.map((r) => [who(r), esc(r.product), prN(r.cod), esc(r.status)]), ["Total (" + pcl(d.notDelivered.rows.length) + ")", "",prN(d.notDelivered.total), ""]);
+  wrap(m2, "Not delivered", d.notDelivered.rows.length);
+  const m3 = h.length;
   h += "<h2>Still in process</h2>" + prT([["Customer"], ["Product"], ["Sales", 1], ["Status"]],
     d.inProcess.rows.map((r) => [who(r), esc(r.product), prN(r.cod), esc(r.status)]), ["Total (" + pcl(d.inProcess.rows.length) + ")", "",prN(d.inProcess.total), ""]);
+  wrap(m3, "Still in process", d.inProcess.rows.length);
 
   h += "<h2>Notes</h2>";
   const rf = d.delivery.ref;
@@ -1288,7 +1305,7 @@ async function prFetchAds(auto) {
 function renderProfit() {
   const d = pf.data; if (!d) return;
   if (!$("#prStyle")) { const s = document.createElement("style"); s.id = "prStyle"; s.textContent = PR_CSS; document.head.appendChild(s); }
-  $("#prBody").innerHTML = '<div class="pr">' + prHtml(d) + "</div>";
+  $("#prBody").innerHTML = '<div class="pr">' + prHtml(d, smallMQ()) + "</div>";
   $("#prPdf").disabled = false;
   $("#pfMeta").textContent = "Built " + new Date(d.generatedAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) + (d.cache ? " · " + d.cache.fetched + " parcels checked with TCS, " + d.cache.reused + " reused" : "");
   log((d.warnings || []).join("  ·  "));
