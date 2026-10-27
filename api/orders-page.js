@@ -586,6 +586,76 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   .btn:active,.mtile:active,.dcard:active,#bnav button:active{transform:none}
 }
 @media (max-width:900px){main{overflow-x:clip}}
+/* ===== phone: Setup tab and sales/profit report ===== */
+@media (max-width:900px){
+  #setupGate{margin:var(--m-s5) auto!important;padding:var(--m-s5)!important;border:1px solid var(--line);border-radius:var(--m-r3);background:var(--surface);box-shadow:var(--m-sh1)}
+  #setupForm{flex-direction:column}
+  #setupForm .btn{width:100%}
+  #setupPin{text-align:center;font-size:22px!important;letter-spacing:.3em;border-radius:var(--m-r1)!important}
+  #setupBody .toolbar{display:grid;grid-template-columns:1fr 1fr;gap:var(--m-s2);align-items:end!important}
+  #setupBody .toolbar .adf{font-weight:700;font-size:var(--m-t0)}
+  #setupBody .toolbar .adf input{width:100%;font-size:16px;font-weight:500;color:var(--ink)}
+  #setupBody .toolbar #prRun,#setupBody .toolbar #pfMeta{grid-column:1/-1}
+  #setupBody .toolbar #prRun{min-height:48px}
+  #setupBody .toolbar #pfMeta{margin:0!important;font-size:var(--m-t0)}
+  #setupBody>.sheet{border:1px solid var(--line);border-radius:var(--m-r2)!important;background:var(--surface);box-shadow:var(--m-sh1);padding:var(--m-s4)!important}
+  #setupBody>.sheet #prFetchAds{width:100%}
+  #setupBody .adgrid{grid-template-columns:1fr;gap:var(--m-s3)}
+  .adf{font-size:var(--m-t0);font-weight:700;color:var(--mute)}
+  .adf input{min-height:var(--m-tap);font-size:16px;font-weight:500;border-radius:var(--m-r1)}
+  #prBody>.note{background:var(--surface);border:1px dashed var(--line);border-radius:var(--m-r2);padding:var(--m-s5) var(--m-s4);text-align:center;font-size:var(--m-t1)}
+
+  /* the report itself: themed, readable, no print styling */
+  #prBody .pr{background:transparent;color:var(--ink);border:0;padding:0;font-size:var(--m-t1);line-height:1.5}
+  #prBody .pr h1{font-size:var(--m-t3);color:var(--ink);letter-spacing:-.02em;line-height:1.2;margin:var(--m-s1) 0}
+  #prBody .pr .sub{color:var(--mute);font-size:var(--m-t0);margin:0 0 var(--m-s4)}
+  #prBody .pr h2{font-size:var(--m-t2);color:var(--pine);border:0;margin:var(--m-s5) 0 var(--m-s2);padding:0}
+  #prBody .pr .note,#prBody .pr ul,#prBody .pr li{font-size:var(--m-t1);color:var(--mute)}
+  #prBody .pr ul{margin:var(--m-s1) 0 var(--m-s3) var(--m-s4)}
+  #prBody .pr li{margin:var(--m-s1) 0}
+  #prBody .pr .muted{color:var(--mute)}
+  #prBody .pr .note b,#prBody .pr .note strong{color:var(--ink)}
+  /* KPI strip becomes cards, net profit first */
+  #prBody .pr table.kpis{display:block;width:100%;margin:0 0 var(--m-s3);border-spacing:0}
+  #prBody .pr table.kpis tbody{display:block}
+  #prBody .pr table.kpis tr{display:grid;grid-template-columns:1fr 1fr;gap:var(--m-s2)}
+  #prBody .pr td.kpi{display:block;width:auto;border:1px solid var(--line);background:var(--surface);border-radius:var(--m-r2);padding:var(--m-s3) var(--m-s4);box-shadow:var(--m-sh1)}
+  #prBody .pr td.kpi small{font-size:var(--m-t0);color:var(--mute);font-weight:700}
+  #prBody .pr td.kpi b{font-size:var(--m-t3);letter-spacing:-.02em;color:var(--ink)}
+  #prBody .pr td.kpi:last-child{order:-1;grid-column:1/-1;border-color:var(--pine);background:var(--pine-soft)}
+  #prBody .pr td.kpi:last-child b{font-size:var(--m-t4);color:var(--pine)}
+  #prBody .pr td.kpi.neg{border-color:var(--rust);background:var(--rust-soft)}
+  #prBody .pr td.kpi.neg b{color:var(--rust)}
+  /* report tables -> light cards */
+  #prBody .pr th,#prBody .pr td{font-size:var(--m-t1)}
+  #prBody .pr table:not(.cardt):not(.kpis) th{background:var(--soft);color:var(--ink);padding:var(--m-s2) var(--m-s3)}
+  #prBody .pr table:not(.cardt):not(.kpis) td{padding:var(--m-s2) var(--m-s3);border-bottom:1px solid var(--line);color:var(--ink);background:transparent!important}
+  #prBody .pr table:not(.cardt):not(.kpis){background:var(--surface);border:1px solid var(--line);border-radius:var(--m-r2);overflow:hidden}
+  #prBody .pr table{margin:0 0 var(--m-s2)}
+  #prBody .pr table.cardt tr{margin-bottom:var(--m-s2);padding:var(--m-s3) var(--m-s4);box-shadow:none;display:grid;grid-template-columns:1fr 1fr;gap:var(--m-s1) var(--m-s4)}
+  #prBody .pr table.cardt td{background:transparent!important;border:0;padding:var(--m-s1) 0;font-size:var(--m-t1);color:var(--ink);text-align:left;white-space:normal}
+  #prBody .pr table.cardt td:first-child{grid-column:1/-1;font-weight:800;font-size:var(--m-t2)}
+  #prBody .pr table.cardt:not(.cardn) td:not(.n){grid-column:1/-1}
+  #prBody .pr table.cardt td::before{font-size:var(--m-t0);color:var(--mute)}
+  #prBody .pr table.cardt td:first-child::before{display:none}
+  #prBody .pr table.cardt tr.tot{background:var(--pine-soft);border-color:var(--pine)!important}
+  #prBody .pr table.cardt tr.tot td{font-weight:800}
+  #prBody .pr table.cardt td .muted{display:block;font-size:var(--m-t0)}
+  /* three-column money tables (item | PKR | detail): amount beside the item, detail underneath */
+  #prBody .pr table.cardt tr:has(>td:nth-child(3):last-child){grid-template-columns:minmax(0,1fr) auto;gap:var(--m-s1) var(--m-s3);align-items:baseline}
+  #prBody .pr table.cardt tr:has(>td:nth-child(3):last-child) td:first-child{grid-column:1;font-size:var(--m-t1)}
+  #prBody .pr table.cardt tr:has(>td:nth-child(3):last-child) td:nth-child(2){grid-column:2;text-align:right;font-weight:800;font-size:var(--m-t2);white-space:nowrap}
+  #prBody .pr table.cardt tr:has(>td:nth-child(3):last-child) td:nth-child(3){grid-column:1/-1;color:var(--mute);font-size:var(--m-t0);padding-top:0}
+  #prBody .pr table.cardt tr:has(>td:nth-child(3):last-child) td:nth-child(3):empty{display:none}
+  #prBody .pr table.cardt tr:has(>td:nth-child(3):last-child) td::before{display:none}
+  /* charts: horizontal scroll when many days, themed text, 12px labels */
+  #prBody .pr .keep{min-width:0}
+  #prBody .pr .prsc{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 calc(-1*var(--m-s4));padding:0 var(--m-s4);scrollbar-width:thin}
+  #prBody .pr svg text{font-size:12px!important;fill:var(--mute)}
+  #prBody .pr svg line{stroke:var(--line)}
+  #prBody .pr svg line[stroke="#555"]{stroke:var(--mute)}
+  #prBody .pr .keep>svg,#prBody .pr .prsc svg{background:var(--surface);border:1px solid var(--line);border-radius:var(--m-r2);padding:var(--m-s2) 0}
+}
 </style></head>
 <body>
 <header class="top">
@@ -1072,12 +1142,12 @@ function prChart(series, field, title, note, pos, fmt) {
   fmt = fmt || ((v) => prN(Math.round(v)));
   if (!series || series.length < 2) return "";
   field = field || "net";
-  const W = chartW(), H = 230, L = 62, R = 10, T = 18, B = 52, pw = W - L - R, ph = H - T - B;
+  const H = 230, L = 62, R = 10, T = 18, B = 52, sc = smallMQ() && series.length > 7, W = sc ? Math.max(chartW(), series.length * 52 + L + R) : chartW(), pw = W - L - R, ph = H - T - B;
   const vals = series.map((x) => x[field]);
   const hi = Math.max(0, Math.max.apply(null, vals)), lo = Math.min(0, Math.min.apply(null, vals));
   const span = hi - lo || 1, y = (v) => T + ph * (hi - v) / span;
   const bw = pw / series.length, tot = vals.reduce((s, v) => s + v, 0);
-  let g = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" role="img" aria-label="Profit per day" style="max-width:' + W + 'px;font-family:Arial,sans-serif">';
+  let g = '<svg viewBox="0 0 ' + W + " " + H + '" width="' + (sc ? W : "100%") + '" role="img" aria-label="Profit per day" style="max-width:' + (sc ? "none" : W + "px") + ';font-family:Arial,sans-serif">';
   [hi, (hi + lo) / 2, lo].forEach((v) => { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="#ddd"/><text x="' + (L - 6) + '" y="' + (y(v) + 3).toFixed(1) + '" font-size="10" text-anchor="end" fill="#555">' + fmt(v) + "</text>"; });
   g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '" stroke="#555"/>';
   series.forEach((x, i) => {
@@ -1086,7 +1156,7 @@ function prChart(series, field, title, note, pos, fmt) {
     if (series.length <= 16) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (x[field] < 0 ? top + h + 11 : top - 4).toFixed(1) + '" font-size="9" text-anchor="middle" fill="#333">' + fmt(x[field]) + "</text>";
     if (series.length <= 16 || i % Math.ceil(series.length / 16) === 0) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (H - 12) + '" font-size="9" text-anchor="middle" fill="#555">' + esc(prD(x.date).replace(/ \d{4}$/, "")) + "</text>";
   });
-  g += "</svg>";
+  g += "</svg>"; if (sc) g = '<div class="prsc">' + g + "</div>";
   return '<div class="keep"><h2>' + title + "</h2>" + g + '<p class="note">' + note.replace("{tot}", prM(tot)) + "</p></div>";
 }
 function prHtml(d) {
