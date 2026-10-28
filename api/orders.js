@@ -18,6 +18,7 @@ import { profitReport } from "../lib/profit.js";
 import { adSpend } from "../lib/ads.js";
 import { herbsOrders } from "../lib/herbs.js";
 import { salesReport } from "../lib/sales.js";
+import { phase1Test } from "../lib/waorders.js";
 import { stockGet, stockMove, stockUndo, stockAlert, stockRoll } from "../lib/stock.js";
 import { runAuto } from "../lib/stockauto.js";
 
@@ -139,6 +140,7 @@ export default async function handler(req, res) {
       if (body.action === "stock_alert") return res.status(200).json(await stockAlert(String(body.id || ""), body.reorder));
       if (body.action === "stock_roll") return res.status(200).json(await stockRoll());
     }
+    if (body.action === "wa_phase1_test") return res.status(200).json(await phase1Test());
     if (body.action === "sales_report") return res.status(200).json(await salesReport(String(body.date || ""), { to: String(body.to || "") }));
     if (body.action === "ad_spend") {
       if (!(await pinGate(res, body.pin))) return;
