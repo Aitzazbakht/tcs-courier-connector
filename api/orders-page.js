@@ -1974,7 +1974,7 @@ function renderSales() {
   const d = sal.data; if (!d) return;
   const S = salesSections(d);
   $("#salPdf").disabled = false;
-  $("#salMeta").textContent = "Pulled " + new Date(d.pulledAt).toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  $("#salMeta").textContent = "Channels: " + (d.attribBy || "last visit") + " · Pulled " + new Date(d.pulledAt).toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const box = (title, inner, open) => '<details class="fold sheet" style="padding:12px 16px;margin-bottom:12px"' + (open ? " open" : "") + '><summary style="cursor:pointer;font-weight:700">' + title + '</summary><div class="tbox" style="margin-top:10px;overflow-x:auto">' + inner + "</div></details>";
   const notes = [];
   if (d.notes.missingUtm.length) notes.push("Paid orders with no UTM source (missing tracking): " + d.notes.missingUtm.join(", "));
