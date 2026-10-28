@@ -1065,7 +1065,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   .sxtiles{display:grid;grid-template-columns:1fr 1fr;gap:var(--m-s3)}
   .sxtile{padding:var(--m-s4)}
   .sxtl{display:flex;align-items:center;gap:8px;color:#C9C9D8;font-size:14px}
-  .sxtv{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:26px;font-weight:700;margin:8px 0 2px;color:#fff;font-variant-numeric:tabular-nums}
+  .sxtv{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:22px;letter-spacing:-.04em;white-space:nowrap;font-weight:700;margin:8px 0 2px;color:#fff;font-variant-numeric:tabular-nums}
   .sxts{color:#9494A8;font-size:13px;line-height:1.35}
   .sxc{padding:var(--m-s4) 18px 20px}
   .sxc h3{margin:0;font-size:18px;font-weight:700;color:#fff}
@@ -1103,6 +1103,70 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   #salBody details.fold[open]{padding-bottom:var(--m-s3)!important}
   #salBody .tbox{background:transparent;box-shadow:none;border:0;padding:0;margin-top:0!important}
   #salBody details table.cardt tr{background:var(--b-soft);box-shadow:none}
+}
+
+@media (max-width:900px){
+  /* TCS delivery report: same neon dashboard language as Sales (new blocks only exist on phones) */
+  #repCards:empty{display:none}
+  .dseg{display:flex;gap:3px;height:12px;border-radius:var(--b-pill);overflow:hidden;background:rgba(255,255,255,.08)}
+  .dseg i{display:block;height:100%;min-width:0}
+  .dseg i:not([style*="flex:0"]){min-width:6px}
+  .sg{background:#6BFF6B}.sr{background:#FF6B6B}.sc{background:#22D3EE}
+  .sxhero>.dseg{margin-top:var(--m-s4)}
+  .dtrack{margin-top:8px;min-width:48px}
+  i.dr{background:#FF6B6B}
+  .sxbar{position:relative}
+  .sxbar i.bad{background:linear-gradient(90deg,#FF6B6B,#FF9E7A)}
+  .sxbar i.good{background:linear-gradient(90deg,#4ADE80,#BEFF6B);box-shadow:0 0 12px rgba(123,255,123,.5)}
+  .sxbar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.8;border-radius:1px;text-decoration:none}
+  .sxwarn{color:#FF8A80;font-weight:700}
+  .sxkey.dk{margin-top:0}
+  .sxkey i{border-radius:3px}
+  .sxdw .sxleg b{white-space:nowrap}
+  .sxdn{width:136px;height:136px}
+  .sxleg{min-width:0}
+  /* city table: compact stat cards instead of a long label list */
+  #repBody tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px var(--m-s2);padding:14px 16px}
+  #repBody td{grid-column:auto;padding:2px 0;min-width:0;font-size:15px;font-weight:600}
+  #repBody td:nth-child(1){grid-column:1/-1;font-size:18px;font-weight:800;padding-bottom:var(--m-s2)}
+  #repBody td:nth-child(1)::before{display:none}
+  #repBody td:nth-child(6),#repBody td:nth-child(7),#repBody td:nth-child(8),#repBody td:nth-child(9){grid-column:span 2;margin-top:var(--m-s2)}
+  #repBody td::before{font-size:11px;letter-spacing:.04em;white-space:nowrap}
+  #repBody td .sub{font-weight:500;font-size:12px}
+  #repBody td .meter{min-width:0;height:10px;margin-top:6px}
+  #repBody td .flag{font-size:15px}
+}
+
+@media (max-width:900px){
+  /* Total delivery report: neon dashboard replaces the boxes, ratio chart and tables on phones */
+  #totBody>.ratiobox,#totBody>.chart,#totBody>.tgrid{display:none}
+  .sy{background:#FFC93C}
+  .sxkvs{display:grid;margin-top:var(--m-s2)}
+  .sxkv{display:flex;justify-content:space-between;gap:var(--m-s3);padding:11px 0;border-top:1px solid rgba(255,255,255,.08);font-size:14px;color:#fff}
+  .sxkv:first-child{border-top:0}
+  .sxkv span{min-width:0}
+  .sxkv b{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-align:right;white-space:nowrap}
+  .sxkv.tot{font-weight:800}
+  .sxok{display:inline-block;margin-top:var(--m-s2);padding:3px 12px;border-radius:var(--b-pill);background:rgba(74,222,128,.15);color:#4ADE80;font-size:13px;font-weight:700}
+  .sxok.bad{background:rgba(255,107,107,.15);color:#FF8A80}
+}
+
+@media (max-width:900px){
+  .sxkv{flex-wrap:wrap}
+  .sxkv b{margin-left:auto}
+  #totBody .lst details{padding:0 var(--m-s4);border-radius:var(--b-r2);margin-bottom:var(--m-s3)}
+  #totBody .lst summary{min-height:56px;display:flex;align-items:center;list-style:none;font-size:16px;font-weight:700;color:var(--b-lav-ink)}
+  #totBody .lst summary::-webkit-details-marker{display:none}
+  #totBody .lst summary::after{content:"";margin-left:auto;flex:none;width:9px;height:9px;border-right:2.5px solid var(--b-mute);border-bottom:2.5px solid var(--b-mute);transform:rotate(45deg);transition:transform .18s}
+  #totBody .lst details[open]>summary::after{transform:rotate(-135deg)}
+  #totBody .lst details[open]{padding-bottom:var(--m-s3)}
+  #totBody .lst details table.cardt tr{background:var(--b-soft);box-shadow:none}
+}
+
+@media (max-width:900px){
+  .sxleg div{flex-wrap:wrap}
+  .sxleg b{margin-left:auto;font-size:13px}
+  .sxdn{width:124px;height:124px}
 }
 </style></head>
 <body>
@@ -1433,6 +1497,62 @@ function totalSections(d) {
   const lists = [["Cancelled", d.lists.cancelled], ["Returned or refused", d.lists.failed], ["Still open", d.lists.open], ["Needs manual check", d.lists.manual]];
   return { t, sc, lists };
 }
+/* ---------- Total delivery report: phone dashboard (built only on phones; the detail lists below stay) ---------- */
+function dsegN(a) { return '<div class="dseg">' + a.map(x => '<i class="' + x[1] + '" style="flex:' + (x[0] || 0) + '"></i>').join("") + "</div>"; }
+function totBars(dl) {
+  if (!dl.length) return "";
+  const W = chartW(), H = 176, L = 4, R = 4, T = 22, B = 28, n = dl.length, pw = (W - L - R) / n, bw = Math.max(3, Math.min(n <= 3 ? 40 : 14, pw * 0.34)), step = Math.max(1, Math.ceil(n / 5));
+  const best = Math.max.apply(null, dl.map(x => x.ratio == null ? -1 : x.ratio));
+  let g = '<defs><filter id="ttgl" x="-60%" y="-20%" width="220%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+    '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + T + '" y2="' + T + '" stroke="rgba(255,255,255,.12)" stroke-dasharray="3 5"/><text x="' + L + '" y="' + (T - 6) + '" class="sxl">100%</text>';
+  dl.forEach((x, i) => {
+    const x0 = L + i * pw + (pw - bw * 2 - 2) / 2;
+    [[x.ratio, DLC.del, 0], [x.localRatio, DLC.pro, 1]].forEach(p => {
+      if (p[0] == null) return; const h = Math.max(3, (H - T - B) * p[0] / 100), bx = x0 + p[2] * (bw + 2);
+      g += '<rect x="' + bx.toFixed(1) + '" y="' + (H - B - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="' + Math.min(bw / 2, 4).toFixed(1) + '" fill="' + p[1] + '"' + (p[2] === 0 && x.ratio === best ? ' filter="url(#ttgl)"' : "") + "/>";
+      if (n <= 7) g += '<text x="' + (bx + bw / 2).toFixed(1) + '" y="' + (H - B - h - 5).toFixed(1) + '" text-anchor="middle" class="sxv">' + Math.round(p[0]) + "%</text>";
+    });
+    g += '<rect x="' + (L + i * pw).toFixed(1) + '" y="' + T + '" width="' + pw.toFixed(1) + '" height="' + (H - T - B) + '" fill="transparent"><title>' + esc(sxDate(x.day) + " · overall " + (x.ratio == null ? "–" : x.ratio + "% (" + x.delivered + " of " + x.counted + ")") + " · ISB/RWP " + (x.localRatio == null ? "no orders" : x.localRatio + "% (" + x.riderDelivered + " of " + x.riderTotal + ")")) + "</title></rect>";
+    if (i % step === 0 || i === n - 1) g += '<text x="' + (x0 + bw + 1).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle" class="sxl">' + esc(sxDate(x.day)) + "</text>";
+  });
+  return '<svg class="sxsvg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Delivery ratio by order day">' + g + "</svg>";
+}
+function totRate(rows) {
+  return '<div class="sxlist">' + rows.map(r => '<div class="sxr"><div class="sxrt"><span>' + esc(r.a) + "</span><b>" + esc(r.b) + '</b></div><div class="sxbar"><i class="' + r.cls + '" style="width:' + Math.max(2, Math.min(100, r.v || 0)) + '%"></i>' + (r.mark != null ? '<u style="left:' + r.mark + '%"></u>' : "") + '</div><div class="sxrs">' + esc(r.c) + "</div></div>").join("") + "</div>";
+}
+function totalPhone(d) {
+  const t = d.totals, L0 = d.local || { total: 0, delivered: 0, ratio: null }, sc = d.scenarios, sp = d.split, nm = (x) => (x == null ? "–" : Number(x).toLocaleString("en-PK"));
+  const card = (title, sub, inner) => '<section class="sxc"><h3>' + title + "</h3>" + (sub ? '<p class="sxsub">' + sub + "</p>" : "") + inner + "</section>";
+  const range = d.dateTo && d.dateTo !== d.date ? sxDate(d.date) + " to " + sxDate(d.dateTo) : sxDate(d.date, 1);
+  const tiles = [
+    ["Delivered by TCS", nm(t.deliveredTcs), "of " + nm(t.shipped) + " shipped orders", "g"],
+    ["Delivered by ISB/RWP", nm(t.deliveredRider), "our own rider", "c"],
+    ["Returned or refused", nm(t.failed), "returned, refused or cancelled", "r"],
+    ["Still open", nm(t.open), "no final status yet", "y"],
+    ["Cancelled fake", nm(t.cancelled), "left out of the ratio", "r"],
+    ["Not accounted for", nm(t.unaccounted), "not in the ratio", "c"]
+  ];
+  const kv = (a, b, x) => '<div class="sxkv' + (x ? " tot" : "") + '"><span>' + esc(a) + "</span><b>" + esc(String(b)) + "</b></div>";
+  const ok = (c) => c && c.ok ? '<span class="sxok">adds up</span>' : '<span class="sxok bad">does not add up</span>';
+  return '<div class="sxwrap">' +
+    '<section class="sxhero"><div class="sxht"><div><h2>Total Delivery</h2><p class="sxsub">' + esc(range) + '</p></div><span class="sxbadge">' + ((d.daily || []).length || 1) + (((d.daily || []).length || 1) === 1 ? " day" : " days") + "</span></div>" + totBars(d.daily || []) +
+    '<div class="sxkey dk"><span><i style="background:' + DLC.del + '"></i>Overall</span><span><i style="background:' + DLC.pro + '"></i>ISB/RWP</span></div>' +
+    '<div class="sxhs"><div class="sxbig"><div class="sxkl"><i class="dg"></i>Delivery ratio</div><div class="sxnum">' + pc(t.ratio) + '</div><div class="sxms">' + nm(t.delivered) + " of " + nm(t.counted) + " shipped orders delivered</div></div>" +
+    '<div><div class="sxkl"><i class="dc"></i>ISB/RWP</div><div class="sxnum sm">' + pc(L0.ratio) + '</div><div class="sxms">' + nm(L0.delivered) + " of " + nm(L0.total) + '</div></div><div><div class="sxkl"><i class="dy"></i>Still open</div><div class="sxnum sm">' + nm(t.open) + '</div></div></div>' +
+    dsegN([[t.deliveredTcs, "sg"], [t.deliveredRider, "sc"], [t.failed, "sr"], [t.open, "sy"]]) +
+    '<div class="sxkey dk" style="margin-top:12px"><span><i style="background:' + DLC.del + '"></i>TCS</span><span><i style="background:' + DLC.pro + '"></i>ISB/RWP</span><span><i style="background:' + DLC.ret + '"></i>Failed</span><span><i style="background:#FFC93C"></i>Open</span></div>' +
+    '<p class="sxsub" style="margin-top:12px">' + nm(t.cancelled) + " cancelled fake orders are left out because they were never booked." + (t.unaccounted ? " " + nm(t.unaccounted) + " orders could not be accounted for." : "") + "</p></section>" +
+    '<div class="sxtiles">' + tiles.map(x => '<div class="sxtile"><div class="sxtl"><i class="d' + x[3] + '"></i>' + esc(x[0]) + '</div><div class="sxtv">' + esc(x[1]) + '</div><div class="sxts">' + esc(x[2]) + "</div></div>").join("") + "</div>" +
+    card("What the final ratio could be", "As open orders get their final status", totRate([
+      { a: "Best case", b: pc(sc.best.ratio), v: sc.best.ratio, cls: "good", mark: t.ratio, c: "Every open order gets delivered · " + sc.best.delivered + " of " + t.counted },
+      { a: "Worst case", b: pc(sc.worst.ratio), v: sc.worst.ratio, cls: "bad", mark: t.ratio, c: "No more deliveries · " + sc.worst.delivered + " delivered, " + sc.worst.failures + " did not" },
+      { a: "With the " + t.cancelled + " cancelled orders", b: pc(sc.withCancelled.ratio), v: sc.withCancelled.ratio, cls: "", mark: t.ratio, c: t.delivered + " of " + sc.withCancelled.base }])
+    + '<p class="sxsub" style="margin-top:12px">White line = ratio today (' + pc(t.ratio) + ")</p>") +
+    card("By store", "Delivered share of counted orders", totRate((d.stores || []).map(s => ({ a: s.label, b: pc(s.ratio), v: s.ratio, cls: "good", c: s.delivered + " of " + s.counted + " delivered" + (s.small ? " · fewer than 5 orders, not reliable" : "") })))) +
+    card("All orders placed", "", '<div class="sxkvs">' + kv("Cancelled or fake", nm(sp.cancelled)) + kv("Delivered by ISB/RWP (courier sheet)", nm(sp.rider)) + kv("Booked on TCS", nm(sp.tcs)) + kv("Not accounted for", nm(sp.unaccounted)) + kv("Total orders placed", nm(sp.total), 1) + "</div>" + ok(d.checks && d.checks[1])) +
+    card("Order numbers and booking dates", "TCS bookings often happen 1 to 3 days after the order date", '<div class="sxkvs">' + (d.stores || []).map(s => kv(s.label, "#" + s.first + " to #" + s.last + " · " + s.total + " orders")).join("") + Object.keys(d.bookedDays || {}).sort().map(k => kv("Booked on TCS " + sxDate(k), nm(d.bookedDays[k]))).join("") + "</div>") +
+    '<h2 class="sxdh">Order lists</h2></div>';
+}
 function renderTotal() {
   const d = tot.data; if (!d) return;
   const { t, sc, lists } = totalSections(d);
@@ -1461,7 +1581,7 @@ function renderTotal() {
     (rd.length ? "<table><tr><th>Order</th><th>City</th><th>Status</th><th class=\"n\">Amount</th></tr>" + rd.map(x => "<tr><td><strong>" + esc(x.order) + '</strong><div class="sub">' + esc(x.store) + "</div></td><td>" + esc(x.city || "") + "</td><td>" + x.status + '</td><td class="n">' + rs(x.amount) + "</td></tr>").join("") + "</table>" : '<p class="sub">No orders were matched to our rider for this day.</p>') + "</details>";
   const lst = '<div class="lst">' + riderBox + lists.map(([n, a]) => "<details><summary>" + n + " (" + a.length + ")</summary>" + listRows(a) + "</details>").join("") + "</div>";
   const foot = '<p class="note">' + esc(d.window.note) + ". ISB/RWP delivery orders are matched to the courier sheet by amount and a similar name" + (d.sheet ? " (" + d.sheet.rows + " sheet rows read just now, " + new Date(d.sheet.fetchedAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) + ")" : "") + ". Checks: " + d.checks.map(c => (c.ok ? "✓ " : "✗ ") + esc(c.name)).join(" · ") + "</p>";
-  $("#totBody").innerHTML = box + localBox + ratioBars(d.daily) + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + lst + foot;
+  $("#totBody").innerHTML = (smallMQ() ? totalPhone(d) : "") + box + localBox + ratioBars(d.daily) + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + lst + foot;
 }
 
 $("#totPdf").onclick = () => {
@@ -2891,6 +3011,77 @@ function statusLine(map) {
   const e = Object.entries(map || {}).sort((a, b) => b[1] - a[1]);
   return e.map(([k, v]) => v + " " + k.toLowerCase()).join(" · ");
 }
+/* ---------- TCS delivery report: phone dashboard (built only on phones; the city table below stays) ---------- */
+const DLC = { del: "#6BFF6B", ret: "#FF6B6B", pro: "#22D3EE" };
+function dlvBars(dl) {
+  if (!dl.length) return "";
+  const W = chartW(), H = 176, L = 4, R = 4, T = 14, B = 28, n = dl.length, pw = (W - L - R) / n, bw = Math.max(3, Math.min(22, pw * 0.64));
+  const tot = (x) => (x.delivered || 0) + (x.returned || 0) + (x.inProcess || 0);
+  const max = Math.max.apply(null, dl.map(tot).concat([1])), step = Math.max(1, Math.ceil(n / 5));
+  let g = '<defs><filter id="dlgl" x="-60%" y="-20%" width="220%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+  dl.forEach((x, i) => {
+    const bx = L + i * pw + (pw - bw) / 2; let y = H - B; const hot = tot(x) === max;
+    [["delivered", DLC.del], ["returned", DLC.ret], ["inProcess", DLC.pro]].forEach(s => {
+      const v = x[s[0]] || 0; if (!v) return; const h = Math.max(2, (H - T - B) * v / max); y -= h;
+      g += '<rect x="' + bx.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="' + Math.min(bw / 2, 3).toFixed(1) + '" fill="' + s[1] + '"' + (hot && s[0] === "delivered" ? ' filter="url(#dlgl)"' : "") + "/>";
+    });
+    g += '<rect x="' + (L + i * pw).toFixed(1) + '" y="' + T + '" width="' + pw.toFixed(1) + '" height="' + (H - T - B) + '" fill="transparent"><title>' + esc(sxDate(x.day) + ": " + tot(x) + " booked · " + (x.delivered || 0) + " delivered · " + (x.returned || 0) + " returned · " + (x.inProcess || 0) + " in process") + "</title></rect>";
+    if (i % step === 0 || i === n - 1) g += '<text x="' + (bx + bw / 2).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle" class="sxl">' + esc(sxDate(x.day)) + "</text>";
+  });
+  return '<svg class="sxsvg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Parcels booked each day by outcome">' + g + "</svg>";
+}
+function dlvSeg(x, y, z) { return '<div class="dseg"><i class="sg" style="flex:' + (x || 0) + '"></i><i class="sr" style="flex:' + (y || 0) + '"></i><i class="sc" style="flex:' + (z || 0) + '"></i></div>'; }
+function dlvRing(t) {
+  const parts = [["Delivered", t.delivered || 0, DLC.del], ["Returned", t.returned || 0, DLC.ret], ["In process", t.inProcess || 0, DLC.pro]], tot = parts.reduce((s, p) => s + p[1], 0);
+  if (!tot) return "";
+  const R = 52, C = 2 * Math.PI * R; let off = 0;
+  const arcs = parts.filter(p => p[1]).map(p => { const len = C * p[1] / tot, draw = Math.max(0.5, len - 3); const el = '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="' + p[2] + '" stroke-width="16" stroke-dasharray="' + draw.toFixed(2) + " " + (C - draw).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 70 70)"/>'; off += len; return el; }).join("");
+  const svg = '<svg class="sxdn" viewBox="0 0 140 140" role="img" aria-label="Delivered, returned and in process share"><circle cx="70" cy="70" r="' + R + '" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="16"/>' + arcs + '<text x="70" y="68" text-anchor="middle" class="sxdt">' + tot.toLocaleString("en-PK") + '</text><text x="70" y="86" text-anchor="middle" class="sxl">parcels</text></svg>';
+  const leg = '<div class="sxleg">' + parts.map(p => '<div><i style="background:' + p[2] + '"></i><span>' + p[0] + "</span><b>" + p[1].toLocaleString("en-PK") + " · " + (100 * p[1] / tot).toFixed(1) + "%</b></div>").join("") + "</div>";
+  return '<div class="sxdw">' + svg + leg + "</div>";
+}
+function dlvStuck(d) {
+  const e = Object.entries(d.inProcessStatus || {}).sort((a, b) => b[1] - a[1]); if (!e.length) return "";
+  const issues = new Set(d.issueLabels || []), tot = e.reduce((a, x) => a + x[1], 0), mx = e[0][1];
+  return '<div class="sxlist">' + e.map(x => { const bad = issues.has(x[0]); return '<div class="sxr"><div class="sxrt"><span>' + esc(x[0]) + "</span><b>" + x[1] + '</b></div><div class="sxbar"><i class="' + (bad ? "bad" : "") + '" style="width:' + Math.max(3, 100 * x[1] / mx).toFixed(1) + '%"></i></div><div class="sxrs">' + Math.round(100 * x[1] / tot) + "% of in-process" + (bad ? ' · <span class="sxwarn">needs attention</span>' : "") + "</div></div>"; }).join("") + "</div>";
+}
+function dlvCities(d) {
+  const top = (d.cities || []).filter(c => c.booked).slice().sort((a, b) => b.booked - a.booked).slice(0, 10); if (!top.length) return "";
+  const mx = top[0].booked;
+  return '<div class="sxlist">' + top.map(c => '<div class="sxr"><div class="sxrt"><span>' + esc(c.city) + "</span><b>" + c.booked + " · " + (c.deliveredPctClosed == null ? "–" : c.deliveredPctClosed + "%") + '</b></div><div class="dtrack" style="width:' + Math.max(8, 100 * c.booked / mx).toFixed(1) + '%">' + dlvSeg(c.delivered, c.returned, c.inProcess) + '</div></div>').join("") + "</div>" +
+    '<div class="sxkey"><span><i style="background:' + DLC.del + '"></i>Delivered</span><span><i style="background:' + DLC.ret + '"></i>Returned</span><span><i style="background:' + DLC.pro + '"></i>In process</span></div>';
+}
+function dlvRate(list, bad, avg) {
+  if (!list.length) return '<p class="sxn">Not enough cities with ' + MIN_FINISHED + " or more finished parcels yet.</p>";
+  return '<div class="sxlist">' + list.map(c => '<div class="sxr"><div class="sxrt"><span>' + esc(c.city) + "</span><b>" + c.deliveredPctClosed + "%</b></div>" + '<div class="sxbar">' + '<i class="' + (bad ? "bad" : "good") + '" style="width:' + Math.max(2, c.deliveredPctClosed) + '%"></i>' + (avg != null ? '<u style="left:' + avg + '%"></u>' : "") + '</div><div class="sxrs">' + c.delivered + " delivered of " + c.closed + " finished" + (c.inProcess ? " · " + c.inProcess + " in process" : "") + "</div></div>").join("") + "</div>";
+}
+function deliveryPhone(d) {
+  const t = d.totals, dl = d.daily || [], card = (title, sub, inner) => '<section class="sxc"><h3>' + title + "</h3>" + (sub ? '<p class="sxsub">' + sub + "</p>" : "") + inner + "</section>";
+  const fin = t.closed || 0, nm = (x) => (x == null ? "–" : Number(x).toLocaleString("en-PK"));
+  const q = (d.cities || []).filter(c => c.closed >= MIN_FINISHED && c.deliveredPctClosed != null).sort((a, b) => b.deliveredPctClosed - a.deliveredPctClosed || b.closed - a.closed);
+  const k = Math.min(7, Math.floor(q.length / 2)), best = q.slice(0, k), worst = q.slice(q.length - k).reverse(), avg = t.deliveredPctClosed;
+  const tiles = [
+    ["Delivered amount", rs(t.deliveredAmount), pc(t.deliveredAmountPct) + " of delivered + returned" + (t.deliveredNoAmount ? " · " + t.deliveredNoAmount + " with no amount yet" : ""), "g"],
+    ["Returned amount", rs(t.returnedAmount), "Value of " + ((t.returned || 0) - (t.returnedNoAmount || 0)) + " returned parcels" + (t.returnedNoAmount ? " · " + t.returnedNoAmount + " with no amount" : ""), "r"],
+    ["Booked", nm(t.booked), rs(t.bookedAmount) + " booked" + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (t.notPicked ? " · " + t.notPicked + " not picked up yet" : ""), "c"],
+    ["Undelivered", nm(t.undelivered || 0), "Failed attempt or address / phone problem (part of in process)", "y"],
+    ["Delivered of booked", pc(t.deliveredPctBooked), nm(t.delivered) + " of " + nm(t.booked) + " booked", "g"],
+    ["Returned of finished", pc(t.returnedPctClosed), nm(t.returned) + " of " + nm(fin) + " finished", "r"]
+  ];
+  return '<div class="sxwrap">' +
+    '<section class="sxhero"><div class="sxht"><div><h2>TCS Delivery</h2><p class="sxsub">' + esc(sxDate(d.range.from) + " to " + sxDate(d.range.to)) + '</p></div><span class="sxbadge">' + (d.range.days || dl.length) + " days</span></div>" + dlvBars(dl) +
+    '<div class="sxkey dk"><span><i style="background:' + DLC.del + '"></i>Delivered</span><span><i style="background:' + DLC.ret + '"></i>Returned</span><span><i style="background:' + DLC.pro + '"></i>In process</span></div>' +
+    '<div class="sxhs"><div class="sxbig"><div class="sxkl"><i class="dg"></i>Delivered rate</div><div class="sxnum">' + pc(t.deliveredPctClosed) + '</div><div class="sxms">of ' + nm(fin) + " finished parcels</div></div>" +
+    '<div><div class="sxkl"><i class="dg"></i>Delivered</div><div class="sxnum sm">' + nm(t.delivered) + '</div></div><div><div class="sxkl"><i class="dr"></i>Returned</div><div class="sxnum sm">' + nm(t.returned) + '</div></div><div class="sxbig"><div class="sxkl"><i class="dc"></i>In process</div><div class="sxnum sm">' + nm(t.inProcess) + '</div><div class="sxms">' + esc(statusLine(d.inProcessStatus) || "Nothing on the way") + "</div></div></div>" +
+    dlvSeg(t.delivered, t.returned, t.inProcess) + "</section>" +
+    '<div class="sxtiles">' + tiles.map(x => '<div class="sxtile"><div class="sxtl"><i class="d' + x[3] + '"></i>' + esc(x[0]) + '</div><div class="sxtv">' + esc(x[1]) + '</div><div class="sxts">' + esc(x[2]) + "</div></div>").join("") + "</div>" +
+    card("Parcel status", "Share of all parcels booked in this range", dlvRing(t)) +
+    (dlvStuck(d) ? card("Where in-process parcels are stuck", "Latest TCS status of parcels not yet delivered or returned", dlvStuck(d)) : "") +
+    card("Busiest cities", "Top 10 by parcels booked · parcels · delivered %", dlvCities(d)) +
+    card("Highest delivery rate", "Cities with " + MIN_FINISHED + "+ finished parcels · line = overall " + pc(avg), dlvRate(best, false, avg)) +
+    card("Lowest delivery rate", "Cities with " + MIN_FINISHED + "+ finished parcels · line = overall " + pc(avg), dlvRate(worst, true, avg)) +
+    '<h2 class="sxdh">All cities</h2></div>';
+}
 function renderReport() {
   const d = rep.data; if (!d) return;
   const t = d.totals;
@@ -2907,6 +3098,7 @@ function renderReport() {
     card("", "Booked", t.booked, "<strong>" + rs(t.bookedAmount) + "</strong> booked amount · " + esc(d.range.from) + " to " + esc(d.range.to) + (t.cancelled ? " · " + t.cancelled + " cancelled left out" : "") + (t.notPicked ? " · " + t.notPicked + " booked but not picked up yet, left out" : "") + (d.supplemented ? " · " + d.supplemented + " still on the way added from tracking" : ""));
   renderCharts();
   renderCities();
+  if (smallMQ()) { $("#repCards").innerHTML = ""; $("#repCharts").innerHTML = deliveryPhone(d); }
 }
 
 /* ---------- charts (plain SVG/CSS, no libraries) ---------- */
