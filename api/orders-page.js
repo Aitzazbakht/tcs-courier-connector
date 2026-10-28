@@ -1837,7 +1837,7 @@ async function woCreate(idxs) {
     const keep = [];
     idxs.forEach((oi, n) => {
       const r = d.results[n] || {};
-      if (r.status === "created") wo.done.push({ text: "Created " + r.name + " for " + list[n].name + " (" + woMoney(r.total) + ")" + (r.customerOrders ? ", customer now has " + r.customerOrders + " order" + (r.customerOrders > 1 ? "s" : "") : "") });
+      if (r.status === "created") wo.done.push({ bad: !!r.customerNote, text: "Created " + r.name + " for " + list[n].name + " (" + woMoney(r.total) + ")" + (r.customerNote ? ". Warning: " + r.customerNote : "") + (r.customerOrders ? ", customer now has " + r.customerOrders + " order" + (r.customerOrders > 1 ? "s" : "") : "") });
       else if (r.status === "failed") { wo.done.push({ bad: true, text: "Not created: " + list[n].name + ". " + r.error }); keep.push(oi); }
       else keep.push(oi);
     });
