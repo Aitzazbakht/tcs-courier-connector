@@ -139,7 +139,7 @@ export default async function handler(req, res) {
       if (body.action === "stock_alert") return res.status(200).json(await stockAlert(String(body.id || ""), body.reorder));
       if (body.action === "stock_roll") return res.status(200).json(await stockRoll());
     }
-    if (body.action === "sales_report") return res.status(200).json(await salesReport(String(body.date || "")));
+    if (body.action === "sales_report") return res.status(200).json(await salesReport(String(body.date || ""), { to: String(body.to || "") }));
     if (body.action === "ad_spend") {
       if (!(await pinGate(res, body.pin))) return;
       return res.status(200).json(await adSpend(String(body.date || ""), String(body.to || "")));

@@ -1256,13 +1256,15 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
 
   <section class="panel" id="p-sales" hidden>
     <div class="toolbar">
-      <label class="field">Date <input type="date" id="salDate"></label>
+      <label class="field">From <input type="date" id="salDate"></label>
+      <label class="field">To <input type="date" id="salTo"></label>
       <button class="btn primary" id="salRun">Show report</button>
       <button class="btn" id="salYest">Yesterday</button>
+      <button class="btn" id="sal7">Last 7 days</button>
       <button class="btn" id="salPdf" disabled data-tip="Opens a print view. Choose Save as PDF in the print window.">Download PDF</button>
       <span class="stats" id="salMeta" style="margin-left:auto"></span>
     </div>
-    <div id="salBody"><p class="note">Open this tab to load yesterday's sales, or pick a date.</p></div>
+    <div id="salBody"><p class="note">Open this tab to load yesterday's sales, or pick a date or a range of up to 7 days.</p></div>
   </section>
 
   <section class="panel" id="p-setup" hidden>
@@ -1916,19 +1918,21 @@ function stInit() {
 
 /* ---------- Sales report tab ---------- */
 let sal = { data: null, loading: false };
-$("#salDate").value = yesterdayPK();
+$("#salDate").value = yesterdayPK(); $("#salTo").value = yesterdayPK();
+$("#salDate").onchange = () => { if ($("#salTo").value < $("#salDate").value) $("#salTo").value = $("#salDate").value; };
 function ensureSales() { if (!sal.data && !sal.loading) runSales(); }
 async function runSales() {
   if (sal.loading) return;
-  const date = $("#salDate").value; if (!date) return log("Pick a date.");
+  const date = $("#salDate").value, to = $("#salTo").value || date; if (!date) return log("Pick a date."); if (to < date) return log("The end date is before the start date.");
   sal.loading = true; $("#salRun").disabled = true; $("#salPdf").disabled = true; log("");
   $("#salBody").innerHTML = '<p class="note">Reading orders, Chitral Herbs orders and ad spend… this can take up to a minute.</p>';
-  try { sal.data = await post({ action: "sales_report", date }); renderSales(); if (sal.data.warnings.length) log(sal.data.warnings.join("  ·  ")); }
+  try { sal.data = await post({ action: "sales_report", date, to }); renderSales(); if (sal.data.warnings.length) log(sal.data.warnings.join("  ·  ")); }
   catch (e) { sal.data = null; $("#salBody").innerHTML = '<p class="note">Could not load the report: ' + esc(e.message) + "</p>"; log(e.message); }
   finally { sal.loading = false; $("#salRun").disabled = false; }
 }
 $("#salRun").onclick = () => runSales();
-$("#salYest").onclick = () => { $("#salDate").value = yesterdayPK(); runSales(); };
+$("#salYest").onclick = () => { $("#salDate").value = yesterdayPK(); $("#salTo").value = yesterdayPK(); runSales(); };
+$("#sal7").onclick = () => { const y = yesterdayPK(); $("#salTo").value = y; $("#salDate").value = new Date(Date.parse(y + "T00:00:00Z") - 6 * 86400000).toISOString().slice(0, 10); runSales(); };
 $("#salDate").onkeydown = (e) => { if (e.key === "Enter") runSales(); };
 const xr = (v) => v == null ? "–" : v + "x";
 const spct = (v) => v == null ? "–" : Number(v).toFixed(2) + "%";
@@ -1939,8 +1943,8 @@ const srow = (cells, sum) => "<tr" + (sum ? ' class="sum"' : "") + ">" + cells.m
 function salesSections(d) {
   const k = d.kpi, m = d.mix;
   const kp = [
-    ["Total sales", rs(k.totalSales), k.change == null ? "" : (k.change >= 0 ? "+" : "") + k.change + "% vs previous day"],
-    ["Orders", String(k.orders), k.prevOrders == null ? "" : "Previous day " + k.prevOrders],
+    ["Total sales", rs(k.totalSales), k.change == null ? "" : (k.change >= 0 ? "+" : "") + k.change + (d.days > 1 ? "% vs previous " + d.days + " days" : "% vs previous day")],
+    ["Orders", String(k.orders), k.prevOrders == null ? "" : (d.days > 1 ? "Previous period " : "Previous day ") + k.prevOrders],
     ["Average order", rs(k.aov), ""],
     ["Sessions", k.sessions == null ? "–" : String(k.sessions), k.conversion == null ? "Not available from Shopify" : "Web conversion " + spct(k.conversion)],
     ["Paid share", spct(k.paidShare), rs(k.paidSales)],
@@ -1998,14 +2002,15 @@ function renderSales() {
 $("#salPdf").onclick = () => {
   const d = sal.data; if (!d) return; const S = salesSections(d);
   const css = "@page{size:A4;margin:11mm}*{box-sizing:border-box}body{font:9pt/1.35 Arial,Helvetica,sans-serif;color:#111;margin:0}h1{font-size:17pt;margin:0}h2{font-size:10.5pt;margin:12px 0 4px;color:#2F6B4F}.sub{color:#555;margin:2px 0 10px}.k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.k div{border:1px solid #ccc;border-radius:6px;padding:6px 9px}.k b{display:block;font-size:14pt}.k small{color:#555}table{width:100%;border-collapse:collapse;font-size:8.5pt}th{background:#2F6B4F;color:#fff;text-align:left;padding:3px 5px}td{padding:3px 5px;border-bottom:1px solid #ddd;vertical-align:top}.n{text-align:right;white-space:nowrap}tr.sum td{font-weight:800;background:#E3EFE8}.note{font-size:8.5pt;color:#444}";
-  const fdate = new Date(d.date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const fd1 = (x, w) => new Date(x + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: w ? "long" : undefined, day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const fdate = d.dateTo && d.dateTo !== d.date ? fd1(d.date) + " to " + fd1(d.dateTo) : fd1(d.date, 1);
   const sec = (t, h) => "<h2>" + t + "</h2>" + h;
   const body = "<h1>Chitral House — Daily Sales Report</h1><div class=\"sub\">chitralhouse.com + chitralherbs.com · " + esc(fdate) + " · currency PKR · pulled " + esc(d.pulledAt) + "</div>" +
     '<div class="k">' + S.kp.map(c => "<div><small>" + esc(c[0]) + "</small><b>" + esc(c[1]) + "</b><small>" + esc(c[2]) + "</small></div>").join("") + "</div><p class=\"note\">" + esc(S.mix) + "</p>" +
     sec("1. Sales by channel", S.ch) + sec("2. Sales by platform", S.pl) + sec("3. Ad platforms vs Shopify", S.ad) + sec("3a. Campaigns with spend", S.camp) + sec("4. Sessions funnel by traffic source", S.fun) +
     sec("5. WhatsApp orders", S.wa) + sec("6. WhatsApp Marketing link orders", S.wm) + sec("7. Chitral Herbs orders", S.hb) + sec("8. Products sold", S.pr) + sec("9. Products by channel", S.pbc) + sec("10. All orders with attribution", S.od) + sec("11. Referrer view", S.rv) + sec("12. UTM view", S.uv);
   const w = window.open("", "_blank"); if (!w) return log("Allow pop-ups to open the print view.");
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Sales report ' + esc(d.date) + "</title><style>" + css + "</style></head><body>" + body + "</body></html>"); w.document.close(); setTimeout(() => w.print(), 300);
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Sales report ' + esc(d.date + (d.dateTo && d.dateTo !== d.date ? ' to ' + d.dateTo : '')) + "</title><style>" + css + "</style></head><body>" + body + "</body></html>"); w.document.close(); setTimeout(() => w.print(), 300);
 };
 
 function showTab(name) {
