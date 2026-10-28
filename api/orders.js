@@ -62,6 +62,10 @@ export default async function handler(req, res) {
       }
       return res.status(200).json(out);
     }
+    if (req.method === "GET" && url.searchParams.get("wa_phase1_test") === "go") {
+      // One-off Phase 1 check: creates ONE order tagged Test, e.g. ?key=..&wa_phase1_test=go
+      try { return res.status(200).json(await phase1Test()); } catch (e) { return res.status(200).json({ error: e.message }); }
+    }
     if (req.method === "GET" && url.searchParams.get("explore")) {
       // Read-only peek at TCS inquiry/report/setup endpoints, e.g. ?key=..&explore=/ecom/api/report/loadsheetlogs&fromdate=2026-10-01&todate=2026-10-07
       const params = Object.fromEntries([...url.searchParams].filter(([k]) => !["key", "explore"].includes(k)));
