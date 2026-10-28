@@ -1950,7 +1950,7 @@ function salesSections(d) {
   const tot = (a, f) => a.reduce((x, y) => x + (f(y) || 0), 0);
   const hasF = !!d.funnel;
   const ch = stbl([["Channel"], ["Type"], ["Orders", 1], ["Total sales", 1], ["Share", 1], ["AOV", 1]].concat(hasF ? [["Sessions", 1], ["Conv. rate", 1]] : []),
-    d.channels.map(r => srow([[esc(r.channel)], [esc(r.type)], [r.orders, 1], [rs(r.sales), 1], [spct(r.share), 1], [rs(r.aov), 1]].concat(hasF ? [[r.sessions == null ? "–" : r.sessions, 1], [r.conv == null ? "–" : spct(r.conv), 1]] : []))).concat(srow([["Total"], [""], [tot(d.channels, r => r.orders), 1], [rs(tot(d.channels, r => r.sales)), 1], ["100%", 1], [rs(k.aov), 1]].concat(hasF ? [[k.sessions == null ? "–" : k.sessions, 1], [k.conversion == null ? "–" : spct(k.conversion), 1]] : []), 1)));
+    d.channels.map(r => srow([[esc(r.channel)], [esc(r.type)], [r.orders, 1], [rs(r.sales), 1], [spct(r.share), 1], [rs(r.aov), 1]].concat(hasF ? [[r.sessions == null ? "–" : r.sessions, 1], [r.conv == null || r.conv > 100 ? "–" : spct(r.conv), 1]] : []))).concat(srow([["Total"], [""], [tot(d.channels, r => r.orders), 1], [rs(tot(d.channels, r => r.sales)), 1], ["100%", 1], [rs(k.aov), 1]].concat(hasF ? [[k.sessions == null ? "–" : k.sessions, 1], [k.conversion == null ? "–" : spct(k.conversion), 1]] : []), 1)));
   const pl = stbl([["Platform"], ["Orders", 1], ["Total sales", 1], ["Share", 1]], d.platforms.map(r => srow([[esc(r.platform)], [r.orders, 1], [rs(r.sales), 1], [spct(r.share), 1]])));
   const hasC = !!d.camps;
   const ad = stbl([["Platform"], ["Spend", 1], ["Platform purchases", 1], ["Platform value", 1], ["Platform ROAS", 1], ["Shopify orders", 1], ["Credited sales", 1], ["Shopify ROAS", 1]],
