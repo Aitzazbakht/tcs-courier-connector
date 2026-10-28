@@ -1979,6 +1979,7 @@ function renderSales() {
   const notes = [];
   if (d.notes.missingUtm.length) notes.push("Paid orders with no UTM source (missing tracking): " + d.notes.missingUtm.join(", "));
   if ((d.notes.unmatchedMeta || []).length) notes.push("Meta orders whose campaign id matched no campaign with spend (counted under Chitral House): " + d.notes.unmatchedMeta.join(", "));
+  if ((d.notes.adjustments || []).length) notes.push("Refunds and returns booked today for earlier orders (included in the channel totals, no new order): " + d.notes.adjustments.map(x => x.name + " " + rs(x.amount) + " (" + x.channel + ")").join(", "));
   if (d.notes.cancelled.length) notes.push("Cancelled orders left out: " + d.notes.cancelled.join(", "));
   if (d.notes.herbsSkipped.length) notes.push("Chitral Herbs orders left out: " + d.notes.herbsSkipped.join(", "));
   $("#salBody").innerHTML =
