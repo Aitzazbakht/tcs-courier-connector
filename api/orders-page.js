@@ -1440,15 +1440,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   </section>
 
   <section class="panel" id="p-waord" hidden>
-    <div class="sheet" id="woGate" style="max-width:360px;margin:48px auto;padding:24px;text-align:center">
-      <p class="note" style="margin:0 0 14px">This tab creates real orders, so it is locked. Enter the PIN to open it.</p>
-      <form id="woForm" style="display:flex;gap:8px;justify-content:center">
-        <input id="woPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="PIN" aria-label="PIN" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;flex:1;background:var(--surface)">
-        <button class="btn primary" type="submit">Unlock</button>
-      </form>
-      <p class="note" id="woMsg0" style="margin:12px 0 0" aria-live="polite"></p>
-    </div>
-    <div id="woBody" hidden>
+    <div id="woBody">
       <div class="sheet wopaste">
         <label for="woText" class="wolab">Paste the WhatsApp orders (one or many)</label>
         <textarea id="woText" rows="9" spellcheck="false" placeholder="Name :: ...&#10;Address :: ...&#10;City :: ...&#10;Mobile :: ...&#10;PKG :: ...&#10;Amount :: ...&#10;Platform :: ..."></textarea>
@@ -1745,24 +1737,12 @@ $("#setupForm").onsubmit = async (e) => {
   finally { $("#setupPin").value = ""; $("#setupGo").disabled = false; ensureSetup(); }
 };
 
-/* ---------- WhatsApp orders tab (PIN protected, shares the Setup PIN) ---------- */
+/* ---------- WhatsApp orders tab (no PIN, like the other tabs) ---------- */
 let wo = { orders: [], catalog: [], warnings: [], busy: false, log: null, done: [] };
 const woCall = async (b) => { const d = await post(Object.assign({ pin: setupPin }, b)); if (d && d.error) throw new Error(d.error); return d; };
 const woMsg = (t, bad) => { const m = $("#woMsg"); m.textContent = t || ""; m.style.color = bad ? "var(--rust)" : ""; };
 function woBusy(on, t) { wo.busy = on; ["#woGo", "#woClear"].forEach((s) => { $(s).disabled = on; }); document.querySelectorAll("#woRes button").forEach((b) => { b.disabled = on; }); if (t) woMsg(t); }
-function ensureWaord() {
-  $("#woGate").hidden = setupOpen; $("#woBody").hidden = !setupOpen;
-  if (!setupOpen) { setTimeout(() => $("#woPin").focus(), 0); return; }
-  if (!wo.log) woLoadLog();
-}
-$("#woForm").onsubmit = async (e) => {
-  e.preventDefault();
-  const pin = $("#woPin").value.trim(); if (!pin) return;
-  $("#woMsg0").textContent = "Checking…";
-  try { await post({ action: "setup_unlock", pin: pin }); setupOpen = true; setupPin = pin; $("#woMsg0").textContent = ""; }
-  catch (err) { $("#woMsg0").textContent = err.message; }
-  $("#woPin").value = ""; ensureWaord();
-};
+function ensureWaord() { if (!wo.log) woLoadLog(); }
 const woPlain = (o) => ({ name: o.name, address: o.address, city: o.city, phones: o.phones, items: (o.items || []).map((i) => ({ key: i.key, qty: i.qty, raw: i.raw })), custom: o.custom, amount: o.amount, platform: o.platform, platformTags: o.platformTags, note: o.note, discount: o.discount, delivery: o.delivery, ack: o.ack, skip: o.skip, salt: o.salt, raw: o.raw, isTest: $("#woTest").checked });
 function woApply(d) { wo.orders = d.orders || []; if (d.catalog && d.catalog.length) wo.catalog = d.catalog; wo.warnings = d.warnings || []; woRender(); }
 async function woAnalyze() {
@@ -1799,7 +1779,8 @@ function woCard(o, i) {
   const money = o.mode === "prepaid" ? "Prepaid, total " + woMoney(o.total) : o.mode === "free" ? "Free gift (100% discount)" : o.amount == null ? "COD amount missing" : "COD " + woMoney(o.amount) + (o.deliveryFee ? " (includes " + woMoney(o.deliveryFee) + " delivery)" : "") + (o.discount ? " (after " + woMoney(o.discount) + " discount)" : "");
   const flags = (o.flags || []).map((f, j) => '<div class="woflag ' + f.sev + '">' + esc(f.msg) + ((f.fix || []).length ? '<div class="fx">' + f.fix.map((x, k) => '<button type="button" data-act="fix" data-i="' + i + '" data-j="' + j + '" data-k="' + k + '">' + esc(x.label) + "</button>").join("") + "</div>" : "") + "</div>").join("");
   const phones = (o.phone || "") + ((o.altPhones || []).length ? " (also " + o.altPhones.join(", ") + ")" : "");
-  const tags = (o.tags || []).map((t) => '<span class="chip" style="background:var(--line)">' + esc(t) + "</span>").join("");
+  const cust = o.customer ? '<span class="chip" style="background:var(--house-soft);color:var(--house)">Existing customer · ' + o.customer.orders + ' order' + (o.customer.orders === 1 ? '' : 's') + '</span>' : (o.customer === null ? '<span class="chip" style="background:var(--pine-soft);color:var(--pine)">New customer</span>' : '');
+  const tags = cust + (o.tags || []).map((t) => '<span class="chip" style="background:var(--line)">' + esc(t) + "</span>").join("");
   const catOpts = (sel) => (wo.catalog || []).map((c) => '<option value="' + esc(c.key) + '"' + (c.key === sel ? " selected" : "") + ">" + esc(c.title.slice(0, 48)) + (c.price != null ? " (Rs " + c.price + ")" : "") + "</option>").join("");
   const itemRows = (o.items || []).map((it, k) => '<div class="it"><select data-i="' + i + '" data-it="' + k + '" data-f="itemkey"><option value="unknown"' + (it.key === "unknown" ? " selected" : "") + ">Choose…</option>" + catOpts(it.key) + '</select><input type="number" min="1" value="' + it.qty + '" data-i="' + i + '" data-it="' + k + '" data-f="itemqty" aria-label="Quantity"><button type="button" data-act="rmitem" data-i="' + i + '" data-it="' + k + '">✕</button></div>').join("");
   const platOn = o.platTags || [];
@@ -3512,7 +3493,7 @@ const TIPS = [
   ['.tab[data-tab="total"]', "The delivery ratio of every order placed on one day, from both stores: TCS parcels tracked live plus orders delivered locally in Islamabad and Rawalpindi (ISB/RWP delivery, from the courier sheet) (from the courier sheet)."],
   ['.tab[data-tab="stock"]', "Packaging-parts stock: levels, alerts, what can be packed, and recording dispatches, returns, deliveries and counts."],
   ['.tab[data-tab="sales"]', "The daily sales report: sales by channel, WhatsApp, Chitral Herbs, products and ad spend for one day."],
-  ['.tab[data-tab="waord"]', "Paste WhatsApp orders, check them, and create real Shopify orders. Locked with the PIN."],
+  ['.tab[data-tab="waord"]', "Paste WhatsApp orders, check them, and create real Shopify orders."],
   ['.tab[data-tab="setup"]', "Locked settings area. Enter the PIN to open it."],
   ["#setupGo", "Checks the PIN with the server. Nothing opens until it is correct."],
   ["#pfDate", "The day the orders were placed (Pakistan time), or the first day of a range. Defaults to yesterday."],

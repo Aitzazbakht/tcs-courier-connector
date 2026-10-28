@@ -141,8 +141,7 @@ export default async function handler(req, res) {
       if (body.action === "stock_roll") return res.status(200).json(await stockRoll());
     }
     if (typeof body.action === "string" && body.action.startsWith("waord_")) {
-      // WhatsApp Orders tab: creates real orders, so everything here needs the Setup PIN.
-      if (!(await pinGate(res, body.pin))) return;
+      // WhatsApp Orders tab: no PIN (the page link's connector key is the protection, like the other tabs).
       const list = (x) => (Array.isArray(x) ? x : []).slice(0, 60);
       try {
         if (body.action === "waord_analyze") return res.status(200).json(await waorders.analyze(String(body.text || "")));
