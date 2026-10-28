@@ -17,6 +17,7 @@ import { startExport, exportStatus, streamStore } from "../lib/marketing.js";
 import { profitReport } from "../lib/profit.js";
 import { adSpend } from "../lib/ads.js";
 import { herbsOrders } from "../lib/herbs.js";
+import { salesReport } from "../lib/sales.js";
 import { stockGet, stockMove, stockUndo, stockAlert, stockRoll } from "../lib/stock.js";
 import { runAuto } from "../lib/stockauto.js";
 
@@ -138,6 +139,7 @@ export default async function handler(req, res) {
       if (body.action === "stock_alert") return res.status(200).json(await stockAlert(String(body.id || ""), body.reorder));
       if (body.action === "stock_roll") return res.status(200).json(await stockRoll());
     }
+    if (body.action === "sales_report") return res.status(200).json(await salesReport(String(body.date || "")));
     if (body.action === "ad_spend") {
       if (!(await pinGate(res, body.pin))) return;
       return res.status(200).json(await adSpend(String(body.date || ""), String(body.to || "")));
