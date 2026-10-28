@@ -1948,17 +1948,27 @@ function salesSections(d) {
   ];
   const mix = "WhatsApp: " + m.whatsapp.orders + " orders, " + rs(m.whatsapp.sales) + " (" + spct(m.whatsapp.share) + ") · WhatsApp Marketing links: " + m.wm.orders + " orders, " + rs(m.wm.sales) + " (" + spct(m.wm.share) + ") · Chitral Herbs: " + m.herbs.orders + " orders, " + rs(m.herbs.sales) + " (" + spct(m.herbs.share) + ")";
   const tot = (a, f) => a.reduce((x, y) => x + (f(y) || 0), 0);
-  const ch = stbl([["Channel"], ["Type"], ["Orders", 1], ["Total sales", 1], ["Share", 1], ["AOV", 1]],
-    d.channels.map(r => srow([[esc(r.channel)], [esc(r.type)], [r.orders, 1], [rs(r.sales), 1], [spct(r.share), 1], [rs(r.aov), 1]])).concat(srow([["Total"], [""], [tot(d.channels, r => r.orders), 1], [rs(tot(d.channels, r => r.sales)), 1], ["100%", 1], [rs(k.aov), 1]], 1)));
+  const hasF = !!d.funnel;
+  const ch = stbl([["Channel"], ["Type"], ["Orders", 1], ["Total sales", 1], ["Share", 1], ["AOV", 1]].concat(hasF ? [["Sessions", 1], ["Conv. rate", 1]] : []),
+    d.channels.map(r => srow([[esc(r.channel)], [esc(r.type)], [r.orders, 1], [rs(r.sales), 1], [spct(r.share), 1], [rs(r.aov), 1]].concat(hasF ? [[r.sessions == null ? "–" : r.sessions, 1], [r.conv == null ? "–" : spct(r.conv), 1]] : []))).concat(srow([["Total"], [""], [tot(d.channels, r => r.orders), 1], [rs(tot(d.channels, r => r.sales)), 1], ["100%", 1], [rs(k.aov), 1]].concat(hasF ? [[k.sessions == null ? "–" : k.sessions, 1], [k.conversion == null ? "–" : spct(k.conversion), 1]] : []), 1)));
   const pl = stbl([["Platform"], ["Orders", 1], ["Total sales", 1], ["Share", 1]], d.platforms.map(r => srow([[esc(r.platform)], [r.orders, 1], [rs(r.sales), 1], [spct(r.share), 1]])));
-  const ad = stbl([["Platform"], ["Spend", 1], ["Shopify orders", 1], ["Credited sales", 1], ["ROAS", 1]],
-    d.ads.rows.map(r => srow([[esc(r.label)], [r.spend == null ? "–" : rs(r.spend), 1], [r.orders, 1], [rs(r.sales), 1], [xr(r.roas), 1]])).concat(srow([["Blended (all sales ÷ known spend)"], [d.ads.knownSpend ? rs(d.ads.knownSpend) : "–", 1], [k.orders, 1], [rs(k.totalSales), 1], [xr(d.ads.blended), 1]], 1)));
+  const hasC = !!d.camps;
+  const ad = stbl([["Platform"], ["Spend", 1], ["Platform purchases", 1], ["Platform value", 1], ["Platform ROAS", 1], ["Shopify orders", 1], ["Credited sales", 1], ["Shopify ROAS", 1]],
+    d.ads.rows.map(r => srow([[esc(r.label)], [r.spend == null ? "–" : rs(r.spend), 1], [r.pPurchases == null ? "–" : r.pPurchases, 1], [r.pValue == null ? "–" : rs(r.pValue), 1], [xr(r.pRoas), 1], [r.orders, 1], [rs(r.sales), 1], [xr(r.roas), 1]])).concat(srow([["Blended (all sales ÷ known spend)"], [d.ads.knownSpend ? rs(d.ads.knownSpend) : "–", 1], [""], [""], [""], [k.orders, 1], [rs(k.totalSales), 1], [xr(d.ads.blended), 1]], 1)));
+  const camp = hasC && d.camps.length ? stbl([["Platform / account"], ["Campaign"], ["Spend", 1], ["Purchases", 1], ["Value", 1], ["ROAS", 1]],
+    d.camps.map(r => srow([[esc(r.platform)], [esc(r.campaign)], [rs(r.spend), 1], [r.purchases, 1], [rs(r.value), 1], [xr(r.roas), 1]])).concat(srow([["Total"], [""], [rs(tot(d.camps, r => r.spend)), 1], [+tot(d.camps, r => r.purchases).toFixed(2), 1], [rs(tot(d.camps, r => r.value)), 1], [xr(tot(d.camps, r => r.spend) ? +(tot(d.camps, r => r.value) / tot(d.camps, r => r.spend)).toFixed(2) : null), 1]], 1))) : '<p class="note">' + (hasC ? "No campaign spent anything on this date." : "Campaign details are not available (check the Windsor key).") + "</p>";
+  const fun = d.funnel ? stbl([["Channel"], ["Type"], ["Sessions", 1], ["Visitors", 1], ["Add to cart", 1], ["Reached checkout", 1], ["Completed", 1], ["Conv. rate", 1]],
+    d.funnel.rows.map(r => srow([[esc(r.channel)], [esc(r.type)], [r.sessions, 1], [r.visitors, 1], [r.atc, 1], [r.checkout, 1], [r.completed, 1], [r.sessions ? spct(r.completed / r.sessions * 100) : "–", 1]])).concat(srow([["Total"], [""], [tot(d.funnel.rows, r => r.sessions), 1], [tot(d.funnel.rows, r => r.visitors), 1], [tot(d.funnel.rows, r => r.atc), 1], [tot(d.funnel.rows, r => r.checkout), 1], [tot(d.funnel.rows, r => r.completed), 1], [""]], 1))) :
+    '<p class="note">The sessions funnel needs Shopify Analytics access, which this app does not have yet. Shopify said: ' + esc(d.funnelError || "no answer") + '. To turn it on: Shopify Dev Dashboard → your app → Versions → add the <b>read_reports</b> access scope, release the version, then approve the update in the store. Then press Show report again.</p>';
   const wa = d.whatsapp.length ? stbl([["Order"], ["Source"], ["Payment"], ["Credited to"], ["Total", 1]], d.whatsapp.map(r => srow([[esc(r.order)], [esc(r.source)], [esc(r.payment)], [esc(r.credited || "not credited")], [rs(r.total), 1]]))) : '<p class="note">No WhatsApp orders recorded.</p>';
   const wm = d.wm.length ? stbl([["Order"], ["Matched by"], ["Was filed as"], ["Code"], ["Discount", 1], ["Total", 1]], d.wm.map(r => srow([[esc(r.order)], [esc(r.by)], [esc(r.was)], [esc(r.code)], [rs(r.discount), 1], [rs(r.total), 1]]))) : '<p class="note">No WhatsApp Marketing link orders recorded.</p>';
   const hb = d.herbs.length ? stbl([["Order"], ["Source"], ["Products"], ["Payment"], ["Total", 1]], d.herbs.map(r => srow([[esc(r.order)], [esc(r.source)], [esc(r.items)], [esc(r.payment)], [rs(r.total), 1]]))) : '<p class="note">No Chitral Herbs orders for this date.</p>';
   const pr = stbl([["Product"], ["Orders", 1], ["Units", 1], ["Gross sales", 1], ["Share", 1]], d.products.map(r => srow([[esc(r.product)], [r.orders, 1], [r.units, 1], [rs(r.gross), 1], [spct(r.share), 1]])).concat(srow([["Total"], [""], [tot(d.products, r => r.units), 1], [rs(tot(d.products, r => r.gross)), 1], ["100%", 1]], 1)));
   const od = stbl([["Order"], ["Channel"], ["Type"], ["UTM source"], ["UTM medium"], ["Total", 1]], d.orders.map(r => srow([[esc(r.order)], [esc(r.channel)], [esc(r.type)], [r.missingUtm ? '<span style="color:#D9730D">missing</span>' : esc(r.utmSource || "–")], [esc(r.utmMedium || "–")], [rs(r.total), 1]])).concat(srow([["Total"], [""], [""], [""], [""], [rs(k.totalSales), 1]], 1)));
-  return { kp, mix, ch, pl, ad, wa, wm, hb, pr, od };
+  const pbc = stbl([["Channel"], ["Type"], ["Product"], ["Orders", 1], ["Units", 1], ["Gross sales", 1]], d.productsByChannel.map(r => srow([[esc(r.channel)], [esc(r.type)], [esc(r.product)], [r.orders, 1], [r.units, 1], [rs(r.gross), 1]])).concat(srow([["Total"], [""], [""], [""], [tot(d.productsByChannel, r => r.units), 1], [rs(tot(d.productsByChannel, r => r.gross)), 1]], 1)));
+  const rv = stbl([["Channel"], ["Referrer"], ["Orders", 1], ["Total sales", 1]], d.referrerView.map(r => srow([[esc(r.source)], [esc(r.name)], [r.orders, 1], [rs(r.sales), 1]])));
+  const uv = stbl([["UTM source"], ["UTM medium"], ["Orders", 1], ["Total sales", 1]], d.utmView.map(r => srow([[esc(r.source)], [esc(r.medium)], [r.orders, 1], [rs(r.sales), 1]])));
+  return { kp, mix, ch, pl, ad, camp, fun, wa, wm, hb, pr, pbc, rv, uv, od };
 }
 function renderSales() {
   const d = sal.data; if (!d) return;
@@ -1968,17 +1978,21 @@ function renderSales() {
   const box = (title, inner, open) => '<details class="fold sheet" style="padding:12px 16px;margin-bottom:12px"' + (open ? " open" : "") + '><summary style="cursor:pointer;font-weight:700">' + title + '</summary><div class="tbox" style="margin-top:10px;overflow-x:auto">' + inner + "</div></details>";
   const notes = [];
   if (d.notes.missingUtm.length) notes.push("Paid orders with no UTM source (missing tracking): " + d.notes.missingUtm.join(", "));
+  if ((d.notes.unmatchedMeta || []).length) notes.push("Meta orders whose campaign id matched no campaign with spend (counted under Chitral House): " + d.notes.unmatchedMeta.join(", "));
   if (d.notes.cancelled.length) notes.push("Cancelled orders left out: " + d.notes.cancelled.join(", "));
   if (d.notes.herbsSkipped.length) notes.push("Chitral Herbs orders left out: " + d.notes.herbsSkipped.join(", "));
   $("#salBody").innerHTML =
     '<div class="dgrid salk">' + S.kp.map(c => '<div class="dcard" style="cursor:default"><div class="dh">' + esc(c[0]) + '</div><div class="dv">' + esc(c[1]) + '</div><div class="dl" style="border-top:0">' + esc(c[2]) + "</div></div>").join("") + "</div>" +
     '<p class="note" style="margin:12px 0">' + esc(S.mix) + "</p>" +
     box("1. Sales by channel", S.ch, true) + box("2. Sales by platform", S.pl, true) +
-    box("3. Ad spend and Shopify-based ROAS", S.ad + '<p class="note">Spend comes from Windsor.ai. Sales are credited from the order\'s last visit (Meta, TikTok, Google paid) and from the source tag on WhatsApp orders; all Chitral Herbs orders are credited to the Chitral Herbs Meta account. WhatsApp Marketing link orders are credited to no ad platform. Platform-reported purchases are not shown here.</p>', true) +
-    box("4. WhatsApp orders (" + d.whatsapp.length + ")", S.wa) + box("5. WhatsApp Marketing link orders (" + d.wm.length + ")", S.wm) + box("6. Chitral Herbs orders (" + d.herbs.length + ")", S.hb) +
-    box("7. Products sold", S.pr) + box("8. All orders with attribution (" + d.orders.length + ")", S.od) +
+    box("3. Ad platforms vs Shopify", S.ad + '<p class="note">Spend and platform-reported purchases come from Windsor.ai (platforms count view-through and 7-day click conversions, so they can exceed Shopify). Shopify-credited sales come from each order\'s last visit (Meta, TikTok, Google paid) and from the source tag on WhatsApp orders. Meta web orders are split between the two Meta accounts by the campaign id in the order\'s UTM. All Chitral Herbs orders are credited to the Chitral Herbs Meta account. WhatsApp Marketing link orders are credited to no ad platform.</p>', true) +
+    box("3a. Campaigns with spend", S.camp, true) +
+    box("4. Sessions funnel by traffic source", S.fun) +
+    box("5. WhatsApp orders (" + d.whatsapp.length + ")", S.wa) + box("6. WhatsApp Marketing link orders (" + d.wm.length + ")", S.wm) + box("7. Chitral Herbs orders (" + d.herbs.length + ")", S.hb) +
+    box("8. Products sold", S.pr) + box("9. Products by channel", S.pbc) + box("10. All orders with attribution (" + d.orders.length + ")", S.od) +
+    box("11. Referrer view (Chitral House)", S.rv) + box("12. UTM view (Chitral House)", S.uv) +
     (notes.length ? '<p class="note">' + notes.map(esc).join("<br>") + "</p>" : "") +
-    '<p class="note">Channels are worked out from each order\'s last visit in Shopify, so they can differ slightly from Shopify Analytics. Sessions need the Shopify reports permission.</p>';
+    '<p class="note">Channels are worked out from each order\'s last visit in Shopify, so they can differ slightly from Shopify Analytics. The sessions funnel and the referrer and UTM views use Chitral House orders only (Chitral Herbs traffic is not included).</p>';
 }
 $("#salPdf").onclick = () => {
   const d = sal.data; if (!d) return; const S = salesSections(d);
@@ -1987,8 +2001,8 @@ $("#salPdf").onclick = () => {
   const sec = (t, h) => "<h2>" + t + "</h2>" + h;
   const body = "<h1>Chitral House — Daily Sales Report</h1><div class=\"sub\">chitralhouse.com + chitralherbs.com · " + esc(fdate) + " · currency PKR · pulled " + esc(d.pulledAt) + "</div>" +
     '<div class="k">' + S.kp.map(c => "<div><small>" + esc(c[0]) + "</small><b>" + esc(c[1]) + "</b><small>" + esc(c[2]) + "</small></div>").join("") + "</div><p class=\"note\">" + esc(S.mix) + "</p>" +
-    sec("1. Sales by channel", S.ch) + sec("2. Sales by platform", S.pl) + sec("3. Ad spend and Shopify-based ROAS", S.ad) +
-    sec("4. WhatsApp orders", S.wa) + sec("5. WhatsApp Marketing link orders", S.wm) + sec("6. Chitral Herbs orders", S.hb) + sec("7. Products sold", S.pr) + sec("8. All orders with attribution", S.od);
+    sec("1. Sales by channel", S.ch) + sec("2. Sales by platform", S.pl) + sec("3. Ad platforms vs Shopify", S.ad) + sec("3a. Campaigns with spend", S.camp) + sec("4. Sessions funnel by traffic source", S.fun) +
+    sec("5. WhatsApp orders", S.wa) + sec("6. WhatsApp Marketing link orders", S.wm) + sec("7. Chitral Herbs orders", S.hb) + sec("8. Products sold", S.pr) + sec("9. Products by channel", S.pbc) + sec("10. All orders with attribution", S.od) + sec("11. Referrer view", S.rv) + sec("12. UTM view", S.uv);
   const w = window.open("", "_blank"); if (!w) return log("Allow pop-ups to open the print view.");
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Sales report ' + esc(d.date) + "</title><style>" + css + "</style></head><body>" + body + "</body></html>"); w.document.close(); setTimeout(() => w.print(), 300);
 };
