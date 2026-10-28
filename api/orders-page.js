@@ -771,6 +771,7 @@ button[data-tip],a[data-tip],select[data-tip],input[data-tip],label[data-tip],.t
   .mtile[data-tab="abandoned"]{order:4}.mtile[data-tab="marketing"]{order:5}.mtile[data-tab="delivery"]{order:6}
   .mtile[data-tab="total"]{order:7}.mtile[data-tab="blocked"]{order:8}.mtile[data-tab="stock"]{order:9}.mtile[data-tab="setup"]{order:10}
   .mtile.mt-dark,.mtile[data-tab="dashboard"]{grid-column:2;min-height:120px}
+  .mtile[data-tab="sales"]{order:98}.mtile[data-tab="setup"]{order:99}
   .mtile.wide{grid-column:1/-1;min-height:0}
   .mtile.attn,.mtile[data-tab="waiting"].attn{box-shadow:none;border:0}
   .mtile.attn .mi,.mtile[data-tab="waiting"].attn .mi{background:rgba(255,255,255,.78);color:inherit}
@@ -2023,7 +2024,7 @@ try {
   const info = (name) => { const t = tabs.find(x => x.dataset.tab === name); const sv = t && t.querySelector("svg"); const lb = t && t.querySelector(".tl"); const b = t && t.querySelector("b"); return { svg: sv ? sv.outerHTML : "", label: lb ? lb.textContent : name, cid: b ? b.id : "" }; };
   const iconOf = (n) => n === "menu" ? GRID_SVG : info(n).svg;
   $("#bnav").innerHTML = BN_MAIN.map(m => { const i = info(m[0]); return '<button class="btab" data-tab="' + m[0] + '" aria-selected="false">' + iconOf(m[0]) + "<span>" + m[1] + "</span>" + (i.cid ? '<i class="bb" data-src="' + i.cid + '"></i>' : "") + "</button>"; }).join("");
-  $("#menuGrid").innerHTML = tabs.map(t => { const n = t.dataset.tab; const i = info(n); const cls = (n === "dashboard" ? " wide hero mt-dark" : n === "setup" ? " wide mt-white" : " " + (MT[n] || "mt-white"));
+  $("#menuGrid").innerHTML = tabs.map(t => { const n = t.dataset.tab; const i = info(n); const cls = (n === "dashboard" ? " wide hero mt-dark" : (n === "setup" || n === "sales") ? " wide mt-white" : " " + (MT[n] || "mt-white"));
     return '<button class="mtile' + cls + '" data-tab="' + n + '"><span class="mi">' + i.svg + '</span><span><div class="ml">' + esc(i.label) + '</div><div class="ms">' + esc(SUBS[n] || "") + "</div></span>" + (i.cid ? '<span class="mc" data-src="' + i.cid + '"></span>' : "") + "</button>"; }).join("");
   $("#mRecent").innerHTML = RECENT.map(r => { const i = info(r[0]); return '<button type="button" class="mrow" data-tab="' + r[0] + '"><span class="mri">' + i.svg + '</span><span class="mrt"><b data-src="' + i.cid + '"></b> ' + esc(r[1]) + '</span><span class="mrg" aria-hidden="true">&rsaquo;</span></button>'; }).join("");
   $("#spLogo").src = LOGO;
