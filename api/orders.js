@@ -18,7 +18,7 @@ import { profitReport } from "../lib/profit.js";
 import { adSpend } from "../lib/ads.js";
 import { herbsOrders } from "../lib/herbs.js";
 import { salesReport } from "../lib/sales.js";
-import { phase1Test } from "../lib/waorders.js";
+import * as waorders from "../lib/waorders.js";
 import { stockGet, stockMove, stockUndo, stockAlert, stockRoll } from "../lib/stock.js";
 import { runAuto } from "../lib/stockauto.js";
 
@@ -61,10 +61,6 @@ export default async function handler(req, res) {
         catch (e) { out[st.label] = "error: " + e.message; }
       }
       return res.status(200).json(out);
-    }
-    if (req.method === "GET" && url.searchParams.get("wa_phase1_test") === "go") {
-      // One-off Phase 1 check: creates ONE order tagged Test, e.g. ?key=..&wa_phase1_test=go
-      try { return res.status(200).json(await phase1Test()); } catch (e) { return res.status(200).json({ error: e.message }); }
     }
     if (req.method === "GET" && url.searchParams.get("explore")) {
       // Read-only peek at TCS inquiry/report/setup endpoints, e.g. ?key=..&explore=/ecom/api/report/loadsheetlogs&fromdate=2026-10-01&todate=2026-10-07
@@ -144,7 +140,18 @@ export default async function handler(req, res) {
       if (body.action === "stock_alert") return res.status(200).json(await stockAlert(String(body.id || ""), body.reorder));
       if (body.action === "stock_roll") return res.status(200).json(await stockRoll());
     }
-    if (body.action === "wa_phase1_test") return res.status(200).json(await phase1Test());
+    if (typeof body.action === "string" && body.action.startsWith("waord_")) {
+      // WhatsApp Orders tab: creates real orders, so everything here needs the Setup PIN.
+      if (!(await pinGate(res, body.pin))) return;
+      const list = (x) => (Array.isArray(x) ? x : []).slice(0, 60);
+      try {
+        if (body.action === "waord_analyze") return res.status(200).json(await waorders.analyze(String(body.text || "")));
+        if (body.action === "waord_check") return res.status(200).json(await waorders.recheck(list(body.orders)));
+        if (body.action === "waord_create") return res.status(200).json(await waorders.createOrders(list(body.orders)));
+        if (body.action === "waord_log") return res.status(200).json({ log: await waorders.readLog() });
+        if (body.action === "waord_undo") return res.status(200).json(await waorders.undoOrder(String(body.id || "")));
+      } catch (e) { return res.status(200).json({ error: e.message }); }
+    }
     if (body.action === "sales_report") return res.status(200).json(await salesReport(String(body.date || ""), { to: String(body.to || "") }));
     if (body.action === "ad_spend") {
       if (!(await pinGate(res, body.pin))) return;
