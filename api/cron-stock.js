@@ -13,6 +13,13 @@ export default async function handler(req, res) {
     console.log("stock-auto", JSON.stringify({ deducted: r.deducted.length, returned: r.returned.length, unmapped: r.unmapped.length, warnings: r.warnings }));
     return res.status(200).json(r);
   } catch (e) {
+    console.error("stock-auto failed", e && e.stack || e);
+    try { // leave a visible trace in the Stock tab history
+      const { loadState, saveState } = await import("../lib/stock.js");
+      const st = await loadState();
+      st.autoLog = (st.autoLog || []).concat([{ at: new Date().toISOString(), part: "failed", deducted: 0, returned: 0, unmapped: 0, notFound: 0, unmappedList: [], notFoundList: [], warnings: ["Run failed: " + e.message] }]).slice(-20);
+      await saveState(st);
+    } catch {}
     return res.status(500).json({ error: e.message });
   }
 }
