@@ -1640,7 +1640,7 @@ function renderTotal() {
     (rd.length ? "<table><tr><th>Order</th><th>City</th><th>Status</th><th class=\"n\">Amount</th></tr>" + rd.map(x => "<tr><td><strong>" + esc(x.order) + '</strong><div class="sub">' + esc(x.store) + "</div></td><td>" + esc(x.city || "") + "</td><td>" + x.status + '</td><td class="n">' + rs(x.amount) + "</td></tr>").join("") + "</table>" : '<p class="sub">No orders were matched to our rider for this day.</p>') + "</details>";
   const lst = '<div class="lst">' + riderBox + lists.map(([n, a]) => "<details><summary>" + n + " (" + a.length + ")</summary>" + listRows(a) + "</details>").join("") + "</div>";
   const foot = '<p class="note">' + esc(d.window.note) + ". ISB/RWP delivery orders are matched to the courier sheet by amount and a similar name" + (d.sheet ? " (" + d.sheet.rows + " sheet rows read just now, " + new Date(d.sheet.fetchedAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) + ")" : "") + ". Checks: " + d.checks.map(c => (c.ok ? "✓ " : "✗ ") + esc(c.name)).join(" · ") + "</p>";
-  $("#totBody").innerHTML = (smallMQ() ? totalPhone(d) : "") + box + localBox + ratioBars(d.daily) + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + lst + foot;
+  $("#totBody").innerHTML = (smallMQ() ? totalPhone(d) : "") + box + localBox + ratioBars(d.daily) + ratioBars(d.daily, true) + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + lst + foot;
 }
 
 $("#totPdf").onclick = () => {
@@ -3356,8 +3356,9 @@ function dayBars(title, cap, days, series) {
   return '<div class="chart wide"><h3>' + title + '</h3><p class="cap">' + cap + '</p><svg class="sv" viewBox="0 0 ' + W + " " + H + '" role="img">' + g + bars + lab + "</svg>" + key + "</div>";
 }
 
-function ratioBars(days) {
+function ratioBars(days, amt) {
   if (!days || !days.length) return "";
+  const fa = amt ? "amtRatio" : "ratio", fb = amt ? "localAmtRatio" : "localRatio";
   const W = chartW(), H = 250, L = 38, B = 34, R = 6;
   const pw = (W - L - R) / days.length, bw = Math.max(3, Math.min(30, pw * 0.38));
   const vert = bw < 20, T = vert ? 36 : 18; // many days: the numbers are written upright above each bar
@@ -3368,19 +3369,20 @@ function ratioBars(days) {
   days.forEach((d, i) => {
     const x0 = L + i * pw + (pw - bw * 2) / 2;
     const dt = new Date(d.day + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-    [[d.ratio, "f-del", 0], [d.localRatio, "f-bk", 1]].forEach(([v, cls, j]) => {
+    [[d[fa], "f-del", 0], [d[fb], "f-bk", 1]].forEach(([v, cls, j]) => {
       if (v == null) return;
       bars += '<rect class="' + cls + '" x="' + (x0 + j * bw).toFixed(1) + '" y="' + y(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + ((H - T - B) * v / 100).toFixed(1) + '" rx="2"></rect>';
       if (showVal) { const tx = x0 + j * bw + bw / 2, ty = y(v) - 4;
         bars += vert ? '<text transform="translate(' + (tx + 3).toFixed(1) + " " + ty.toFixed(1) + ') rotate(-90)" text-anchor="start" style="font-size:' + (bw < 7 ? 8 : 9) + 'px">' + Math.round(v) + "</text>"
           : '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle" style="font-size:10px">' + Math.round(v) + "</text>"; }
     });
-    const tip = dt + " — Overall: " + (d.ratio == null ? "–" : d.ratio + "%") + " (" + d.delivered + " of " + d.counted + ") · ISB/RWP: " + (d.localRatio == null ? "no orders" : d.localRatio + "% (" + d.riderDelivered + " of " + d.riderTotal + ")");
+    const tip = amt ? dt + " — Overall: " + (d.amtRatio == null ? "–" : d.amtRatio + "%") + " (" + rs(d.amtDel) + " of " + rs(d.amt) + ") · ISB/RWP: " + (d.localAmtRatio == null ? "no orders" : d.localAmtRatio + "% (" + rs(d.rAmtDel) + " of " + rs(d.rAmt) + ")")
+      : dt + " — Overall: " + (d.ratio == null ? "–" : d.ratio + "%") + " (" + d.delivered + " of " + d.counted + ") · ISB/RWP: " + (d.localRatio == null ? "no orders" : d.localRatio + "% (" + d.riderDelivered + " of " + d.riderTotal + ")");
     bars += '<rect x="' + (L + i * pw).toFixed(1) + '" y="' + T + '" width="' + pw.toFixed(1) + '" height="' + (H - T - B) + '" fill="transparent" data-tip="' + esc(tip) + '"></rect>';
     if (i % step === 0) lab += '<text x="' + (L + i * pw + pw / 2).toFixed(1) + '" y="' + (H - B + 16) + '" text-anchor="middle">' + dt + "</text>";
   });
-  return '<div class="chart wide" style="margin-bottom:14px"><h3>Delivery ratio by order day</h3><p class="cap">For orders placed each day: overall ratio and ISB/RWP ratio. Hover a day for the exact numbers.</p><svg class="sv" viewBox="0 0 ' + W + " " + H + '" role="img">' + g + bars + lab + "</svg>" +
-    '<div class="key"><span><i class="c-del"></i>Overall delivery ratio</span><span><i class="c-pro" style="background:var(--house)"></i>ISB/RWP delivery ratio</span></div></div>';
+  return '<div class="chart wide" style="margin-bottom:14px"><h3>' + (amt ? "Amount delivered by order day" : "Delivery ratio by order day") + '</h3><p class="cap">' + (amt ? "For orders placed each day: share of the order value (Rs) that was delivered, overall and for ISB/RWP. Hover a day for the exact amounts." : "For orders placed each day: overall ratio and ISB/RWP ratio. Hover a day for the exact numbers.") + '</p><svg class="sv" viewBox="0 0 ' + W + " " + H + '" role="img">' + g + bars + lab + "</svg>" +
+    '<div class="key"><span><i class="c-del"></i>' + (amt ? "Overall amount delivered" : "Overall delivery ratio") + '</span><span><i class="c-pro" style="background:var(--house)"></i>' + (amt ? "ISB/RWP amount delivered" : "ISB/RWP delivery ratio") + '</span></div></div>';
 }
 
 function stuckChart(d) {
