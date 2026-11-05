@@ -1640,7 +1640,7 @@ function renderTotal() {
     (rd.length ? "<table><tr><th>Order</th><th>City</th><th>Status</th><th class=\"n\">Amount</th></tr>" + rd.map(x => "<tr><td><strong>" + esc(x.order) + '</strong><div class="sub">' + esc(x.store) + "</div></td><td>" + esc(x.city || "") + "</td><td>" + x.status + '</td><td class="n">' + rs(x.amount) + "</td></tr>").join("") + "</table>" : '<p class="sub">No orders were matched to our rider for this day.</p>') + "</details>";
   const lst = '<div class="lst">' + riderBox + lists.map(([n, a]) => "<details><summary>" + n + " (" + a.length + ")</summary>" + listRows(a) + "</details>").join("") + "</div>";
   const foot = '<p class="note">' + esc(d.window.note) + ". ISB/RWP delivery orders are matched to the courier sheet by amount and a similar name" + (d.sheet ? " (" + d.sheet.rows + " sheet rows read just now, " + new Date(d.sheet.fetchedAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) + ")" : "") + ". Checks: " + d.checks.map(c => (c.ok ? "✓ " : "✗ ") + esc(c.name)).join(" · ") + "</p>";
-  $("#totBody").innerHTML = (smallMQ() ? totalPhone(d) : "") + box + localBox + ratioBars(d.daily) + ratioBars(d.daily, true) + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + lst + foot;
+  $("#totBody").innerHTML = (smallMQ() ? totalPhone(d) : "") + box + localBox + ratioBars(d.daily, false, d.rangeSummary) + ratioBars(d.daily, true, d.rangeSummary) + '<div class="tgrid">' + outcome + stores + scen + split + "</div>" + '<div class="tgrid">' + ranges + "</div>" + lst + foot;
 }
 
 $("#totPdf").onclick = () => {
@@ -3356,7 +3356,13 @@ function dayBars(title, cap, days, series) {
   return '<div class="chart wide"><h3>' + title + '</h3><p class="cap">' + cap + '</p><svg class="sv" viewBox="0 0 ' + W + " " + H + '" role="img">' + g + bars + lab + "</svg>" + key + "</div>";
 }
 
-function ratioBars(days, amt) {
+function ratioSummary(rs0, amt) {
+  if (!rs0) return "";
+  const cell = (label, x) => '<div style="min-width:140px;padding:8px 12px;border:1px solid rgba(128,128,128,.28);border-radius:10px"><div class="sub">' + label + '</div><div style="font-size:20px;font-weight:700">' + (x == null ? "–" : (amt ? x.amountRatio : x.ratio) == null ? "–" : (amt ? x.amountRatio : x.ratio) + "%") + '</div><div class="sub">' + (x ? (amt ? rs(x.amountDelivered) + " of " + rs(x.amount) : x.delivered + " of " + x.parcels + " parcels") : "") + "</div></div>";
+  return '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">' + cell("Overall", rs0.all) + cell("ISB/RWP (local)", rs0.rider) + cell("TCS", rs0.tcs) + "</div>";
+}
+
+function ratioBars(days, amt, sumData) {
   if (!days || !days.length) return "";
   const fa = amt ? "amtRatio" : "ratio", fb = amt ? "localAmtRatio" : "localRatio";
   const W = chartW(), H = 250, L = 38, B = 34, R = 6;
@@ -3382,7 +3388,7 @@ function ratioBars(days, amt) {
     if (i % step === 0) lab += '<text x="' + (L + i * pw + pw / 2).toFixed(1) + '" y="' + (H - B + 16) + '" text-anchor="middle">' + dt + "</text>";
   });
   return '<div class="chart wide" style="margin-bottom:14px"><h3>' + (amt ? "Amount delivered by order day" : "Delivery ratio by order day") + '</h3><p class="cap">' + (amt ? "For orders placed each day: share of the order value (Rs) that was delivered, overall and for ISB/RWP. Hover a day for the exact amounts." : "For orders placed each day: overall ratio and ISB/RWP ratio. Hover a day for the exact numbers.") + '</p><svg class="sv" viewBox="0 0 ' + W + " " + H + '" role="img">' + g + bars + lab + "</svg>" +
-    '<div class="key"><span><i class="c-del"></i>' + (amt ? "Overall amount delivered" : "Overall delivery ratio") + '</span><span><i class="c-pro" style="background:var(--house)"></i>' + (amt ? "ISB/RWP amount delivered" : "ISB/RWP delivery ratio") + '</span></div></div>';
+    '<div class="key"><span><i class="c-del"></i>' + (amt ? "Overall amount delivered" : "Overall delivery ratio") + '</span><span><i class="c-pro" style="background:var(--house)"></i>' + (amt ? "ISB/RWP amount delivered" : "ISB/RWP delivery ratio") + '</span></div>' + ratioSummary(sumData, amt) + '</div>';
 }
 
 function stuckChart(d) {
