@@ -1921,7 +1921,7 @@ function prChart(series, field, title, note, pos, fmt) {
   fmt = fmt || ((v) => prN(Math.round(v)));
   if (!series || series.length < 2) return "";
   field = field || "net";
-  const H = 230, L = 62, R = 10, T = 18, B = 52, sc = smallMQ() && series.length > 7, W = sc ? Math.max(chartW(), series.length * 52 + L + R) : chartW(), pw = W - L - R, ph = H - T - B;
+  const many = series.length > 16, H = 230, L = 62, R = 10, T = many ? 46 : 18, B = 52, sc = smallMQ() && series.length > 7, W = sc ? Math.max(chartW(), series.length * 52 + L + R) : chartW(), pw = W - L - R, ph = H - T - B;
   const vals = series.map((x) => x[field]);
   const hi = Math.max(0, Math.max.apply(null, vals)), lo = Math.min(0, Math.min.apply(null, vals));
   const span = hi - lo || 1, y = (v) => T + ph * (hi - v) / span;
@@ -1932,7 +1932,11 @@ function prChart(series, field, title, note, pos, fmt) {
   series.forEach((x, i) => {
     const bx = L + i * bw + bw * 0.15, w = bw * 0.7, y0 = y(0), y1 = y(x[field]), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0));
     g += '<rect x="' + bx.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + (x[field] < 0 ? "#C0392B" : pos ? "#2E6DA4" : "#2E8B57") + '"><title>' + esc(prD(x.date) + ": " + fmt(x[field])) + "</title></rect>";
-    if (series.length <= 16) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (x[field] < 0 ? top + h + 11 : top - 4).toFixed(1) + '" font-size="9" text-anchor="middle" fill="#333">' + fmt(x[field]) + "</text>";
+    if (!many) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (x[field] < 0 ? top + h + 11 : top - 4).toFixed(1) + '" font-size="9" text-anchor="middle" fill="#333">' + fmt(x[field]) + "</text>";
+    else { // many days: write each value upright above (or below, if negative) its bar so every day stays readable
+      const cx = bx + w / 2 + 3, neg = x[field] < 0;
+      g += '<text transform="translate(' + cx.toFixed(1) + " " + (neg ? top + h + 4 : top - 4).toFixed(1) + ') rotate(-90)" font-size="' + (bw < 14 ? 8 : 9) + '" text-anchor="' + (neg ? "end" : "start") + '" fill="#333">' + fmt(x[field]) + "</text>";
+    }
     if (series.length <= 16 || i % Math.ceil(series.length / 16) === 0) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (H - 12) + '" font-size="9" text-anchor="middle" fill="#555">' + esc(prD(x.date).replace(/ \d{4}$/, "")) + "</text>";
   });
   g += "</svg>"; if (sc) g = '<div class="prsc">' + g + "</div>";
