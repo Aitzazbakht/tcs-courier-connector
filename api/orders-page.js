@@ -1726,6 +1726,27 @@ html[data-mx] .lst td,html[data-mx] .lst table td{border-color:var(--line)}
   html[data-mx] #prBody .pr tr.tot td{background:var(--ax-soft,var(--mx-hi));border-top:2px solid var(--ax-edge,var(--line))}
   html[data-mx] #prBody>.note{background:var(--mx-hi);color:var(--mute);border-color:var(--line)}
 }
+
+/* ===== fixes: centred header icons, readable charts on glass, lighter phone rendering ===== */
+@media (min-width:901px){
+  html[data-mx] #refresh,html[data-mx] #waOpen{width:42px;height:42px;padding:0;align-items:center;justify-content:center;flex:none}
+  html[data-mx] #installBtn{height:42px;padding:0 16px;border-radius:14px;align-items:center}
+  html[data-mx] #prBody .pr svg text{fill:var(--ink)!important}
+  html[data-mx] #prBody .pr svg line{stroke:var(--line)}
+  html[data-mx] #prBody .pr svg line[stroke="#555"]{stroke:var(--mute)}
+  html[data-mx] #prBody .pr .note,html[data-mx] #prBody .pr .note *,html[data-mx] #prBody .pr p{color:var(--mute)}
+  html[data-mx] #prBody .pr .note b,html[data-mx] #prBody .pr .note strong{color:var(--ink)}
+  html[data-mx] #prBody .pr .keep>svg{background:var(--mx-hi);border-radius:14px}
+}
+/* The phone has to scroll smoothly: blur only where it is small (bars and sheets), no film-grain blend, lighter shadows. */
+@media (max-width:900px){
+  html[data-mx] body::after{display:none}
+  html[data-mx] *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  html[data-mx] :is(#bnav,.psbody,.mxm,.dhd,#phead:not([hidden])){-webkit-backdrop-filter:blur(16px) saturate(170%)!important;backdrop-filter:blur(16px) saturate(170%)!important}
+  html[data-mx] :is(.mtile,.mrow,.dcard,.kpi,.wcard,.ovtbl,.rpcard,.stlist.sheet,.stchip,#setupGate,#setupBody>.sheet,.empty,.tbox,.toolbar,.chart,.ratiobox,.lst details,.sxhero,.sxc,.sxtile,.pr){box-shadow:var(--mx-inset),0 6px 14px -10px #00000066!important}
+  html[data-mx] :is(#prBody .pr table.cardt tr,#prBody .pr details.prfold,#prBody .pr td.kpi)::before{display:none}
+  html[data-mx] .mxm-scrim,html[data-mx] .oscrim,html[data-mx] .psback{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+}
 </style></head>
 <body>
 <div id="splash" aria-hidden="true"><img id="spLogo" class="splogo" alt=""></div>
