@@ -1747,6 +1747,76 @@ html[data-mx] .lst td,html[data-mx] .lst table td{border-color:var(--line)}
   html[data-mx] :is(#prBody .pr table.cardt tr,#prBody .pr details.prfold,#prBody .pr td.kpi)::before{display:none}
   html[data-mx] .mxm-scrim,html[data-mx] .oscrim,html[data-mx] .psback{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 }
+
+/* ===== charts: gradient areas, rounded bars, stacked bars, segmented ring, ring gauges on the dashboard ===== */
+.chart{padding:18px 20px}.chart h3{font-size:17px;font-weight:700}.chart .cap{font-size:13.5px;margin:3px 0 14px}
+.chart.wide .sv{margin:0 auto;display:block}
+.sv.chs text{font-size:13px;fill:var(--mute)}
+.sv.chs .ya{text-anchor:end}.sv.chs .xa{text-anchor:middle}
+.sv.chs .g{stroke:var(--line);stroke-width:1;stroke-dasharray:2 5}
+.sv.chs .g0{stroke:var(--mute);stroke-width:1.2;opacity:.6}
+.sv.chs .vl{text-anchor:middle;font-size:13px;font-weight:700;fill:var(--ink)}
+.sv.chs .vl.v{font-weight:600}
+.sv.chs .ln{stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0}
+.sv.chs .ln.dl{stroke-dasharray:6 6}
+.sv.chs .ln.ma{stroke:var(--ink);stroke-width:2.4;opacity:.8}
+.sv.chs .ar{stroke:none}
+.sv.chs .ld{stroke:var(--mx-opaque,#fff);stroke-width:2.5}
+.sv.chs .avl{stroke:var(--mute);stroke-width:1.2;stroke-dasharray:5 5;opacity:.8}
+.sv.chs .avt{text-anchor:end;font-size:12.5px;font-weight:700;fill:var(--ink);stroke:var(--mx-opaque,#111);stroke-width:5px;paint-order:stroke;stroke-linejoin:round}
+.sv.chs .chb{transition:filter .15s}
+.sv.chs .chb.pk{filter:drop-shadow(0 0 7px color-mix(in srgb,currentColor 0%,var(--ax,#ff7ba1)))}
+.sv.chs .chh{fill:transparent;opacity:1}
+.sv.chs .chc:hover .chh,.sv.chs g:hover>.chh{fill:var(--mx-hi,rgba(128,128,128,.12))}
+.sv.chs .chh:hover{fill:var(--mx-hi,rgba(128,128,128,.12));opacity:1}
+.sv.chs .chg{stroke:var(--mx-edge,rgba(128,128,128,.5));stroke-width:1.2;stroke-dasharray:3 4;opacity:0}
+.sv.chs .chdot{opacity:0;stroke:var(--mx-opaque,#fff);stroke-width:2.5}
+.sv.chs .chc:hover .chg,.sv.chs .chc:hover .chdot{opacity:1}
+.sv rect:hover{opacity:1}
+.ringsv{display:block;filter:drop-shadow(0 6px 18px color-mix(in srgb,var(--ax,#ff7ba1) 22%,transparent))}
+.ringsv .rgt{stroke:var(--mx-track,var(--soft))}
+.ringsv .rbig{text-anchor:middle;font-size:30px;font-weight:800;fill:var(--ink)}
+.ringsv .rsm{text-anchor:middle;font-size:12px;fill:var(--mute)}
+.donutwrap{gap:30px;justify-content:center}.legend{font-size:14.5px;gap:12px;min-width:210px}.legend i{width:12px;height:12px;border-radius:50%}
+.ht{height:12px;background:var(--mx-track,var(--soft));border-radius:8px}.ht>i{border-radius:8px}
+.stk{height:14px;border-radius:8px}
+.c-del{background:linear-gradient(90deg,color-mix(in srgb,var(--good,var(--pine)) 70%,#fff),var(--good,var(--pine)))}
+.c-ret{background:linear-gradient(90deg,color-mix(in srgb,var(--rust) 75%,#fff),var(--rust))}
+.c-pro{background:linear-gradient(90deg,color-mix(in srgb,var(--info,var(--house)) 75%,#fff),var(--info,var(--house)))}
+.hb{font-size:14px;grid-template-columns:120px minmax(0,1fr) auto}
+.key{font-size:13px;gap:18px;margin-top:14px;justify-content:center}.key i{width:12px;height:12px;border-radius:50%}
+.dcard{position:relative}
+.spark{width:100%;height:46px;display:block;margin:8px 0 2px}
+.dring{position:absolute;right:18px;top:48px;width:62px;height:62px;border-radius:50%;background:conic-gradient(var(--good,var(--pine)) calc(var(--p)*1%),var(--mx-track,var(--soft)) 0);filter:drop-shadow(0 0 10px color-mix(in srgb,var(--good,var(--pine)) 35%,transparent))}
+.dring::after{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--mx-opaque,var(--surface))}
+@media (prefers-reduced-motion:no-preference){
+  .sv.chs .ln:not(.dl){animation:chDraw 1.1s cubic-bezier(.16,1,.3,1)}
+  .sv.chs .ar{animation:chFade 1.1s ease-out}
+  .sv.chs .chb{transform-box:fill-box;transform-origin:50% 100%;animation:chGrow .8s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i,0)*16ms)}
+  .ringsv .rg{animation:chRing 1s cubic-bezier(.16,1,.3,1) backwards}
+  @keyframes chDraw{from{stroke-dashoffset:1}}
+  @keyframes chFade{from{opacity:0}}
+  @keyframes chGrow{from{transform:scaleY(0)}}
+  @keyframes chRing{from{opacity:0}}
+}
+/* Profit report: bigger text, big centred charts */
+@media (min-width:901px){
+  html[data-mx] #prBody .pr{font-size:16px;line-height:1.5}
+  html[data-mx] #prBody .pr h1{font-size:30px}
+  html[data-mx] #prBody .pr h2{font-size:20px;margin:26px 0 10px}
+  html[data-mx] #prBody .pr .sub{font-size:14px}
+  html[data-mx] #prBody .pr td.kpi{padding:12px 14px}html[data-mx] #prBody .pr td.kpi small{font-size:13px}html[data-mx] #prBody .pr td.kpi b{font-size:22px}
+  html[data-mx] #prBody .pr th{font-size:13px;padding:9px 10px}
+  html[data-mx] #prBody .pr td{font-size:14.5px;padding:8px 10px}
+  html[data-mx] #prBody .pr .note,html[data-mx] #prBody .pr p{font-size:14px}
+  html[data-mx] #prBody .pr .chk{text-align:center}
+  html[data-mx] #prBody .pr .chk svg{margin:0 auto;display:block;width:100%}
+  html[data-mx] #prBody .pr .chk .note{text-align:left}
+  html[data-mx] #prBody .pr .chk h2{text-align:left}
+}
+html[data-mx] #prBody .pr .chk svg text{font-size:12.5px!important}
+html[data-mx] #prBody .pr svg text.ya,html[data-mx] #prBody .pr svg text.xa,html[data-mx] #prBody .pr svg text.avt{fill:var(--mute)!important}
+html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{background:transparent;border:0}
 </style></head>
 <body>
 <div id="splash" aria-hidden="true"><img id="spLogo" class="splogo" alt=""></div>
@@ -2230,7 +2300,8 @@ function dashDay(n) { return new Date(Date.now() + 5 * 3600e3 - n * 86400000).to
 function dashSet(n) { $("#dFrom").value = n === 1 ? dashDay(1) : dashDay(n === 0 ? 0 : n - 1); $("#dTo").value = n === 1 ? dashDay(1) : dashDay(0); }
 function ensureDash() { if (!$("#dFrom").value) dashSet(7); if (!dash.loaded) runDash(); }
 function dcard(go, title, big, cls, lines, extra) {
-  return '<button class="dcard" data-go="' + go + '"><div class="dh"><span>' + esc(title) + '</span><span>Open &rarr;</span></div><div class="dv ' + (cls || "") + '">' + big + "</div>" + (extra || "") +
+  const pm = /^(\d{1,3})%$/.exec(String(big)), ring = pm ? '<span class="dring" style="--p:' + Math.min(100, Number(pm[1])) + '" aria-hidden="true"></span>' : "";
+  return '<button class="dcard" data-go="' + go + '">' + ring + '<div class="dh"><span>' + esc(title) + '</span><span>Open &rarr;</span></div><div class="dv ' + (cls || "") + '">' + big + "</div>" + (extra || "") + (dashSpark[go] || "") +
     lines.map(l => '<div class="dl"><span>' + esc(l[0]) + "</span><b>" + l[1] + "</b></div>").join("") + "</button>";
 }
 function dashPaint() {
@@ -2244,7 +2315,7 @@ function dashFail(k, title, go, e) { dashPut(k, dcard(go, title, "–", "", [["C
 async function runDash() {
   const a = $("#dFrom").value, b = $("#dTo").value || a;
   if (!a) return; if (b < a) return log("The end date is before the start date.");
-  dash.loaded = true; const my = ++dash.seq; const ok = () => my === dash.seq; dash.cards = {};
+  dashSpark = {}; dash.loaded = true; const my = ++dash.seq; const ok = () => my === dash.seq; dash.cards = {};
   $("#dMeta").textContent = a + (b !== a ? " to " + b : "");
   const inR = (iso) => iso && pkDay(iso) >= a && pkDay(iso) <= b;
   const n = (x) => Number(x || 0).toLocaleString("en-PK");
@@ -2257,7 +2328,7 @@ async function runDash() {
   dashPut("marketing", mk.rows.length ? dcard("marketing", "Marketing orders", n(mkIn.length), "", [["Orders loaded in total", n(mk.rows.length)]]) : dcard("marketing", "Marketing orders", "–", "", [["Open the tab once to load all orders", ""]]));
   dashLoading("delivery", "TCS delivery report", "delivery"); dashLoading("total", "Total delivery ratio", "total");
   dashLoading("problems", "Delivery problems", "problems"); dashLoading("abandoned", "Abandoned carts", "abandoned");
-  post({ action: "delivery_report", from: a, to: b }).then(d => { if (!ok()) return; const t = d.totals;
+  post({ action: "delivery_report", from: a, to: b }).then(d => { if (!ok()) return; const t = d.totals; dashSpark.delivery = chSpark((d.daily || []).map(x => x.booked || 0), "var(--good,var(--pine))");
     dashPut("delivery", dcard("delivery", "TCS delivery report", t.deliveredPctClosed == null ? "–" : Math.round(t.deliveredPctClosed) + "%", "ok", [["Booked", n(t.booked)], ["Delivered", n(t.delivered)], ["Returned", n(t.returned)], ["In process", n(t.inProcess)]], '<div class="dbars" aria-hidden="true"><i class="bd" style="flex:' + (t.delivered || 0) + '"></i><i class="br" style="flex:' + (t.returned || 0) + '"></i><i class="bp" style="flex:' + (t.inProcess || 0) + '"></i></div>'));
   }).catch(e => ok() && dashFail("delivery", "TCS delivery report", "delivery", e));
   post({ action: "abandoned", from: a, to: b }).then(async d => { if (!ok()) return;
@@ -2269,7 +2340,7 @@ async function runDash() {
     const rows = d.rows.filter(r => inR(r.createdAt)), need = rows.filter(r => r.issue && !r.handled).length;
     dashPut("problems", dcard("problems", "Delivery problems", n(rows.length), need ? "bad" : "", [["In process (orders in range)", n(rows.length)], ["Need a call", n(need)], ["In process, all dates", n(d.rows.length)]]));
   }).catch(e => ok() && dashFail("problems", "Delivery problems", "problems", e));
-  post({ action: "daily_report", date: a, to: b, refresh: false }).then(d => { if (!ok()) return; const t = d.totals;
+  post({ action: "daily_report", date: a, to: b, refresh: false }).then(d => { if (!ok()) return; const t = d.totals; dashSpark.total = chSpark((d.daily || []).map(x => x.ratio), "var(--info,var(--house))");
     dashPut("total", dcard("total", "Total delivery ratio", t.ratio == null ? "–" : Math.round(t.ratio) + "%", "ok", [["Orders counted", n(t.counted)], ["Delivered", n(t.delivered)], ["Cancelled (not counted)", n(t.cancelled)]]));
   }).catch(e => ok() && dashFail("total", "Total delivery ratio", "total", e));
 }
@@ -2473,30 +2544,123 @@ function prUl(items, max) {
   if (!items.length) return '<p class="note">None.</p>';
   return "<ul>" + items.slice(0, max).map((x) => "<li>" + x + "</li>").join("") + (items.length > max ? "<li>...and " + (items.length - max) + " more</li>" : "") + "</ul>";
 }
+/* ---------- chart kit: smooth gradient areas, rounded bars, stacked bars, segmented ring (look only; same numbers as before) ---------- */
+let chN = 0;
+const chX = (n) => Number(n).toFixed(1);
+function chNice(m) { if (m <= 4) return 4; const raw = m / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag, st = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((c) => c >= f - 1e-9) * mag; return Math.ceil(st * 4 - 1e-9); }
+let dashSpark = {};
+function chSpark(vals, color) {
+  const v = (vals || []).filter((x) => x != null); if (v.length < 2) return "";
+  const id = "sp" + (++chN), lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), span = (hi - lo) || 1, W = 120, H = 40;
+  const pts = v.map((x, i) => [W * i / (v.length - 1), 4 + (H - 8) * (1 - (x - lo) / span)]), d = chSmooth(pts);
+  return '<svg class="spark" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:' + color + ';stop-opacity:.4"/><stop offset="1" style="stop-color:' + color + ';stop-opacity:0"/></linearGradient></defs><path d="' + d + "L" + W + " " + H + "L0 " + H + 'Z" fill="url(#' + id + ')"/><path d="' + d + '" fill="none" style="stroke:' + color + '" stroke-width="2.2" vector-effect="non-scaling-stroke" stroke-linecap="round"/></svg>';
+}
+function chWide() { const m = document.querySelector("main"); return Math.max(300, Math.min(1080, ((m && m.clientWidth) || 760) - 64)); }
+function chSmooth(p) {
+  const n = p.length; if (n < 2) return "";
+  const dx = [], m = [], t = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = (p[i + 1][0] - p[i][0]) || 1; m[i] = (p[i + 1][1] - p[i][1]) / dx[i]; }
+  t[0] = m[0]; t[n - 1] = m[n - 2];
+  for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+  for (let i = 0; i < n - 1; i++) { if (m[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; } const a = t[i] / m[i], b = t[i + 1] / m[i], s = a * a + b * b; if (s > 9) { const k = 3 / Math.sqrt(s); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; } }
+  let d = "M" + chX(p[0][0]) + " " + chX(p[0][1]);
+  for (let i = 0; i < n - 1; i++) { const h = dx[i] / 3; d += "C" + chX(p[i][0] + h) + " " + chX(p[i][1] + t[i] * h) + " " + chX(p[i + 1][0] - h) + " " + chX(p[i + 1][1] - t[i + 1] * h) + " " + chX(p[i + 1][0]) + " " + chX(p[i + 1][1]); }
+  return d;
+}
+function chGrid(g, L, W, R, T, ph, lo, hi, fmt, y) {
+  for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4, yy = y(v); g.s += '<line class="g" x1="' + L + '" x2="' + (W - R) + '" y1="' + chX(yy) + '" y2="' + chX(yy) + '"/><text class="ya" x="' + (L - 10) + '" y="' + chX(yy + 4) + '">' + fmt(v) + "</text>"; }
+}
+// Smooth lines with soft gradient areas. o: { days:[{label}], series:[{name,color,vals,area,dash}], W, H, min, max, fmt, tip(i) }
+function chArea(o) {
+  const days = o.days, n = days.length; if (n < 2) return "";
+  const W = o.W, H = o.H, L = o.L || 52, R = 16, T = 16, B = 38, pw = W - L - R, ph = H - T - B, lo = o.min == null ? 0 : o.min, hi = o.max;
+  const x = (i) => L + pw * i / (n - 1), y = (v) => T + ph * (1 - (v - lo) / ((hi - lo) || 1));
+  const id = "ch" + (++chN), grid = { s: "" };
+  let g = "<defs>" + o.series.map((s, j) => '<linearGradient id="' + id + "g" + j + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:' + s.color + ';stop-opacity:.42"/><stop offset="1" style="stop-color:' + s.color + ';stop-opacity:0"/></linearGradient>').join("") + "</defs>";
+  chGrid(grid, L, W, R, T, ph, lo, hi, o.fmt, y); g += grid.s;
+  const step = Math.max(1, Math.ceil(n / Math.max(3, Math.floor(pw / 64))));
+  days.forEach((d, i) => { if (i % step === 0 || i === n - 1) g += '<text class="xa" x="' + chX(x(i)) + '" y="' + (H - 12) + '">' + esc(d.label) + "</text>"; });
+  o.series.forEach((s, j) => {
+    const pts = []; s.vals.forEach((v, i) => { if (v != null) pts.push([x(i), y(v), i]); });
+    if (pts.length < 2) return;
+    const d = chSmooth(pts);
+    if (s.area) g += '<path class="ar" d="' + d + "L" + chX(pts[pts.length - 1][0]) + " " + chX(T + ph) + "L" + chX(pts[0][0]) + " " + chX(T + ph) + 'Z" fill="url(#' + id + "g" + j + ')"/>';
+    g += '<path class="' + (s.dash ? "ln dl" : "ln") + '" d="' + d + '" pathLength="1" fill="none" style="stroke:' + s.color + '"' + (s.dash ? ' stroke-dasharray="6 6"' : "") + "/>";
+    const last = pts[pts.length - 1]; g += '<circle class="ld" cx="' + chX(last[0]) + '" cy="' + chX(last[1]) + '" r="5" style="fill:' + s.color + '"/>';
+  });
+  const cw = pw / (n - 1);
+  days.forEach((d, i) => {
+    g += '<g class="chc"><rect class="chh" x="' + chX(x(i) - cw / 2) + '" y="' + T + '" width="' + chX(cw) + '" height="' + ph + '" data-tip="' + esc(o.tip(i)) + '"/><line class="chg" x1="' + chX(x(i)) + '" x2="' + chX(x(i)) + '" y1="' + T + '" y2="' + (T + ph) + '"/>';
+    o.series.forEach((s) => { const v = s.vals[i]; if (v != null) g += '<circle class="chdot" cx="' + chX(x(i)) + '" cy="' + chX(y(v)) + '" r="5" style="fill:' + s.color + '"/>'; });
+    g += "</g>";
+  });
+  return '<svg class="sv chs" viewBox="0 0 ' + W + " " + H + '" role="img" style="max-width:' + W + 'px">' + g + "</svg>";
+}
+// Rounded bars with an average line, a smooth trend line and the best day lit up. o: { items:[{label,v,tip}], W, H, fmt, color, many, sc }
+function chBars(o) {
+  const it = o.items, n = it.length; if (n < 1) return "";
+  const W = o.W, H = o.H, vals = it.map((x) => x.v), many = n > 16, L = 64, R = 16, T = many ? 58 : 34, B = 44, pw = W - L - R, ph = H - T - B;
+  const hi0 = Math.max(0, Math.max.apply(null, vals)), lo = Math.min(0, Math.min.apply(null, vals)), hi = hi0 === 0 && lo === 0 ? 1 : hi0;
+  const span = (hi - lo) || 1, y = (v) => T + ph * (hi - v) / span, bw = pw / n, w = Math.max(5, Math.min(46, bw * 0.62));
+  const id = "chb" + (++chN), avg = vals.reduce((s, v) => s + v, 0) / n, grid = { s: "" };
+  let g = '<defs><linearGradient id="' + id + 'p" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:' + o.color + '"/><stop offset="1" style="stop-color:' + o.color + ';stop-opacity:.55"/></linearGradient><linearGradient id="' + id + 'n" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--rust,#d4533f)"/><stop offset="1" style="stop-color:var(--rust,#d4533f);stop-opacity:.55"/></linearGradient></defs>';
+  chGrid(grid, L, W, R, T, ph, lo, hi, o.fmt, y); g += grid.s;
+  if (lo < 0) g += '<line class="g0" x1="' + L + '" x2="' + (W - R) + '" y1="' + chX(y(0)) + '" y2="' + chX(y(0)) + '"/>';
+  const mx = Math.max.apply(null, vals), lab = Math.max(1, Math.ceil(n / 16));
+  it.forEach((x, i) => {
+    const cx = L + (i + 0.5) * bw, y0 = y(0), y1 = y(x.v), top = Math.min(y0, y1), h = Math.max(2, Math.abs(y1 - y0)), r = Math.min(8, w / 2, h / 2);
+    g += '<rect class="chb' + (x.v === mx && mx > 0 ? " pk" : "") + '" style="--i:' + i + '" x="' + chX(cx - w / 2) + '" y="' + chX(top) + '" width="' + chX(w) + '" height="' + chX(h) + '" rx="' + chX(r) + '" fill="url(#' + id + (x.v < 0 ? "n" : "p") + ')"/>';
+    if (!many) g += '<text class="vl" x="' + chX(cx) + '" y="' + chX(x.v < 0 ? top + h + 16 : top - 8) + '">' + o.fmt(x.v) + "</text>";
+    else g += '<text class="vl v" transform="translate(' + chX(cx + 4) + " " + chX(x.v < 0 ? top + h + 8 : top - 8) + ') rotate(-90)" style="text-anchor:' + (x.v < 0 ? "end" : "start") + ";font-size:" + (bw < 15 ? 11 : 12.5) + 'px">' + o.fmt(x.v) + "</text>";
+    if (i % lab === 0 || i === n - 1) g += '<text class="xa" x="' + chX(cx) + '" y="' + (H - 14) + '">' + esc(x.label) + "</text>";
+  });
+  g += '<line class="avl" x1="' + L + '" x2="' + (W - R) + '" y1="' + chX(y(avg)) + '" y2="' + chX(y(avg)) + '"/><text class="avt" x="' + (W - R) + '" y="' + chX(y(avg) - 7) + '">Average ' + o.fmt(avg) + "</text>";
+  if (n >= 9) { const pts = it.map((x, i) => { let s = 0, c = 0; for (let k = Math.max(0, i - 3); k <= Math.min(n - 1, i + 3); k++) { s += it[k].v; c++; } return [L + (i + 0.5) * bw, y(s / c)]; }); g += '<path class="ln ma" d="' + chSmooth(pts) + '" pathLength="1" fill="none"/>'; }
+  it.forEach((x, i) => { g += '<rect class="chh" x="' + chX(L + i * bw) + '" y="' + T + '" width="' + chX(bw) + '" height="' + ph + '" data-tip="' + esc(x.tip) + '"/>'; });
+  return '<svg class="sv chs" viewBox="0 0 ' + W + " " + H + '" role="img" style="' + (o.sc ? "max-width:none;width:" + W + "px" : "max-width:" + W + "px") + '">' + g + "</svg>";
+}
+// Stacked rounded bars per day. o: { days:[{label,tip,parts:[v...]}], parts:[{name,color}], W, H }
+function chStack(o) {
+  const days = o.days, n = days.length; if (!n) return "";
+  const W = o.W, H = o.H, L = 46, R = 16, T = 16, B = 38, pw = W - L - R, ph = H - T - B, max = chNice(Math.max(1, Math.max.apply(null, days.map((d) => d.parts.reduce((s, v) => s + v, 0)))));
+  const y = (v) => T + ph * (1 - v / max), bw = pw / n, w = Math.max(4, Math.min(34, bw * 0.66)), grid = { s: "" };
+  chGrid(grid, L, W, R, T, ph, 0, max, (v) => String(Math.round(v)), y);
+  let g = grid.s; const step = Math.max(1, Math.ceil(n / Math.max(3, Math.floor(pw / 64))));
+  days.forEach((d, i) => {
+    const cx = L + (i + 0.5) * bw; let acc = 0;
+    const live = d.parts.map((v, k) => [v, k]).filter((p) => p[0] > 0);
+    live.forEach((p, idx) => {
+      const y1 = y(acc + p[0]), y0 = y(acc), h = Math.max(2, y0 - y1 - (idx ? 2 : 0)), top = idx === live.length - 1;
+      g += '<rect class="chb" style="--i:' + i + ';fill:' + o.parts[p[1]].color + '" x="' + chX(cx - w / 2) + '" y="' + chX(y1) + '" width="' + chX(w) + '" height="' + chX(h) + '" rx="' + (top ? Math.min(7, w / 2) : 2) + '"/>';
+      acc += p[0];
+    });
+    if (i % step === 0 || i === n - 1) g += '<text class="xa" x="' + chX(cx) + '" y="' + (H - 12) + '">' + esc(d.label) + "</text>";
+    g += '<rect class="chh" x="' + chX(L + i * bw) + '" y="' + T + '" width="' + chX(bw) + '" height="' + ph + '" data-tip="' + esc(d.tip) + '"/>';
+  });
+  return '<svg class="sv chs" viewBox="0 0 ' + W + " " + H + '" role="img" style="max-width:' + W + 'px">' + g + "</svg>";
+}
+// Segmented ring with rounded ends. parts: [[name, value, color]]
+function chRing(parts, big, small, size) {
+  const tot = parts.reduce((x, p) => x + p[1], 0), r = 62, sw = 18, C = 2 * Math.PI * r, live = parts.filter((p) => p[1]);
+  let off = 0, a = "";
+  live.forEach((p) => {
+    const len = C * p[1] / tot, gap = live.length > 1 && len > 30 ? sw + 4 : (live.length > 1 ? 2 : 0), draw = Math.max(0.1, len - gap), cap = live.length > 1 && len > 30 ? "round" : "butt";
+    a += '<circle class="rg" cx="80" cy="80" r="' + r + '" fill="none" style="stroke:' + p[2] + '" stroke-width="' + sw + '" stroke-linecap="' + cap + '" stroke-dasharray="' + chX(draw) + " " + chX(C - draw) + '" stroke-dashoffset="' + chX(-(off + (cap === "round" ? gap / 2 : 0))) + '" transform="rotate(-90 80 80)" data-tip="' + esc(p[3] || p[0]) + '"/>';
+    off += len;
+  });
+  return '<svg class="ringsv" width="' + (size || 190) + '" height="' + (size || 190) + '" viewBox="0 0 160 160" role="img"><circle cx="80" cy="80" r="' + r + '" fill="none" class="rgt" stroke-width="' + sw + '"/>' + a + '<text x="80" y="82" class="rbig">' + big + '</text><text x="80" y="102" class="rsm">' + small + "</text></svg>";
+}
+
 function prChart(series, field, title, note, pos, fmt) {
   fmt = fmt || ((v) => prN(Math.round(v)));
   if (!series || series.length < 2) return "";
   field = field || "net";
-  const many = series.length > 16, H = 230, L = 62, R = 10, T = many ? 46 : 18, B = 52, sc = smallMQ() && series.length > 7, W = sc ? Math.max(chartW(), series.length * 52 + L + R) : chartW(), pw = W - L - R, ph = H - T - B;
-  const vals = series.map((x) => x[field]);
-  const hi = Math.max(0, Math.max.apply(null, vals)), lo = Math.min(0, Math.min.apply(null, vals));
-  const span = hi - lo || 1, y = (v) => T + ph * (hi - v) / span;
-  const bw = pw / series.length, tot = vals.reduce((s, v) => s + v, 0);
-  let g = '<svg viewBox="0 0 ' + W + " " + H + '" width="' + (sc ? W : "100%") + '" role="img" aria-label="Profit per day" style="max-width:' + (sc ? "none" : W + "px") + ';font-family:Arial,sans-serif">';
-  [hi, (hi + lo) / 2, lo].forEach((v) => { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '" stroke="#ddd"/><text x="' + (L - 6) + '" y="' + (y(v) + 3).toFixed(1) + '" font-size="10" text-anchor="end" fill="#555">' + fmt(v) + "</text>"; });
-  g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '" stroke="#555"/>';
-  series.forEach((x, i) => {
-    const bx = L + i * bw + bw * 0.15, w = bw * 0.7, y0 = y(0), y1 = y(x[field]), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0));
-    g += '<rect x="' + bx.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + (x[field] < 0 ? "#C0392B" : pos ? "#2E6DA4" : "#2E8B57") + '"><title>' + esc(prD(x.date) + ": " + fmt(x[field])) + "</title></rect>";
-    if (!many) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (x[field] < 0 ? top + h + 11 : top - 4).toFixed(1) + '" font-size="9" text-anchor="middle" fill="#333">' + fmt(x[field]) + "</text>";
-    else { // many days: write each value upright above (or below, if negative) its bar so every day stays readable
-      const cx = bx + w / 2 + 3, neg = x[field] < 0;
-      g += '<text transform="translate(' + cx.toFixed(1) + " " + (neg ? top + h + 4 : top - 4).toFixed(1) + ') rotate(-90)" font-size="' + (bw < 14 ? 8 : 9) + '" text-anchor="' + (neg ? "end" : "start") + '" fill="#333">' + fmt(x[field]) + "</text>";
-    }
-    if (series.length <= 16 || i % Math.ceil(series.length / 16) === 0) g += '<text x="' + (bx + w / 2).toFixed(1) + '" y="' + (H - 12) + '" font-size="9" text-anchor="middle" fill="#555">' + esc(prD(x.date).replace(/ \d{4}$/, "")) + "</text>";
-  });
-  g += "</svg>"; if (sc) g = '<div class="prsc">' + g + "</div>";
-  return '<div class="keep"><h2>' + title + "</h2>" + g + '<p class="note">' + note.replace("{tot}", prM(tot)) + "</p></div>";
+  const sc = smallMQ() && series.length > 7, W = sc ? Math.max(chWide(), series.length * 56 + 90) : chWide();
+  const tot = series.reduce((s, x) => s + x[field], 0);
+  const items = series.map((x) => ({ label: prD(x.date).replace(/ \d{4}$/, ""), v: x[field], tip: prD(x.date) + ": " + fmt(x[field]) }));
+  let g = chBars({ items, W, H: smallMQ() ? 300 : 380, fmt, color: pos ? "var(--info,#4c8fd6)" : "var(--good,var(--pine))", sc });
+  if (sc) g = '<div class="prsc">' + g + "</div>";
+  return '<div class="keep chk"><h2>' + title + "</h2>" + g + '<p class="note">' + note.replace("{tot}", prM(tot)) + "</p></div>";
 }
 function prHtml(d, fold) {
   const k = d.kpi, p = d.pnl, n = d.notes;
@@ -3998,21 +4162,13 @@ function renderReport() {
 const MIN_FINISHED = 8; // a city needs this many delivered + returned parcels to be ranked best/lowest
 const CIRC = 2 * Math.PI * 52;
 function donutChart(t) {
-  const parts = [["Delivered", t.delivered, "var(--pine)"], ["Returned", t.returned, "var(--rust)"], ["In process", t.inProcess, "var(--house)"]];
+  const parts = [["Delivered", t.delivered, "var(--good,var(--pine))"], ["Returned", t.returned, "var(--rust)"], ["In process", t.inProcess, "var(--info,var(--house))"]];
   const tot = parts.reduce((x, p) => x + p[1], 0);
   if (!tot) return "";
-  let off = 0;
-  const arcs = parts.filter(p => p[1]).map(p => {
-    const len = CIRC * p[1] / tot, draw = Math.max(0.5, len - (parts.filter(q => q[1]).length > 1 ? 2.5 : 0));
-    const el = '<circle cx="70" cy="70" r="52" fill="none" stroke="' + p[2] + '" stroke-width="18" stroke-dasharray="' + draw.toFixed(2) + " " + (CIRC - draw).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 70 70)" data-tip="' + esc(p[0] + ": " + p[1].toLocaleString("en-PK") + " parcels (" + (100 * p[1] / tot).toFixed(1) + "% of " + tot.toLocaleString("en-PK") + ")") + '"></circle>';
-    off += len; return el;
-  }).join("");
-  const legend = parts.map(p => '<div data-tip="' + esc(p[0] + ": " + p[1].toLocaleString("en-PK") + " parcels (" + (100 * p[1] / tot).toFixed(1) + "%)") + '"><i style="background:' + p[2] + '"></i>' + p[0] + "<b>" + p[1].toLocaleString("en-PK") + '</b><span class="sub">' + (100 * p[1] / tot).toFixed(1) + "%</span></div>").join("");
+  const tip = (p) => p[0] + ": " + p[1].toLocaleString("en-PK") + " parcels (" + (100 * p[1] / tot).toFixed(1) + "% of " + tot.toLocaleString("en-PK") + ")";
+  const legend = parts.map((p) => '<div data-tip="' + esc(tip(p)) + '"><i style="background:' + p[2] + '"></i>' + p[0] + "<b>" + p[1].toLocaleString("en-PK") + '</b><span class="sub">' + (100 * p[1] / tot).toFixed(1) + "%</span></div>").join("");
   return '<div class="chart"><h3>Parcel status</h3><p class="cap">Share of all ' + tot.toLocaleString("en-PK") + " parcels booked in this range</p>" +
-    '<div class="donutwrap"><svg width="150" height="150" viewBox="0 0 140 140" role="img" aria-label="Delivered, returned and in process share">' +
-    '<circle cx="70" cy="70" r="52" fill="none" stroke="var(--soft)" stroke-width="18"></circle>' + arcs +
-    '<text x="70" y="68" text-anchor="middle" font-size="22" font-weight="800" fill="currentColor">' + tot.toLocaleString("en-PK") + '</text><text x="70" y="86" text-anchor="middle" font-size="11" fill="var(--mute)">parcels</text></svg>' +
-    '<div class="legend">' + legend + "</div></div></div>";
+    '<div class="donutwrap">' + chRing(parts.map((p) => [p[0], p[1], p[2], tip(p)]), tot.toLocaleString("en-PK"), "parcels", 200) + '<div class="legend">' + legend + "</div></div></div>";
 }
 function rateBars(title, cap, list, cls, avg) {
   const rows = list.map(c => '<div class="hb" data-tip="' + esc(c.city + ": " + c.deliveredPctClosed + "% delivered. " + c.delivered + " delivered, " + c.returned + " returned (" + c.closed + " finished)" + (c.inProcess ? ", " + c.inProcess + " still in process" : "") + (c.deliveredAmount ? ". Delivered " + rs(c.deliveredAmount) + ", returned " + rs(c.returnedAmount) : "")) + '"><span class="hl" title="' + esc(c.city) + '">' + esc(c.city) + '</span><div class="ht"><i class="' + cls + '" style="width:' + c.deliveredPctClosed + '%"></i>' +
@@ -4035,25 +4191,19 @@ function chartW() { const m = document.querySelector("main"); return Math.max(30
 function niceMax(m) { if (m <= 5) return 5; const p = Math.pow(10, Math.floor(Math.log10(m))); const f = m / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
 function dayBars(title, cap, days, series) {
   if (!days.length) return "";
-  const W = chartW(), H = 230, L = 34, B = 34, T = 8, R = 6;
-  const max = niceMax(Math.max(1, ...days.map(d => Math.max(...series.map(s => d[s.k] || 0)))));
-  const pw = (W - L - R) / days.length, bw = Math.max(1.5, Math.min(26, pw * 0.8 / series.length));
-  const y = v => T + (H - T - B) * (1 - v / max);
-  let g = "";
-  for (let i = 0; i <= 4; i++) { const v = max * i / 4; g += '<line class="g" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + Math.round(v) + "</text>"; }
-  const step = Math.max(1, Math.ceil(days.length / Math.max(3, Math.floor((W - L) / 52))));
-  let bars = "", lab = "";
-  days.forEach((d, i) => {
-    const x0 = L + i * pw + (pw - bw * series.length) / 2;
-    const dt = new Date(d.day + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-    series.forEach((s, j) => { const v = d[s.k] || 0, h = (H - T - B) * v / max;
-      bars += '<rect class="' + s.cls + '" x="' + (x0 + j * bw).toFixed(1) + '" y="' + y(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1.5"></rect>'; });
-    const all = series.map(s => s.name + ": " + (d[s.k] || 0)).join(" · ");
-    bars += '<rect x="' + (L + i * pw).toFixed(1) + '" y="' + T + '" width="' + pw.toFixed(1) + '" height="' + (H - T - B) + '" fill="transparent" data-tip="' + esc(dt + " — " + all) + '"></rect>';
-    if (i % step === 0) lab += '<text x="' + (L + i * pw + pw / 2).toFixed(1) + '" y="' + (H - B + 16) + '" text-anchor="middle">' + dt + "</text>";
-  });
-  const key = series.length > 1 ? '<div class="key">' + series.map(s => '<span><i class="' + s.cls.replace("f-", "c-") + '" style="' + (s.cls === "f-pro" ? "background:#5b7fd6" : "") + '"></i>' + s.name + "</span>").join("") + "</div>" : "";
-  return '<div class="chart wide"><h3>' + title + '</h3><p class="cap">' + cap + '</p><svg class="sv" viewBox="0 0 ' + W + " " + H + '" role="img">' + g + bars + lab + "</svg>" + key + "</div>";
+  const W = chWide(), H = 320;
+  const lab = (d) => new Date(d.day + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+  const col = { "f-bk": "var(--ax,var(--house))", "f-pro": "var(--info,#5b7fd6)", "f-del": "var(--good,var(--pine))", "f-ret": "var(--rust)" };
+  let svg, key = "";
+  if (series.length === 1) {
+    const s = series[0], vals = days.map((d) => d[s.k] || 0), max = chNice(Math.max(1, ...vals));
+    svg = days.length < 2 ? chBars({ items: days.map((d, i) => ({ label: lab(d), v: vals[i], tip: lab(d) + " - " + s.name + ": " + vals[i] })), W, H: 260, fmt: (v) => String(Math.round(v)), color: col[s.cls] })
+      : chArea({ days: days.map((d) => ({ label: lab(d) })), series: [{ name: s.name, color: col[s.cls], vals, area: true }], W, H, max, fmt: (v) => String(Math.round(v)), tip: (i) => lab(days[i]) + " - " + s.name + ": " + vals[i] });
+  } else {
+    svg = chStack({ days: days.map((d) => ({ label: lab(d), tip: lab(d) + " - " + series.map((s) => s.name + ": " + (d[s.k] || 0)).join(" · "), parts: series.map((s) => d[s.k] || 0) })), parts: series.map((s) => ({ name: s.name, color: col[s.cls] })), W, H });
+    key = '<div class="key">' + series.map((s) => '<span><i style="background:' + col[s.cls] + '"></i>' + s.name + "</span>").join("") + "</div>";
+  }
+  return '<div class="chart wide"><h3>' + title + '</h3><p class="cap">' + cap + "</p>" + svg + key + "</div>";
 }
 
 function ratioSummary(rs0, amt) {
@@ -4064,31 +4214,14 @@ function ratioSummary(rs0, amt) {
 
 function ratioBars(days, amt, sumData) {
   if (!days || !days.length) return "";
-  const fa = amt ? "amtRatio" : "ratio", fb = amt ? "localAmtRatio" : "localRatio";
-  const W = chartW(), H = 250, L = 38, B = 34, R = 6;
-  const pw = (W - L - R) / days.length, bw = Math.max(3, Math.min(30, pw * 0.38));
-  const vert = bw < 20, T = vert ? 36 : 18; // many days: the numbers are written upright above each bar
-  const y = v => T + (H - T - B) * (1 - v / 100);
-  let g = "", bars = "", lab = "";
-  [0, 25, 50, 75, 100].forEach(v => { g += '<line class="g" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + "%</text>"; });
-  const step = Math.max(1, Math.ceil(days.length / Math.max(3, Math.floor((W - L) / 52)))), showVal = true;
-  days.forEach((d, i) => {
-    const x0 = L + i * pw + (pw - bw * 2) / 2;
-    const dt = new Date(d.day + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-    [[d[fa], "f-del", 0], [d[fb], "f-bk", 1]].forEach(([v, cls, j]) => {
-      if (v == null) return;
-      bars += '<rect class="' + cls + '" x="' + (x0 + j * bw).toFixed(1) + '" y="' + y(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + ((H - T - B) * v / 100).toFixed(1) + '" rx="2"></rect>';
-      if (showVal) { const tx = x0 + j * bw + bw / 2, ty = y(v) - 4;
-        bars += vert ? '<text transform="translate(' + (tx + 3).toFixed(1) + " " + ty.toFixed(1) + ') rotate(-90)" text-anchor="start" style="font-size:' + (bw < 7 ? 8 : 9) + 'px">' + Math.round(v) + "</text>"
-          : '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle" style="font-size:10px">' + Math.round(v) + "</text>"; }
-    });
-    const tip = amt ? dt + " — Overall: " + (d.amtRatio == null ? "–" : d.amtRatio + "%") + " (" + rs(d.amtDel) + " of " + rs(d.amt) + ") · ISB/RWP: " + (d.localAmtRatio == null ? "no orders" : d.localAmtRatio + "% (" + rs(d.rAmtDel) + " of " + rs(d.rAmt) + ")")
-      : dt + " — Overall: " + (d.ratio == null ? "–" : d.ratio + "%") + " (" + d.delivered + " of " + d.counted + ") · ISB/RWP: " + (d.localRatio == null ? "no orders" : d.localRatio + "% (" + d.riderDelivered + " of " + d.riderTotal + ")");
-    bars += '<rect x="' + (L + i * pw).toFixed(1) + '" y="' + T + '" width="' + pw.toFixed(1) + '" height="' + (H - T - B) + '" fill="transparent" data-tip="' + esc(tip) + '"></rect>';
-    if (i % step === 0) lab += '<text x="' + (L + i * pw + pw / 2).toFixed(1) + '" y="' + (H - B + 16) + '" text-anchor="middle">' + dt + "</text>";
-  });
-  return '<div class="chart wide" style="margin-bottom:14px"><h3>' + (amt ? "Amount delivered by order day" : "Delivery ratio by order day") + '</h3><p class="cap">' + (amt ? "For orders placed each day: share of the order value (Rs) that was delivered, overall and for ISB/RWP. Hover a day for the exact amounts." : "For orders placed each day: overall ratio and ISB/RWP ratio. Hover a day for the exact numbers.") + '</p><svg class="sv" viewBox="0 0 ' + W + " " + H + '" role="img">' + g + bars + lab + "</svg>" +
-    '<div class="key"><span><i class="c-del"></i>' + (amt ? "Overall amount delivered" : "Overall delivery ratio") + '</span><span><i class="c-pro" style="background:var(--house)"></i>' + (amt ? "ISB/RWP amount delivered" : "ISB/RWP delivery ratio") + '</span></div>' + ratioSummary(sumData, amt) + '</div>';
+  const fa = amt ? "amtRatio" : "ratio", fb = amt ? "localAmtRatio" : "localRatio", W = chWide(), H = 330;
+  const lab = (d) => new Date(d.day + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+  const tipOf = (d) => { const dt = lab(d); return amt ? dt + " - Overall: " + (d.amtRatio == null ? "-" : d.amtRatio + "%") + " (" + rs(d.amtDel) + " of " + rs(d.amt) + ") · ISB/RWP: " + (d.localAmtRatio == null ? "no orders" : d.localAmtRatio + "% (" + rs(d.rAmtDel) + " of " + rs(d.rAmt) + ")")
+    : dt + " - Overall: " + (d.ratio == null ? "-" : d.ratio + "%") + " (" + d.delivered + " of " + d.counted + ") · ISB/RWP: " + (d.localRatio == null ? "no orders" : d.localRatio + "% (" + d.riderDelivered + " of " + d.riderTotal + ")"); };
+  const svg = days.length < 2 ? chBars({ items: days.map((d) => ({ label: lab(d), v: d[fa] || 0, tip: tipOf(d) })), W, H: 280, fmt: (v) => Math.round(v) + "%", color: "var(--good,var(--pine))" })
+    : chArea({ days: days.map((d) => ({ label: lab(d) })), series: [{ name: "Overall", color: "var(--good,var(--pine))", vals: days.map((d) => d[fa]), area: true }, { name: "ISB/RWP", color: "var(--info,var(--house))", vals: days.map((d) => d[fb]) }], W, H, min: 0, max: 100, fmt: (v) => Math.round(v) + "%", tip: (i) => tipOf(days[i]) });
+  return '<div class="chart wide" style="margin-bottom:14px"><h3>' + (amt ? "Amount delivered by order day" : "Delivery ratio by order day") + '</h3><p class="cap">' + (amt ? "For orders placed each day: share of the order value (Rs) that was delivered, overall and for ISB/RWP. Hover a day for the exact amounts." : "For orders placed each day: overall ratio and ISB/RWP ratio. Hover a day for the exact numbers.") + "</p>" + svg +
+    '<div class="key"><span><i style="background:var(--good,var(--pine))"></i>' + (amt ? "Overall amount delivered" : "Overall delivery ratio") + '</span><span><i style="background:var(--info,var(--house))"></i>' + (amt ? "ISB/RWP amount delivered" : "ISB/RWP delivery ratio") + "</span></div>" + ratioSummary(sumData, amt) + "</div>";
 }
 
 function stuckChart(d) {
