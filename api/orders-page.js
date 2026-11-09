@@ -1754,6 +1754,8 @@ html[data-mx] .lst td,html[data-mx] .lst table td{border-color:var(--line)}
 .sv.chs text{font-size:13px;fill:var(--mute)}
 .sv.chs .ya{text-anchor:end}.sv.chs .xa{text-anchor:middle}
 .sv.chs .g{stroke:var(--line);stroke-width:1;stroke-dasharray:2 5}
+.sv.chs .g.m{stroke-dasharray:1 6;opacity:.65}
+.sv.chs .ya.m{font-size:11.5px;opacity:.85}
 .sv.chs .g0{stroke:var(--mute);stroke-width:1.2;opacity:.6}
 .sv.chs .vl{text-anchor:middle;font-size:13px;font-weight:700;fill:var(--ink)}
 .sv.chs .vl.v{font-weight:600}
@@ -2574,10 +2576,12 @@ function chGrid(g, L, W, R, T, ph, lo, hi, fmt, y) {
 function chArea(o) {
   const days = o.days, n = days.length; if (n < 2) return "";
   const W = o.W, H = o.H, L = o.L || 52, R = 16, T = 16, B = 38, pw = W - L - R, ph = H - T - B, lo = o.min == null ? 0 : o.min, hi = o.max;
-  const x = (i) => L + pw * i / (n - 1), y = (v) => T + ph * (1 - (v - lo) / ((hi - lo) || 1));
+  const x = (i) => L + pw * i / (n - 1), y = o.yf ? (v) => T + ph * (1 - o.yf(v)) : (v) => T + ph * (1 - (v - lo) / ((hi - lo) || 1));
   const id = "ch" + (++chN), grid = { s: "" };
   let g = "<defs>" + o.series.map((s, j) => '<linearGradient id="' + id + "g" + j + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:' + s.color + ';stop-opacity:.42"/><stop offset="1" style="stop-color:' + s.color + ';stop-opacity:0"/></linearGradient>').join("") + "</defs>";
-  chGrid(grid, L, W, R, T, ph, lo, hi, o.fmt, y); g += grid.s;
+  if (o.ticks) o.ticks.forEach((v) => { const yy = y(v), mi = o.minor && o.minor.indexOf(v) >= 0; grid.s += '<line class="g' + (mi ? " m" : "") + '" x1="' + L + '" x2="' + (W - R) + '" y1="' + chX(yy) + '" y2="' + chX(yy) + '"/><text class="ya' + (mi ? " m" : "") + '" x="' + (L - 10) + '" y="' + chX(yy + 4) + '">' + o.fmt(v) + "</text>"; });
+  else chGrid(grid, L, W, R, T, ph, lo, hi, o.fmt, y);
+  g += grid.s;
   const step = Math.max(1, Math.ceil(n / Math.max(3, Math.floor(pw / 64))));
   days.forEach((d, i) => { if (i % step === 0 || i === n - 1) g += '<text class="xa" x="' + chX(x(i)) + '" y="' + (H - 12) + '">' + esc(d.label) + "</text>"; });
   o.series.forEach((s, j) => {
@@ -4219,7 +4223,7 @@ function ratioBars(days, amt, sumData) {
   const tipOf = (d) => { const dt = lab(d); return amt ? dt + " - Overall: " + (d.amtRatio == null ? "-" : d.amtRatio + "%") + " (" + rs(d.amtDel) + " of " + rs(d.amt) + ") · ISB/RWP: " + (d.localAmtRatio == null ? "no orders" : d.localAmtRatio + "% (" + rs(d.rAmtDel) + " of " + rs(d.rAmt) + ")")
     : dt + " - Overall: " + (d.ratio == null ? "-" : d.ratio + "%") + " (" + d.delivered + " of " + d.counted + ") · ISB/RWP: " + (d.localRatio == null ? "no orders" : d.localRatio + "% (" + d.riderDelivered + " of " + d.riderTotal + ")"); };
   const svg = days.length < 2 ? chBars({ items: days.map((d) => ({ label: lab(d), v: d[fa] || 0, tip: tipOf(d) })), W, H: 280, fmt: (v) => Math.round(v) + "%", color: "var(--good,var(--pine))" })
-    : chArea({ days: days.map((d) => ({ label: lab(d) })), series: [{ name: "Overall", color: "var(--good,var(--pine))", vals: days.map((d) => d[fa]), area: true }, { name: "ISB/RWP", color: "var(--info,var(--house))", vals: days.map((d) => d[fb]) }], W, H, min: 0, max: 100, fmt: (v) => Math.round(v) + "%", tip: (i) => tipOf(days[i]) });
+    : chArea({ days: days.map((d) => ({ label: lab(d) })), series: [{ name: "Overall", color: "var(--good,var(--pine))", vals: days.map((d) => d[fa]), area: true }, { name: "ISB/RWP", color: "var(--info,var(--house))", vals: days.map((d) => d[fb]) }], W, H: 440, min: 0, max: 100, yf: (v) => (v >= 75 ? 0.45 + 0.55 * (v - 75) / 25 : 0.45 * Math.max(0, v) / 75), ticks: [0, 25, 50, 75, 80, 85, 90, 95, 100], minor: [80, 85, 90, 95], fmt: (v) => Math.round(v) + "%", tip: (i) => tipOf(days[i]) });
   return '<div class="chart wide" style="margin-bottom:14px"><h3>' + (amt ? "Amount delivered by order day" : "Delivery ratio by order day") + '</h3><p class="cap">' + (amt ? "For orders placed each day: share of the order value (Rs) that was delivered, overall and for ISB/RWP. Hover a day for the exact amounts." : "For orders placed each day: overall ratio and ISB/RWP ratio. Hover a day for the exact numbers.") + "</p>" + svg +
     '<div class="key"><span><i style="background:var(--good,var(--pine))"></i>' + (amt ? "Overall amount delivered" : "Overall delivery ratio") + '</span><span><i style="background:var(--info,var(--house))"></i>' + (amt ? "ISB/RWP amount delivered" : "ISB/RWP delivery ratio") + "</span></div>" + ratioSummary(sumData, amt) + "</div>";
 }
