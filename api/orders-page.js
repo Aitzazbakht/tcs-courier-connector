@@ -1692,6 +1692,40 @@ html[data-mx] #installBtn:not([hidden]){display:inline-flex!important}
 html[data-mx] #waPanel .appear{display:none}
 html[data-mx] .tbright{margin-left:0}
 @media (min-width:901px){html[data-mx] header.top .bar{gap:10px}html[data-mx] header.top .bar .ctrl{white-space:nowrap}}
+
+/* ===== glass for the report pages (Total delivery, TCS delivery, Sales, Profit): same recipe as the cards, readable in light and dark ===== */
+html[data-mx] .chart,html[data-mx] .ratiobox,html[data-mx] .lst details,html[data-mx] .stchip,html[data-mx] .stlist,html[data-mx] #totBody .tbox,html[data-mx] #repBody .tbox{background-color:var(--mx-glass)!important;background-image:radial-gradient(130% 70% at 0% 0%,var(--mx-catch),transparent 58%),linear-gradient(180deg,var(--mx-sheen),transparent 38%),linear-gradient(0deg,var(--mx-pool),transparent 22%)!important;box-shadow:var(--mx-inset),var(--mx-lift)!important;border:0!important;color:var(--ink);-webkit-backdrop-filter:blur(18px) saturate(190%);backdrop-filter:blur(18px) saturate(190%)}
+html[data-mx] .chart,html[data-mx] .ratiobox{border-radius:20px}
+html[data-mx] .ratiobox .big{color:var(--ax-text,var(--pine))}
+html[data-mx] .meter{background:var(--mx-track)}html[data-mx] .meter i{background:linear-gradient(90deg,var(--ax-hi,#ff95b4),var(--ax,#e2587f))}
+html[data-mx] .lst td,html[data-mx] .lst table td{border-color:var(--line)}
+@media (max-width:900px){
+  html[data-mx] .sxwrap{color:var(--ink)}
+  html[data-mx] .sxhero,html[data-mx] .sxc,html[data-mx] .sxtile{background-color:var(--mx-glass)!important;background-image:radial-gradient(130% 70% at 0% 0%,var(--mx-catch),transparent 58%),linear-gradient(180deg,var(--mx-sheen),transparent 38%),linear-gradient(0deg,var(--mx-pool),transparent 22%)!important;border:0!important;color:var(--ink);box-shadow:var(--mx-inset),var(--mx-lift)!important;-webkit-backdrop-filter:blur(18px) saturate(190%);backdrop-filter:blur(18px) saturate(190%)}
+  html[data-mx] .sxhero h2,html[data-mx] .sxc h3,html[data-mx] .sxnum,html[data-mx] .sxtv,html[data-mx] .sxrt,html[data-mx] .sxleg,html[data-mx] .sxat,html[data-mx] .sxkv{color:var(--mx-strong)}
+  html[data-mx] .sxsub,html[data-mx] .sxms,html[data-mx] .sxts,html[data-mx] .sxrs,html[data-mx] .sxkl,html[data-mx] .sxtl,html[data-mx] .sxkey,html[data-mx] .sxn,html[data-mx] .sxah,html[data-mx] .sxah b{color:var(--mute)}
+  html[data-mx] .sxar,html[data-mx] .sxkv{border-color:var(--line)}
+  html[data-mx] .sxbar,html[data-mx] .dseg{background:var(--mx-track)}
+  html[data-mx] .sxbar u{background:var(--ink)}
+  html[data-mx] .sxl{fill:var(--mute)}html[data-mx] .sxv{fill:var(--ink)}html[data-mx] .sxy{stroke:var(--mx-opaque)}
+  html[data-mx] .sxch.up,html[data-mx] .sxok{color:var(--good)}html[data-mx] .sxch.dn,html[data-mx] .sxwarn{color:var(--rust)}
+  html[data-mx] .sxok{background:var(--good-soft)}html[data-mx] .sxok.bad{background:var(--rust-soft);color:var(--rust)}
+  html[data-mx] .sxbadge{background:var(--good-soft);color:var(--good)}
+  html[data-mx] .sxar b{background:var(--warn-soft);color:var(--warn)}
+}
+@media (min-width:901px){
+  html[data-mx] #prBody .pr{background-color:var(--mx-glass)!important;background-image:radial-gradient(130% 70% at 0% 0%,var(--mx-catch),transparent 58%),linear-gradient(180deg,var(--mx-sheen),transparent 38%),linear-gradient(0deg,var(--mx-pool),transparent 22%)!important;box-shadow:var(--mx-inset),var(--mx-lift)!important;border:0!important;border-radius:20px;color:var(--ink);padding:22px 24px;font-size:13.5px;-webkit-backdrop-filter:blur(18px) saturate(190%);backdrop-filter:blur(18px) saturate(190%)}
+  html[data-mx] #prBody .pr h1{color:var(--mx-strong)}
+  html[data-mx] #prBody .pr h2{color:var(--ax-text,var(--ink));border-bottom:1px solid var(--line)}
+  html[data-mx] #prBody .pr .sub,html[data-mx] #prBody .pr td.kpi small,html[data-mx] #prBody .pr .muted{color:var(--mute)}
+  html[data-mx] #prBody .pr td.kpi{background:var(--mx-hi);border:0;box-shadow:inset 0 0 0 1px var(--mx-edge-soft);color:var(--ink);border-radius:14px}
+  html[data-mx] #prBody .pr td.kpi.neg b{color:var(--rust)}
+  html[data-mx] #prBody .pr th{background:var(--mx-th);color:var(--mute)}
+  html[data-mx] #prBody .pr td{color:var(--ink);border-bottom-color:var(--line)}
+  html[data-mx] #prBody .pr tbody tr:nth-child(even) td{background:var(--mx-hover)}
+  html[data-mx] #prBody .pr tr.tot td{background:var(--ax-soft,var(--mx-hi));border-top:2px solid var(--ax-edge,var(--line))}
+  html[data-mx] #prBody>.note{background:var(--mx-hi);color:var(--mute);border-color:var(--line)}
+}
 </style></head>
 <body>
 <div id="splash" aria-hidden="true"><img id="spLogo" class="splogo" alt=""></div>
