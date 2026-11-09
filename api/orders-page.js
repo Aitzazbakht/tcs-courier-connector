@@ -1753,8 +1753,8 @@ html[data-mx] .lst td,html[data-mx] .lst table td{border-color:var(--line)}
 .chart.wide .sv{margin:0 auto;display:block}
 .sv.chs text{font-size:13px;fill:var(--mute)}
 .sv.chs .ya{text-anchor:end}.sv.chs .xa{text-anchor:middle}
-.sv.chs .g{stroke:var(--line);stroke-width:1;stroke-dasharray:2 5}
-.sv.chs .g.m{stroke-dasharray:1 6;opacity:.65}
+.sv.chs .g{stroke:color-mix(in srgb,var(--ink) 24%,transparent);stroke-width:1.2;stroke-dasharray:3 5}
+.sv.chs .g.m{stroke:color-mix(in srgb,var(--ink) 17%,transparent);stroke-dasharray:2 6;opacity:1}
 .sv.chs .ya.m{font-size:11.5px;opacity:.85}
 .sv.chs .g0{stroke:var(--mute);stroke-width:1.2;opacity:.6}
 .sv.chs .vl{text-anchor:middle;font-size:13px;font-weight:700;fill:var(--ink)}
@@ -1764,8 +1764,10 @@ html[data-mx] .lst td,html[data-mx] .lst table td{border-color:var(--line)}
 .sv.chs .ln.ma{stroke:var(--ink);stroke-width:2.4;opacity:.8}
 .sv.chs .ar{stroke:none}
 .sv.chs .ld{stroke:var(--mx-opaque,#fff);stroke-width:2.5}
-.sv.chs .avl{stroke:var(--mute);stroke-width:1.2;stroke-dasharray:5 5;opacity:.8}
-.sv.chs .avt{text-anchor:end;font-size:12.5px;font-weight:700;fill:var(--ink);stroke:var(--mx-opaque,#111);stroke-width:5px;paint-order:stroke;stroke-linejoin:round}
+.sv.chs .avl{stroke:var(--mute);stroke-width:1.4;stroke-dasharray:5 5;opacity:.9}
+.sv.chs .avp rect{fill:var(--mx-hi,rgba(128,128,128,.18));stroke:var(--mx-edge-soft,rgba(128,128,128,.3));stroke-width:1}
+.sv.chs .avp line{stroke:var(--mute);stroke-width:1.6;stroke-dasharray:4 3}
+.sv.chs .avp text{text-anchor:start;font-size:13px;font-weight:700;fill:var(--ink)}
 .sv.chs .chb{transition:filter .15s}
 .sv.chs .chb.pk{filter:drop-shadow(0 0 7px color-mix(in srgb,currentColor 0%,var(--ax,#ff7ba1)))}
 .sv.chs .chh{fill:transparent;opacity:1}
@@ -1819,6 +1821,12 @@ html[data-mx] .lst td,html[data-mx] .lst table td{border-color:var(--line)}
 html[data-mx] #prBody .pr .chk svg text{font-size:12.5px!important}
 html[data-mx] #prBody .pr svg text.ya,html[data-mx] #prBody .pr svg text.xa,html[data-mx] #prBody .pr svg text.avt{fill:var(--mute)!important}
 html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{background:transparent;border:0}
+
+@media (min-width:901px){
+  html[data-mx] .side .tab{gap:10px}
+  html[data-mx] .side .tab .tl{flex:1 1 auto;min-width:0;white-space:nowrap;font-size:13.5px;letter-spacing:-.005em}
+  html[data-mx] .side .tab b{flex:none;padding:1px 8px;font-size:11.5px}
+}
 </style></head>
 <body>
 <div id="splash" aria-hidden="true"><img id="spLogo" class="splogo" alt=""></div>
@@ -2618,7 +2626,8 @@ function chBars(o) {
     else g += '<text class="vl v" transform="translate(' + chX(cx + 4) + " " + chX(x.v < 0 ? top + h + 8 : top - 8) + ') rotate(-90)" style="text-anchor:' + (x.v < 0 ? "end" : "start") + ";font-size:" + (bw < 15 ? 11 : 12.5) + 'px">' + o.fmt(x.v) + "</text>";
     if (i % lab === 0 || i === n - 1) g += '<text class="xa" x="' + chX(cx) + '" y="' + (H - 14) + '">' + esc(x.label) + "</text>";
   });
-  g += '<line class="avl" x1="' + L + '" x2="' + (W - R) + '" y1="' + chX(y(avg)) + '" y2="' + chX(y(avg)) + '"/><text class="avt" x="' + (W - R) + '" y="' + chX(y(avg) - 7) + '">Average ' + o.fmt(avg) + "</text>";
+  const avl = "Average " + o.fmt(avg), pwid = Math.round(avl.length * 7.4 + 44);
+  g += '<line class="avl" x1="' + L + '" x2="' + (W - R) + '" y1="' + chX(y(avg)) + '" y2="' + chX(y(avg)) + '"/><g class="avp"><rect x="' + chX(W - R - pwid) + '" y="3" width="' + pwid + '" height="26" rx="13"/><line x1="' + chX(W - R - pwid + 12) + '" x2="' + chX(W - R - pwid + 28) + '" y1="16" y2="16"/><text x="' + chX(W - R - pwid + 34) + '" y="21">' + avl + "</text></g>";
   if (n >= 9) { const pts = it.map((x, i) => { let s = 0, c = 0; for (let k = Math.max(0, i - 3); k <= Math.min(n - 1, i + 3); k++) { s += it[k].v; c++; } return [L + (i + 0.5) * bw, y(s / c)]; }); g += '<path class="ln ma" d="' + chSmooth(pts) + '" pathLength="1" fill="none"/>'; }
   it.forEach((x, i) => { g += '<rect class="chh" x="' + chX(L + i * bw) + '" y="' + T + '" width="' + chX(bw) + '" height="' + ph + '" data-tip="' + esc(x.tip) + '"/>'; });
   return '<svg class="sv chs" viewBox="0 0 ' + W + " " + H + '" role="img" style="' + (o.sc ? "max-width:none;width:" + W + "px" : "max-width:" + W + "px") + '">' + g + "</svg>";
