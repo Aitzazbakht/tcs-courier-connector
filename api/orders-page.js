@@ -4069,27 +4069,33 @@ async function loadReturns(refresh) {
   finally { rt.loading = false; $("#rtRefresh").disabled = false; $("#rtRun").disabled = false; }
 }
 function rtCount() { if (!rt.data) return; const n = rt.data.rows.filter(r => !r.status.key && r.id).length; $("#cReturns").textContent = n || "0"; }
+function rtKey(r) { return r.status.key === "custom" ? "c:" + String(r.status.text).toLowerCase() : (r.status.key || "none"); }
 function renderReturns() {
   if (!rt.data) return;
-  const rows = rt.data.rows, stc = {}, rzc = {};
-  rows.forEach(r => { const k = r.status.key === "custom" ? "custom" : r.status.key; stc[k] = (stc[k] || 0) + 1; if (r.reason) rzc[r.reason.code] = (rzc[r.reason.code] || 0) + 1; });
+  const rows = rt.data.rows, stc = {}, rzc = {}, ctx = {}, ctn = {};
+  rows.forEach(r => { const k = rtKey(r); stc[k] = (stc[k] || 0) + 1; if (r.status.key === "custom") { ctx[k] = r.status.text; ctn[k] = (ctn[k] || 0) + 1; } if (r.reason) rzc[r.reason.code] = (rzc[r.reason.code] || 0) + 1; });
+  const customs = Object.keys(ctx).sort((a, b) => ctn[b] - ctn[a] || ctx[a].localeCompare(ctx[b]));
+  const stList = [["none", "No status"], ["contacted", "Contacted"], ["reorder", "Reorder confirm"], ["dontneed", "Don't need"]].concat(customs.map(k => [k, ctx[k]]), [["rebooked", "Rebooked"]]);
   const ss = $("#rtStatus"), rz = $("#rtReason");
-  ss.innerHTML = '<option value="">All statuses (' + rows.length + ")</option>" + RT_ST.map(x => '<option value="' + x[0] + '">' + x[1] + " (" + (stc[x[0]] || 0) + ")</option>").join("").replace('value=""', 'value="none"');
+  ss.innerHTML = '<option value="">All statuses (' + rows.length + ")</option>" + stList.map(x => '<option value="' + esc(x[0]) + '">' + esc(x[1]) + " (" + (stc[x[0]] || 0) + ")</option>").join("");
   ss.value = rt.status; if (ss.value !== rt.status) { rt.status = ""; ss.value = ""; }
   rz.innerHTML = '<option value="">All reasons</option>' + Object.keys(rzc).sort((a, b) => rzc[b] - rzc[a]).map(k => '<option value="' + k + '">' + k + " · " + esc(rt.data.reasons[k] || "") + " (" + rzc[k] + ")</option>").join("");
   rz.value = rt.reason; if (rz.value !== rt.reason) { rt.reason = ""; rz.value = ""; }
   const q = rt.q.trim().toLowerCase();
-  let list = rows.filter(r => (!rt.status || (rt.status === "none" ? !r.status.key : r.status.key === rt.status)) && (!rt.reason || (r.reason && r.reason.code === rt.reason)) &&
+  let list = rows.filter(r => (!rt.status || rtKey(r) === rt.status) && (!rt.reason || (r.reason && r.reason.code === rt.reason)) &&
     (!q || [r.customer, r.phone, r.order, r.cn, r.address, r.city, r.products].some(x => String(x || "").toLowerCase().includes(q))));
   const cmp = { new: (a, b) => String(b.booked).localeCompare(String(a.booked)), old: (a, b) => String(a.booked).localeCompare(String(b.booked)), amount: (a, b) => b.amount - a.amount,
     status: (a, b) => rtStLabel(a).localeCompare(rtStLabel(b)) || String(b.booked).localeCompare(String(a.booked)), reason: (a, b) => String(a.reason ? a.reason.code : "~").localeCompare(String(b.reason ? b.reason.code : "~")) || String(b.booked).localeCompare(String(a.booked)) };
   list = list.slice().sort(cmp[rt.sort] || cmp.new);
   const tot = list.reduce((t, r) => t + (r.amount || 0), 0);
-  $("#rtSum").innerHTML = '<span class="chip">' + list.length + " of " + rows.length + " returns</span><span class=\"chip\">" + rs(tot) + "</span>" + RT_ST.filter(x => stc[x[0]]).map(x => '<button type="button" class="chip' + (rt.status === (x[0] || "none") ? " ok" : "") + '" data-rtf="' + (x[0] || "none") + '">' + x[1] + " " + stc[x[0]] + "</button>").join("");
+  $("#rtSum").innerHTML = '<span class="chip">' + list.length + " of " + rows.length + " returns</span><span class=\"chip\">" + rs(tot) + "</span>" + stList.filter(x => stc[x[0]]).map(x => '<button type="button" class="chip' + (rt.status === x[0] ? " ok" : "") + '" data-rtf="' + esc(x[0]) + '">' + esc(x[1]) + " " + stc[x[0]] + "</button>").join("");
+  const opt = (v, label, on, t) => '<option value="' + esc(v) + '"' + (t != null ? ' data-t="' + esc(t) + '"' : "") + (on ? " selected" : "") + ">" + esc(label) + "</option>";
   $("#rtBody").innerHTML = list.length ? list.map(r => {
     const rc = r.reason ? '<span class="chip ' + (r.reason.code === "RD" ? "bad" : "wait") + ' rtr" data-tip="' + esc(r.reason.label + (r.reason.text ? " · TCS: " + r.reason.text : "")) + '">' + esc(r.reason.code) + "</span>" : '<span class="sub">checking…</span>';
-    const opts = RT_ST.map(x => '<option value="' + x[0] + '"' + (x[0] === r.status.key ? " selected" : "") + ">" + x[1] + "</option>").join("");
-    const stc2 = r.id ? '<select class="rtsel" data-id="' + esc(r.id) + '" aria-label="Status">' + opts + '</select><input class="rtcustom" data-id="' + esc(r.id) + '" placeholder="Type status" value="' + esc(r.status.key === "custom" ? r.status.text : "") + '"' + (r.status.key === "custom" ? "" : " hidden") + ">" : '<span class="sub">No matching order</span>';
+    const cur = rtKey(r);
+    const opts = [["none", "No status"], ["contacted", "Contacted"], ["reorder", "Reorder confirm"], ["dontneed", "Don't need"]].map(x => opt(x[0] === "none" ? "" : x[0], x[1], cur === x[0])).join("") +
+      customs.map(k => opt(k, ctx[k], cur === k, ctx[k])).join("") + opt("rebooked", "Rebooked", cur === "rebooked") + opt("custom", "New custom text…", false);
+    const stc2 = r.id ? '<select class="rtsel" data-id="' + esc(r.id) + '" aria-label="Status">' + opts + '</select><input class="rtcustom" data-id="' + esc(r.id) + '" placeholder="Type the new status" hidden>' : '<span class="sub">No matching order</span>';
     const book = r.rebookedAs ? '<span class="chip ok">Rebooked ' + esc(r.rebookedAs) + "</span>" : r.status.key === "rebooked" ? '<span class="chip ok">Rebooked</span>' : r.canBook ? '<button class="btn primary rtbook" data-id="' + esc(r.id) + '">Book this order</button>' : '<span class="sub">–</span>';
     return "<tr><td>" + esc(r.customer || "–") + '<div class="sub">' + (r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + "</a>" : "") + "</div></td>" +
       '<td><span class="order">' + esc(r.order || "–") + "</span>" + (r.storeLabel ? storeBadge(r) : "") + '<div class="sub">' + (r.createdAt ? esc(pkDay(r.createdAt)) + " · " : "") + esc(r.tcsState) + '</div><div class="sub"><a href="https://www.tcsexpress.com/track/' + esc(r.cn) + '" target="_blank" rel="noopener">' + esc(r.cn) + "</a></div></td>" +
@@ -4106,9 +4112,11 @@ async function rtSaveStatus(id, key, text) {
 $("#rtBody").addEventListener("change", (e) => {
   const t = e.target;
   if (t.classList.contains("rtsel")) {
-    const row = t.closest("tr"), inp = row.querySelector(".rtcustom");
+    const row = t.closest("tr"), inp = row.querySelector(".rtcustom"), o = t.selectedOptions[0];
     if (t.value === "custom") { inp.hidden = false; inp.focus(); return; }
-    inp.hidden = true; rtSaveStatus(t.dataset.id, t.value, "");
+    inp.hidden = true;
+    if (t.value.slice(0, 2) === "c:") rtSaveStatus(t.dataset.id, "custom", o.dataset.t || "");
+    else rtSaveStatus(t.dataset.id, t.value, "");
   } else if (t.classList.contains("rtcustom")) { if (t.value.trim()) rtSaveStatus(t.dataset.id, "custom", t.value.trim()); }
 });
 $("#rtBody").addEventListener("click", async (e) => {
