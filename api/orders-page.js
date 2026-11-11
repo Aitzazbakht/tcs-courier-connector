@@ -1837,6 +1837,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
 .rtcustom{display:block;margin-top:6px;width:100%;min-width:150px;box-sizing:border-box}
 .rtleg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 18px;padding:8px 2px;font-size:14px}
 .rtbook{white-space:nowrap}
+.rterr{margin-top:6px;max-width:260px;font-size:12.5px;line-height:1.35;color:var(--rust,#d4533f);font-weight:600;word-break:break-word}
 #p-returns td.num{text-align:right;white-space:nowrap;font-weight:700}
 </style></head>
 <body>
@@ -4096,7 +4097,7 @@ function renderReturns() {
     const opts = [["none", "No status"], ["contacted", "Contacted"], ["reorder", "Reorder confirm"], ["dontneed", "Don't need"]].map(x => opt(x[0] === "none" ? "" : x[0], x[1], cur === x[0])).join("") +
       customs.map(k => opt(k, ctx[k], cur === k, ctx[k])).join("") + opt("rebooked", "Rebooked", cur === "rebooked") + opt("custom", "New custom text…", false);
     const stc2 = r.id ? '<select class="rtsel" data-id="' + esc(r.id) + '" aria-label="Status">' + opts + '</select><input class="rtcustom" data-id="' + esc(r.id) + '" placeholder="Type the new status" hidden>' : '<span class="sub">No matching order</span>';
-    const book = r.rebookedAs ? '<span class="chip ok">Rebooked ' + esc(r.rebookedAs) + "</span>" : r.status.key === "rebooked" ? '<span class="chip ok">Rebooked</span>' : r.canBook ? '<button class="btn primary rtbook" data-id="' + esc(r.id) + '">Book this order</button>' : '<span class="sub">–</span>';
+    const book = r.rebookedAs ? '<span class="chip ok">Rebooked ' + esc(r.rebookedAs) + "</span>" : r.status.key === "rebooked" ? '<span class="chip ok">Rebooked</span>' : r.canBook ? '<button class="btn primary rtbook" data-id="' + esc(r.id) + '">' + (r.err ? "Try again" : "Book this order") + "</button>" + (r.err ? '<div class="rterr">No order was created: ' + esc(r.err) + "</div>" : "") : '<span class="sub">–</span>';
     return "<tr><td>" + esc(r.customer || "–") + '<div class="sub">' + (r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + "</a>" : "") + "</div></td>" +
       '<td><span class="order">' + esc(r.order || "–") + "</span>" + (r.storeLabel ? storeBadge(r) : "") + '<div class="sub">' + (r.createdAt ? esc(pkDay(r.createdAt)) + " · " : "") + esc(r.tcsState) + '</div><div class="sub"><a href="https://www.tcsexpress.com/track/' + esc(r.cn) + '" target="_blank" rel="noopener">' + esc(r.cn) + "</a></div></td>" +
       "<td>" + esc(r.address || "–") + '<div class="sub">' + esc(r.city) + "</div></td>" +
@@ -4126,10 +4127,10 @@ $("#rtBody").addEventListener("click", async (e) => {
   b.disabled = true; b.textContent = "Creating…";
   try {
     const d = await post({ action: "return_rebook", id: r.id });
-    r.status = d.status; r.rebookedAs = d.rebookedAs; r.canBook = false;
+    r.status = d.status; r.rebookedAs = d.rebookedAs; r.canBook = false; r.err = "";
     log("Created " + d.order + " (" + rs(d.total) + ") for " + (r.customer || "the customer") + ". It is in Waiting to book, already confirmed." + (d.warning ? " " + d.warning : ""));
     renderReturns();
-  } catch (x) { b.disabled = false; b.textContent = "Book this order"; log("Couldn't create the order: " + x.message); }
+  } catch (x) { r.err = x.message; log("Couldn't create the order: " + x.message); renderReturns(); }
 });
 $("#rtSum").addEventListener("click", (e) => { const b = e.target.closest("[data-rtf]"); if (!b) return; rt.status = rt.status === b.dataset.rtf ? "" : b.dataset.rtf; renderReturns(); });
 $("#rtStatus").onchange = () => { rt.status = $("#rtStatus").value; renderReturns(); };

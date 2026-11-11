@@ -27,8 +27,8 @@ test("status tags: presets, custom text, one tag, and clearing", () => {
 });
 
 test("rebook input copies items, prices, address, confirms on WhatsApp and tags the copy", () => {
-  const o = { id: "gid://shopify/Order/123", name: "#4335", phone: "0300111", currencyCode: "PKR", customer: { id: "gid://shopify/Customer/9" },
-    shippingAddress: { firstName: "Saad", lastName: "Qureshi", address1: "House 1", address2: "", city: "Lahore", province: null, zip: null, countryCodeV2: "PK", phone: "0300111" },
+  const o = { id: "gid://shopify/Order/123", name: "#4335", phone: "03001112233", currencyCode: "PKR",
+    shippingAddress: { firstName: "Saad", lastName: "Qureshi", address1: "House 1", address2: "", city: "Lahore", province: null, zip: null, countryCodeV2: "PK", phone: "03001112233" },
     shippingLines: { nodes: [{ title: "Delivery", discountedPriceSet: { shopMoney: { amount: "200.0" } } }, { title: "Free", discountedPriceSet: { shopMoney: { amount: "0.0" } } }] },
     lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "900.00" } } }, { title: "Gift wrap", quantity: 1, sku: "GW", requiresShipping: false, variant: null, discountedUnitPriceSet: { shopMoney: { amount: "150" } } }] } };
   const i = buildRebookInput(o);
@@ -39,7 +39,8 @@ test("rebook input copies items, prices, address, confirms on WhatsApp and tags 
   assert.equal(i.lineItems[1].title, "Gift wrap"); assert.equal(i.lineItems[1].requiresShipping, false);
   assert.equal(i.shippingLines.length, 1); assert.equal(i.shippingLines[0].priceSet.shopMoney.amount, "200.00");
   assert.equal(i.shippingAddress.city, "Lahore"); assert.equal(i.shippingAddress.countryCode, "PK");
-  assert.equal(i.customer.toAssociate.id, "gid://shopify/Customer/9");
+  assert.equal(i.phone, "+923001112233"); assert.equal(i.shippingAddress.phone, "+923001112233"); assert.equal(i.customer, undefined);
+  assert.equal(buildRebookInput({ ...o, phone: "123", shippingAddress: { ...o.shippingAddress, phone: "abc" } }).phone, undefined);
   assert.equal(i.sourceIdentifier, "rebook-123");
 });
 
@@ -60,7 +61,8 @@ globalThis.fetch = async (url, init = {}) => {
       { id: "gid://shopify/Order/1", name: "#4335", createdAt: "2026-11-05T08:00:00Z", tags: tags[1], phone: "0300111", totalPriceSet: { shopMoney: { amount: "2400" } }, shippingAddress: { name: "Saad Qureshi", address1: "House 1", city: "Lahore", phone: "0300111" }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variantTitle: null }] } },
       { id: "gid://shopify/Order/2", name: "#4336", createdAt: "2026-11-06T08:00:00Z", tags: tags[2], totalPriceSet: { shopMoney: { amount: "1500" } }, shippingAddress: { name: "Bilal", address1: "Flat 2", city: "Karachi" }, lineItems: { nodes: [{ title: "Tea", quantity: 1, variantTitle: "100g" }] } }] } } });
     if (/query Order\(/.test(q)) return json({ data: { order: { id: body.variables.id, tags: tags[2] } } });
-    if (/query R\(/.test(q)) return json({ data: { order: { id: "gid://shopify/Order/1", name: "#4335", tags: tags[1], phone: "0300111", currencyCode: "PKR", customer: null, shippingAddress: { firstName: "Saad", lastName: "Qureshi", address1: "House 1", city: "Lahore", countryCodeV2: "PK" }, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
+    if (/query R\(/.test(q) && /customer/.test(q)) return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ errors: [{ message: "Access denied for customer field. Required access: read_customers" }] }), text: async () => "" };
+    if (/query R\(/.test(q)) return json({ data: { order: { id: "gid://shopify/Order/1", name: "#4335", tags: tags[1], phone: "0300111", currencyCode: "PKR", shippingAddress: { firstName: "Saad", lastName: "Qureshi", address1: "House 1", city: "Lahore", countryCodeV2: "PK" }, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
     if (/orderCreate/.test(q)) { calls.push("CREATE " + JSON.stringify(body.variables.order.tags)); return json({ data: { orderCreate: { order: { id: "gid://shopify/Order/99", name: "#4400", totalPriceSet: { shopMoney: { amount: "2400.00" } } }, userErrors: [] } } }); }
     if (/tagsAdd/.test(q)) { calls.push("ADD " + body.variables.tags.join("|")); return json({ data: { tagsAdd: { userErrors: [] } } }); }
     if (/tagsRemove/.test(q)) { calls.push("REMOVE " + body.variables.tags.join("|")); return json({ data: { tagsRemove: { userErrors: [] } } }); }
