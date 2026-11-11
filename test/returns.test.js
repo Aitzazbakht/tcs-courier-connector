@@ -62,8 +62,10 @@ globalThis.fetch = async (url, init = {}) => {
       { id: "gid://shopify/Order/2", name: "#4336", createdAt: "2026-11-06T08:00:00Z", tags: tags[2], totalPriceSet: { shopMoney: { amount: "1500" } }, shippingAddress: { name: "Bilal", address1: "Flat 2", city: "Karachi" }, lineItems: { nodes: [{ title: "Tea", quantity: 1, variantTitle: "100g" }] } }] } } });
     if (/query Order\(/.test(q)) return json({ data: { order: { id: body.variables.id, tags: tags[2] } } });
     if (/query R\(/.test(q) && /customer/.test(q)) return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ errors: [{ message: "Access denied for customer field. Required access: read_customers" }] }), text: async () => "" };
-    if (/query R\(/.test(q)) return json({ data: { order: { id: "gid://shopify/Order/1", name: "#4335", tags: tags[1], phone: "0300111", currencyCode: "PKR", shippingAddress: { firstName: "Saad", lastName: "Qureshi", address1: "House 1", city: "Lahore", countryCodeV2: "PK" }, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
-    if (/orderCreate/.test(q)) { calls.push("CREATE " + JSON.stringify(body.variables.order.tags)); return json({ data: { orderCreate: { order: { id: "gid://shopify/Order/99", name: "#4400", totalPriceSet: { shopMoney: { amount: "2400.00" } } }, userErrors: [] } } }); }
+    if (/query R\(/.test(q)) return json({ data: { order: { id: "gid://shopify/Order/1", name: "#4335", tags: tags[1], phone: "03001112233", currencyCode: "PKR", shippingAddress: { firstName: "Saad", lastName: "Qureshi", address1: "House 1", city: "Lahore", countryCodeV2: "PK" }, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
+    if (/customers\(first/.test(q)) { calls.push("FIND " + body.variables.q); return json({ data: { customers: { nodes: [] } } }); }
+    if (/customerCreate/.test(q)) { calls.push("NEWCUST " + body.variables.i.phone); return json({ data: { customerCreate: { customer: { id: "gid://shopify/Customer/77" }, userErrors: [] } } }); }
+    if (/orderCreate/.test(q)) { calls.push("CREATE " + JSON.stringify(body.variables.order.tags)); calls.push("CUST " + (body.variables.order.customer?.toAssociate?.id || "none")); return json({ data: { orderCreate: { order: { id: "gid://shopify/Order/99", name: "#4400", totalPriceSet: { shopMoney: { amount: "2400.00" } } }, userErrors: [] } } }); }
     if (/tagsAdd/.test(q)) { calls.push("ADD " + body.variables.tags.join("|")); return json({ data: { tagsAdd: { userErrors: [] } } }); }
     if (/tagsRemove/.test(q)) { calls.push("REMOVE " + body.variables.tags.join("|")); return json({ data: { tagsRemove: { userErrors: [] } } }); }
   }
@@ -89,5 +91,8 @@ test("status change replaces the old tag; rebook creates the order and marks the
   assert.equal(r.order, "#4400"); assert.equal(r.status.key, "rebooked");
   assert.ok(calls.some((c) => c === 'CREATE ["wa-confirmed","rebooked","rebook-of:#4335"]'));
   assert.ok(calls.includes("ADD ret-st:rebooked|rebooked-as:#4400"));
+  assert.ok(calls.includes("FIND phone:+923001112233") && calls.includes("NEWCUST +923001112233"));
+  assert.ok(calls.includes("CUST gid://shopify/Customer/77"), "the new order is linked to the customer");
+  assert.equal(r.warning, "");
   tags[1] = ["tcs-booked", "TCS-" + cn, "ret-st:rebooked", "rebooked-as:#4400"];
 });
