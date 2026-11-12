@@ -1961,7 +1961,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       <label class="field">Search <input type="search" id="rtSearch" placeholder="Name, phone, order, CN, product"></label>
     </div>
     <div id="rtSum" class="rtsum"></div>
-    <p class="note">Parcels TCS sent back, shown by the day they were booked (nothing before 21 Oct). Set a status when you contact the customer. <b>Book this order</b> creates a new cash-on-delivery order in the same store with the same items, address and prices, already marked WhatsApp-confirmed and tagged Rebooked, and marks this return as rebooked.</p>
+    <p class="note">Parcels TCS sent back, shown by the day they were booked (nothing before 21 Oct). Set a status when you contact the customer. Parcels marked <b>rts</b> in the shipper advice sheet are read from it every time and shown as RTS (never rebooked). <b>Book this order</b> creates a new cash-on-delivery order in the same store with the same items, address and prices, already marked WhatsApp-confirmed and tagged Rebooked, and marks this return as rebooked.</p>
     <div class="sheet"><div class="scroll"><table>
       <thead><tr><th>Customer</th><th>Order</th><th>Address</th><th>Products</th><th class="n">Amount</th><th>Reason</th><th>Status</th><th>Book</th></tr></thead>
       <tbody id="rtBody"><tr><td colspan="8" class="empty">Open this tab to load the returns.</td></tr></tbody>
@@ -3484,7 +3484,7 @@ function mxEl_items() { return mxmEl ? mxmEl.body.querySelectorAll(".mxm-q,.mxm-
 const RT_START = "2026-10-21";
 const rt = { data: null, loading: false, status: "none", reason: "", sort: "new", q: "" };
 const RT_ST = [["", "No status"], ["contacted", "Contacted"], ["reorder", "Reorder confirm"], ["dontneed", "Don't need"], ["custom", "Custom text"], ["rebooked", "Rebooked"]];
-const RT_LABEL = { "": "No status", contacted: "Contacted", reorder: "Reorder confirm", dontneed: "Don't need", rebooked: "Rebooked" };
+const RT_LABEL = { "": "No status", contacted: "Contacted", reorder: "Reorder confirm", dontneed: "Don't need", rts: "RTS", rebooked: "Rebooked" };
 showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total", "stock", "sales", "waord", "returns", "setup", "appearance", "menu"].includes(location.hash.slice(1)) && !(location.hash === "#menu" && !smallMQ()) ? location.hash.slice(1) : (smallMQ() ? "dashboard" : "waiting"));
 
 /* ---------- WhatsApp setup popover ---------- */
@@ -4089,7 +4089,7 @@ function renderReturns() {
   const rows = rt.data.rows, stc = {}, rzc = {}, ctx = {}, ctn = {};
   rows.forEach(r => { const k = rtKey(r); stc[k] = (stc[k] || 0) + 1; if (r.status.key === "custom") { ctx[k] = r.status.text; ctn[k] = (ctn[k] || 0) + 1; } if (r.reason) rzc[r.reason.code] = (rzc[r.reason.code] || 0) + 1; });
   const customs = Object.keys(ctx).sort((a, b) => ctn[b] - ctn[a] || ctx[a].localeCompare(ctx[b]));
-  const stList = [["none", "No status"], ["contacted", "Contacted"], ["reorder", "Reorder confirm"], ["dontneed", "Don't need"]].concat(customs.map(k => [k, ctx[k]]), [["rebooked", "Rebooked"]]);
+  const stList = [["none", "No status"], ["contacted", "Contacted"], ["reorder", "Reorder confirm"], ["dontneed", "Don't need"]].concat(customs.map(k => [k, ctx[k]]), [["rts", "RTS"], ["rebooked", "Rebooked"]]);
   const ss = $("#rtStatus"), rz = $("#rtReason");
   ss.innerHTML = '<option value="">All statuses (' + rows.length + ")</option>" + stList.map(x => '<option value="' + esc(x[0]) + '">' + esc(x[1]) + " (" + (stc[x[0]] || 0) + ")</option>").join("");
   ss.value = rt.status; if (ss.value !== rt.status) { rt.status = ""; ss.value = ""; }
@@ -4108,9 +4108,9 @@ function renderReturns() {
     const rc = r.reason ? '<span class="chip ' + (r.reason.code === "RD" ? "bad" : "wait") + ' rtr" data-tip="' + esc(r.reason.label + (r.reason.text ? " · TCS: " + r.reason.text : "")) + '">' + esc(r.reason.code) + "</span>" : '<span class="sub">checking…</span>';
     const cur = rtKey(r);
     const opts = [["none", "No status"], ["contacted", "Contacted"], ["reorder", "Reorder confirm"], ["dontneed", "Don't need"]].map(x => opt(x[0] === "none" ? "" : x[0], x[1], cur === x[0])).join("") +
-      customs.map(k => opt(k, ctx[k], cur === k, ctx[k])).join("") + opt("rebooked", "Rebooked", cur === "rebooked") + opt("custom", "New custom text…", false);
-    const stc2 = r.id ? '<select class="rtsel" data-id="' + esc(r.id) + '" aria-label="Status">' + opts + '</select><input class="rtcustom" data-id="' + esc(r.id) + '" placeholder="Type the new status" hidden>' : '<span class="sub">No matching order</span>';
-    const book = r.rebookedAs ? '<span class="chip ok">Rebooked ' + esc(r.rebookedAs) + "</span>" : r.status.key === "rebooked" ? '<span class="chip ok">Rebooked</span>' : r.canBook ? '<button class="btn primary rtbook" data-id="' + esc(r.id) + '">' + (r.err ? "Try again" : "Book this order") + "</button>" + (r.err ? '<div class="rterr">No order was created: ' + esc(r.err) + "</div>" : "") : '<span class="sub">–</span>';
+      customs.map(k => opt(k, ctx[k], cur === k, ctx[k])).join("") + opt("rts", "RTS", cur === "rts") + opt("rebooked", "Rebooked", cur === "rebooked") + opt("custom", "New custom text…", false);
+    const stc2 = r.rts ? '<span class="chip bad rtr" data-tip="Marked rts in the shipper advice sheet. Change it there.">RTS</span><div class="sub">Shipper advice sheet' + (r.rts.day ? " · " + esc(r.rts.day) : "") + "</div>" : r.id ? '<select class="rtsel" data-id="' + esc(r.id) + '" aria-label="Status">' + opts + '</select><input class="rtcustom" data-id="' + esc(r.id) + '" placeholder="Type the new status" hidden>' : '<span class="sub">No matching order</span>';
+    const book = r.status.key === "rts" ? '<span class="chip bad">RTS, not sent again</span>' : r.rebookedAs ? '<span class="chip ok">Rebooked ' + esc(r.rebookedAs) + "</span>" : r.status.key === "rebooked" ? '<span class="chip ok">Rebooked</span>' : r.canBook ? '<button class="btn primary rtbook" data-id="' + esc(r.id) + '">' + (r.err ? "Try again" : "Book this order") + "</button>" + (r.err ? '<div class="rterr">No order was created: ' + esc(r.err) + "</div>" : "") : '<span class="sub">–</span>';
     return "<tr><td>" + esc(r.customer || "–") + '<div class="sub">' + (r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + "</a>" : "") + "</div></td>" +
       '<td><span class="order">' + esc(r.order || "–") + "</span>" + (r.storeLabel ? storeBadge(r) : "") + '<div class="sub">' + (r.booked ? "Booked " + esc(r.booked) + " · " : "") + esc(r.tcsState) + '</div><div class="sub"><a href="https://www.tcsexpress.com/track/' + esc(r.cn) + '" target="_blank" rel="noopener">' + esc(r.cn) + "</a></div></td>" +
       '<td><div class="rtaddrv">' + esc(r.address || "–") + '<div class="sub">' + esc(r.city) + "</div></div>" + (r.canBook ? '<button type="button" class="link rtedit" data-id="' + esc(r.id) + '">Edit address</button>' +

@@ -2,6 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 Object.assign(process.env, { TCS_BEARER_TOKEN: "b", TCS_USERNAME: "u", TCS_PASSWORD: "p", CONNECTOR_KEY: "k", SHOPIFY_ACCESS_TOKEN: "t", SHOPIFY_SHOP: "house.myshopify.com", SHOPIFY_SHOP_HERBS: "" });
+const { parseAdvice } = await import("../lib/shipperadvice.js");
 const { buildAddressUpdate, setReturnAddress, reasonOfTrack, statusOfTags, tagForStatus, buildRebookInput, REASONS, listReturns, setReturnStatus, rebookReturn } = await import("../lib/returns.js");
 
 test("reason codes: refusal wins, TCS codes and text map to short codes", () => {
@@ -52,6 +53,8 @@ const addr1 = { firstName: "Saad", lastName: "Qureshi", address1: "House 1", add
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url), body = init.body ? JSON.parse(init.body) : {};
   const json = (o) => ({ ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => o, text: async () => JSON.stringify(o) });
+  if (/docs\.google\.com.*htmlview/.test(u)) return { ok: true, status: 200, headers: { get: () => "text/html" }, text: async () => '<a href="?gid=0">a</a><a href="?gid=55">b</a>' };
+  if (/docs\.google\.com.*export/.test(u)) return { ok: true, status: 200, headers: { get: () => "text/csv" }, text: async () => (/gid=55/.test(u) ? "3 Nov 2026,status,,,\n" + cn2 + ",rts,Bilal,Flat 2 Karachi,3001112233\n776412345999,both,Zed,Somewhere,3000000000\n" : "Date / SR#,Consignment #,Comments,Status ,Name ,Address,PHone #\n1,900000000099,fake,Done,Test,Isb,3000000000\n") };
   if (/authentication\/token/.test(u)) return json({ accesstoken: "at", expiry: "2099-01-01" });
   if (/GetDynamicTrackDetail/.test(u)) return json({ shipmentinfo: [{ consignee: "Saad Qureshi", destination: "LAHORE" }], deliveryinfo: [{ code: "RS", status: "Returned" }, { code: "RD", status: "Refused" }], checkpoints: [] });
   if (/cnbulkinquiry|bulk/i.test(u)) return json({ detail: [{ cnno: cn, cnstatus: "RS", bookingdate: "05/11/2026", destinationcode: "LHE", codamount: 2400 }, { cnno: cn2, cnstatus: "RT", bookingdate: "06/11/2026", destinationcode: "KHI", codamount: 1500 }, { cnno: "776412345603", cnstatus: "OK", bookingdate: "06/11/2026", destinationcode: "ISB", codamount: 900 }, { cnno: "776412345604", cnstatus: "RS", bookingdate: "15/10/2026", destinationcode: "LHE", codamount: 700 }, { cnno: "776412345605", cnstatus: "RS", bookingdate: "12/11/2026", destinationcode: "LHE", codamount: 800 }] });
@@ -65,7 +68,7 @@ globalThis.fetch = async (url, init = {}) => {
       { id: "gid://shopify/Order/5", name: "#5000", createdAt: "2026-11-12T08:00:00Z", tags: ["TCS-776412345605"], fulfillments: [{ createdAt: "2026-11-12T08:00:00Z" }], totalPriceSet: { shopMoney: { amount: "800" } }, shippingAddress: { name: "Late", city: "Lahore" }, lineItems: { nodes: [{ title: "Late", quantity: 1 }] } }] } } });
     if (/query Order\(/.test(q)) return json({ data: { order: { id: body.variables.id, tags: tags[2] } } });
     if (/query R\(/.test(q) && /customer/.test(q)) return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ errors: [{ message: "Access denied for customer field. Required access: read_customers" }] }), text: async () => "" };
-    if (/query R\(/.test(q)) return json({ data: { order: { id: "gid://shopify/Order/1", name: "#4335", tags: tags[1], phone: "03001112233", currencyCode: "PKR", shippingAddress: addr1, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
+    if (/query R\(/.test(q)) return json({ data: { order: { id: body.variables.id, name: "#4335", tags: body.variables.id.endsWith("/2") ? tags[2] : tags[1], phone: "03001112233", currencyCode: "PKR", shippingAddress: addr1, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
     if (/customers\(first/.test(q)) { calls.push("FIND " + body.variables.q); return json({ data: { customers: { nodes: [] } } }); }
     if (/customerCreate/.test(q)) { calls.push("NEWCUST " + body.variables.i.phone); return json({ data: { customerCreate: { customer: { id: "gid://shopify/Customer/77" }, userErrors: [] } } }); }
     if (/query A\(/.test(q)) return json({ data: { order: { id: body.variables.id, name: "#4335", note: "old note", phone: "03001112233", tags: tags[1], shippingAddress: addr1 } } });
@@ -86,7 +89,8 @@ test("list: returned parcels only, matched to their orders, with reasons, status
   assert.equal(a.booked, "2026-11-05"); assert.equal(b.booked, "2026-11-06");
   assert.equal(r.rows.some((z) => z.cn === "776412345604" || z.cn === "776412345605"), false, "booked before the start day or after the range");
   assert.equal(a.products, "Soap x2"); assert.equal(a.tcsState, "Returned");
-  assert.equal(b.status.key, "contacted"); assert.equal(b.tcsState, "Return in transit"); assert.equal(b.products, "Tea (100g) x1");
+  assert.equal(b.status.key, "rts", "the sheet says rts, which beats the contacted tag"); assert.equal(b.rts.day, "3 Nov 2026"); assert.equal(b.canBook, false); assert.equal(a.rts, null);
+  assert.equal(b.tcsState, "Return in transit"); assert.equal(b.products, "Tea (100g) x1");
 });
 
 test("status change replaces the old tag; rebook creates the order and marks the old one", async () => {
@@ -129,4 +133,18 @@ test("saving an address updates the order, and Book this order then uses the new
   calls.length = 0;
   await rebookReturn("gid://shopify/Order/1");
   assert.ok(calls.includes('ADDR ["Shop 5, Mall Road","Multan","+923005556677","+923005556677"]'), calls.join(" | "));
+});
+
+test("shipper advice rows: rts is found in any column, with its date; other statuses are ignored", () => {
+  const rows = [["2 Nov 2026", "status", "", "", ""], ["900000000001", "both", "Test One", "Test street", "0300000001"], ["", "", "", "", ""], ["3 Nov 2026", "", "", "", ""],
+    ["900000000002", "rts", "", "", ""], ["900000000003", "RTS", "Test Two", "Test road", "0300000002"], ["5", "900000000004", "x", "R.T.S.", "Test Three"], ["900000000005", "reattempt", "", "", ""], ["abc", "rts", "", "", ""]];
+  const m = parseAdvice(rows);
+  assert.deepEqual([...m.keys()].sort(), ["900000000002", "900000000003", "900000000004"]);
+  assert.equal(m.get("900000000002").day, "3 Nov 2026");
+  assert.equal(parseAdvice([["6-1-2024", "", ""], ["900000000006", "", "done", "Done"]]).size, 0);
+});
+
+test("Book this order refuses a parcel the sheet marks RTS", async () => {
+  tags[2] = ["tcs-booked", "TCS-" + cn2];
+  await assert.rejects(() => rebookReturn("gid://shopify/Order/2"), /RTS/);
 });
