@@ -101,7 +101,11 @@ export default async function handler(req, res) {
       return res.status(200).json(await deliveryReport(String(body.from || ""), String(body.to || "")));
     }
     if (body.action === "daily_report") {
-      return res.status(200).json(await dailyReport(String(body.date || ""), { refresh: body.refresh === true, to: String(body.to || "") }));
+      // Answer before Vercel's own 60 second cut-off (which sends an HTML error page, not JSON). TCS results already fetched stay cached, so pressing Refresh again gets further.
+      const work = dailyReport(String(body.date || ""), { refresh: body.refresh === true, to: String(body.to || "") });
+      work.catch(() => {});
+      const stop = new Promise((_, rej) => setTimeout(() => rej(new Error("TCS was slow this time. Press Refresh TCS status: the parcels already checked are kept, so each press gets further.")), 56000));
+      return res.status(200).json(await Promise.race([work, stop]));
     }
     if (body.action === "mk_offers") return res.status(200).json(await offerState());
     if (body.action === "mk_send") return res.status(200).json(await sendBatch(Array.isArray(body.items) ? body.items : [], { days: body.days, cap: body.cap, testTo: String(body.testTo || ""), image: body.image !== false, group: String(body.group || "") }));
