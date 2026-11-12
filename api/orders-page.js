@@ -1945,7 +1945,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
     <div class="toolbar">
       <label class="field">From <input type="date" id="rtFrom"></label>
       <label class="field">To <input type="date" id="rtTo"></label>
-      <div class="seg" id="rtPreset"><button type="button" data-d="7">Weekly</button><button type="button" data-d="30" class="on">Last 30 days</button><button type="button" data-d="180">All</button></div>
+      <div class="seg" id="rtPreset"><button type="button" data-d="7">Weekly</button><button type="button" data-d="30">Last 30 days</button><button type="button" data-d="0" class="on">All</button></div>
       <button class="btn" id="rtRun">Show returns</button>
       <button class="btn" id="rtRefresh" data-tip="Ask TCS again for every return reason instead of using the saved ones.">Refresh TCS</button>
       <span class="stats" id="rtMeta" style="margin-left:auto"></span>
@@ -1957,7 +1957,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       <label class="field">Search <input type="search" id="rtSearch" placeholder="Name, phone, order, CN, product"></label>
     </div>
     <div id="rtSum" class="rtsum"></div>
-    <p class="note">Parcels TCS sent back, by booking date. Set a status when you contact the customer. <b>Book this order</b> creates a new cash-on-delivery order in the same store with the same items, address and prices, already marked WhatsApp-confirmed and tagged Rebooked, and marks this return as rebooked.</p>
+    <p class="note">Parcels TCS sent back, shown by the day they were booked (nothing before 21 Oct). Set a status when you contact the customer. <b>Book this order</b> creates a new cash-on-delivery order in the same store with the same items, address and prices, already marked WhatsApp-confirmed and tagged Rebooked, and marks this return as rebooked.</p>
     <div class="sheet"><div class="scroll"><table>
       <thead><tr><th>Customer</th><th>Order</th><th>Address</th><th>Products</th><th class="n">Amount</th><th>Reason</th><th>Status</th><th>Book</th></tr></thead>
       <tbody id="rtBody"><tr><td colspan="8" class="empty">Open this tab to load the returns.</td></tr></tbody>
@@ -3477,7 +3477,8 @@ function mxEl_items() { return mxmEl ? mxmEl.body.querySelectorAll(".mxm-q,.mxm-
     } catch (x) {}
     return r;
   }; }
-const rt = { data: null, loading: false, status: "", reason: "", sort: "new", q: "" };
+const RT_START = "2026-10-21";
+const rt = { data: null, loading: false, status: "none", reason: "", sort: "new", q: "" };
 const RT_ST = [["", "No status"], ["contacted", "Contacted"], ["reorder", "Reorder confirm"], ["dontneed", "Don't need"], ["custom", "Custom text"], ["rebooked", "Rebooked"]];
 const RT_LABEL = { "": "No status", contacted: "Contacted", reorder: "Reorder confirm", dontneed: "Don't need", rebooked: "Rebooked" };
 showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total", "stock", "sales", "waord", "returns", "setup", "appearance", "menu"].includes(location.hash.slice(1)) && !(location.hash === "#menu" && !smallMQ()) ? location.hash.slice(1) : (smallMQ() ? "dashboard" : "waiting"));
@@ -4052,12 +4053,20 @@ $("#blkSearch").oninput = renderBlocked;
 /* ---------- delivery problems: every in-process parcel ---------- */
 /* ---------- Return orders tab ---------- */
 const rtStLabel = (r) => r.status.key === "custom" ? r.status.text : (RT_LABEL[r.status.key] || "No status");
-function rtDates(n) { $("#rtFrom").value = dashDay(n - 1); $("#rtTo").value = dashDay(0); }
-function ensureReturns() { if (!$("#rtFrom").value) rtDates(30); if (!rt.data && !rt.loading) loadReturns(false); }
+function rtDates(n) { const f = n ? dashDay(n - 1) : RT_START; $("#rtFrom").value = f < RT_START ? RT_START : f; $("#rtTo").value = dashDay(0); }
+function rtDefaults() { rt.status = "none"; rt.reason = ""; rt.q = ""; rt.sort = "new"; $("#rtSearch").value = ""; $("#rtSort").value = "new"; document.querySelectorAll("#rtPreset button").forEach(x => x.classList.toggle("on", x.dataset.d === "0")); }
+// Every time the tab is opened: all parcels booked since 21 Oct, newest booking first, only returns with no status yet.
+function ensureReturns() {
+  $("#rtFrom").min = RT_START; $("#rtTo").min = RT_START;
+  const f0 = $("#rtFrom").value, t0 = $("#rtTo").value;
+  rtDefaults(); rtDates(0);
+  if (!rt.data || f0 !== $("#rtFrom").value || t0 !== $("#rtTo").value) { if (!rt.loading) loadReturns(false); } else renderReturns();
+}
 async function loadReturns(refresh) {
   if (rt.loading) return;
-  const from = $("#rtFrom").value, to = $("#rtTo").value || from;
+  let from = $("#rtFrom").value, to = $("#rtTo").value || from;
   if (!from) return log("Pick a start date.");
+  if (from < RT_START) { from = RT_START; $("#rtFrom").value = from; }
   rt.loading = true; $("#rtRefresh").disabled = true; $("#rtRun").disabled = true;
   $("#rtBody").innerHTML = '<tr><td colspan="8" class="empty">Reading returned parcels from TCS and matching them to your orders… this can take up to a minute.</td></tr>';
   try {
@@ -4099,7 +4108,7 @@ function renderReturns() {
     const stc2 = r.id ? '<select class="rtsel" data-id="' + esc(r.id) + '" aria-label="Status">' + opts + '</select><input class="rtcustom" data-id="' + esc(r.id) + '" placeholder="Type the new status" hidden>' : '<span class="sub">No matching order</span>';
     const book = r.rebookedAs ? '<span class="chip ok">Rebooked ' + esc(r.rebookedAs) + "</span>" : r.status.key === "rebooked" ? '<span class="chip ok">Rebooked</span>' : r.canBook ? '<button class="btn primary rtbook" data-id="' + esc(r.id) + '">' + (r.err ? "Try again" : "Book this order") + "</button>" + (r.err ? '<div class="rterr">No order was created: ' + esc(r.err) + "</div>" : "") : '<span class="sub">–</span>';
     return "<tr><td>" + esc(r.customer || "–") + '<div class="sub">' + (r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + "</a>" : "") + "</div></td>" +
-      '<td><span class="order">' + esc(r.order || "–") + "</span>" + (r.storeLabel ? storeBadge(r) : "") + '<div class="sub">' + (r.createdAt ? esc(pkDay(r.createdAt)) + " · " : "") + esc(r.tcsState) + '</div><div class="sub"><a href="https://www.tcsexpress.com/track/' + esc(r.cn) + '" target="_blank" rel="noopener">' + esc(r.cn) + "</a></div></td>" +
+      '<td><span class="order">' + esc(r.order || "–") + "</span>" + (r.storeLabel ? storeBadge(r) : "") + '<div class="sub">' + (r.booked ? "Booked " + esc(r.booked) + " · " : "") + esc(r.tcsState) + '</div><div class="sub"><a href="https://www.tcsexpress.com/track/' + esc(r.cn) + '" target="_blank" rel="noopener">' + esc(r.cn) + "</a></div></td>" +
       "<td>" + esc(r.address || "–") + '<div class="sub">' + esc(r.city) + "</div></td>" +
       "<td>" + (r.items.length ? r.items.map(i => esc(i.title) + " &times;" + i.qty).join("<br>") : '<span class="sub">–</span>') + '</td><td class="num">' + rs(r.amount) + "</td><td>" + rc + "</td><td>" + stc2 + "</td><td>" + book + "</td></tr>";
   }).join("") : '<tr><td colspan="8" class="empty">' + (rows.length ? "No returns match these filters." : "No returned parcels in this range.") + "</td></tr>";

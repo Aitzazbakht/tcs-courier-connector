@@ -53,13 +53,15 @@ globalThis.fetch = async (url, init = {}) => {
   const json = (o) => ({ ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => o, text: async () => JSON.stringify(o) });
   if (/authentication\/token/.test(u)) return json({ accesstoken: "at", expiry: "2099-01-01" });
   if (/GetDynamicTrackDetail/.test(u)) return json({ shipmentinfo: [{ consignee: "Saad Qureshi", destination: "LAHORE" }], deliveryinfo: [{ code: "RS", status: "Returned" }, { code: "RD", status: "Refused" }], checkpoints: [] });
-  if (/cnbulkinquiry|bulk/i.test(u)) return json({ detail: [{ cnno: cn, cnstatus: "RS", bookingdate: "05/11/2026", destinationcode: "LHE", codamount: 2400 }, { cnno: cn2, cnstatus: "RT", bookingdate: "06/11/2026", destinationcode: "KHI", codamount: 1500 }, { cnno: "776412345603", cnstatus: "OK", bookingdate: "06/11/2026", destinationcode: "ISB", codamount: 900 }] });
+  if (/cnbulkinquiry|bulk/i.test(u)) return json({ detail: [{ cnno: cn, cnstatus: "RS", bookingdate: "05/11/2026", destinationcode: "LHE", codamount: 2400 }, { cnno: cn2, cnstatus: "RT", bookingdate: "06/11/2026", destinationcode: "KHI", codamount: 1500 }, { cnno: "776412345603", cnstatus: "OK", bookingdate: "06/11/2026", destinationcode: "ISB", codamount: 900 }, { cnno: "776412345604", cnstatus: "RS", bookingdate: "15/10/2026", destinationcode: "LHE", codamount: 700 }, { cnno: "776412345605", cnstatus: "RS", bookingdate: "12/11/2026", destinationcode: "LHE", codamount: 800 }] });
   if (/graphql/.test(u)) {
     const q = body.query || "";
     calls.push(q.slice(0, 40));
     if (/orders\(first/.test(q)) return json({ data: { orders: { pageInfo: { hasNextPage: false }, nodes: [
-      { id: "gid://shopify/Order/1", name: "#4335", createdAt: "2026-11-05T08:00:00Z", tags: tags[1], phone: "0300111", totalPriceSet: { shopMoney: { amount: "2400" } }, shippingAddress: { name: "Saad Qureshi", address1: "House 1", city: "Lahore", phone: "0300111" }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variantTitle: null }] } },
-      { id: "gid://shopify/Order/2", name: "#4336", createdAt: "2026-11-06T08:00:00Z", tags: tags[2], totalPriceSet: { shopMoney: { amount: "1500" } }, shippingAddress: { name: "Bilal", address1: "Flat 2", city: "Karachi" }, lineItems: { nodes: [{ title: "Tea", quantity: 1, variantTitle: "100g" }] } }] } } });
+      { id: "gid://shopify/Order/1", name: "#4335", createdAt: "2026-11-05T08:00:00Z", tags: tags[1], fulfillments: [{ createdAt: "2026-11-05T09:00:00Z" }], phone: "0300111", totalPriceSet: { shopMoney: { amount: "2400" } }, shippingAddress: { name: "Saad Qureshi", address1: "House 1", city: "Lahore", phone: "0300111" }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variantTitle: null }] } },
+      { id: "gid://shopify/Order/2", name: "#4336", createdAt: "2026-11-06T08:00:00Z", tags: tags[2], fulfillments: [{ createdAt: "2026-11-06T08:00:00Z" }], totalPriceSet: { shopMoney: { amount: "1500" } }, shippingAddress: { name: "Bilal", address1: "Flat 2", city: "Karachi" }, lineItems: { nodes: [{ title: "Tea", quantity: 1, variantTitle: "100g" }] } },
+      { id: "gid://shopify/Order/4", name: "#100", createdAt: "2026-10-15T08:00:00Z", tags: ["TCS-776412345604"], fulfillments: [{ createdAt: "2026-10-15T08:00:00Z" }], totalPriceSet: { shopMoney: { amount: "700" } }, shippingAddress: { name: "Old", city: "Lahore" }, lineItems: { nodes: [{ title: "Old", quantity: 1 }] } },
+      { id: "gid://shopify/Order/5", name: "#5000", createdAt: "2026-11-12T08:00:00Z", tags: ["TCS-776412345605"], fulfillments: [{ createdAt: "2026-11-12T08:00:00Z" }], totalPriceSet: { shopMoney: { amount: "800" } }, shippingAddress: { name: "Late", city: "Lahore" }, lineItems: { nodes: [{ title: "Late", quantity: 1 }] } }] } } });
     if (/query Order\(/.test(q)) return json({ data: { order: { id: body.variables.id, tags: tags[2] } } });
     if (/query R\(/.test(q) && /customer/.test(q)) return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ errors: [{ message: "Access denied for customer field. Required access: read_customers" }] }), text: async () => "" };
     if (/query R\(/.test(q)) return json({ data: { order: { id: "gid://shopify/Order/1", name: "#4335", tags: tags[1], phone: "03001112233", currencyCode: "PKR", shippingAddress: { firstName: "Saad", lastName: "Qureshi", address1: "House 1", city: "Lahore", countryCodeV2: "PK" }, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
@@ -73,10 +75,13 @@ globalThis.fetch = async (url, init = {}) => {
 };
 
 test("list: returned parcels only, matched to their orders, with reasons, status and amounts", async () => {
-  const r = await listReturns({ from: "2026-11-01", to: "2026-11-10" });
+  const r = await listReturns({ from: "2026-10-01", to: "2026-11-10" });
+  assert.equal(r.from, "2026-10-21", "nothing before the start day is shown");
   assert.equal(r.rows.length, 2);
   const a = r.rows.find((x) => x.cn === cn), b = r.rows.find((x) => x.cn === cn2);
   assert.equal(a.order, "#4335"); assert.equal(a.amount, 2400); assert.equal(a.reason.code, "RD"); assert.equal(a.canBook, true);
+  assert.equal(a.booked, "2026-11-05"); assert.equal(b.booked, "2026-11-06");
+  assert.equal(r.rows.some((z) => z.cn === "776412345604" || z.cn === "776412345605"), false, "booked before the start day or after the range");
   assert.equal(a.products, "Soap x2"); assert.equal(a.tcsState, "Returned");
   assert.equal(b.status.key, "contacted"); assert.equal(b.tcsState, "Return in transit"); assert.equal(b.products, "Tea (100g) x1");
 });
