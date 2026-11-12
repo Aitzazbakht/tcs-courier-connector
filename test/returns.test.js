@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 Object.assign(process.env, { TCS_BEARER_TOKEN: "b", TCS_USERNAME: "u", TCS_PASSWORD: "p", CONNECTOR_KEY: "k", SHOPIFY_ACCESS_TOKEN: "t", SHOPIFY_SHOP: "house.myshopify.com", SHOPIFY_SHOP_HERBS: "" });
-const { reasonOfTrack, statusOfTags, tagForStatus, buildRebookInput, REASONS, listReturns, setReturnStatus, rebookReturn } = await import("../lib/returns.js");
+const { buildAddressUpdate, setReturnAddress, reasonOfTrack, statusOfTags, tagForStatus, buildRebookInput, REASONS, listReturns, setReturnStatus, rebookReturn } = await import("../lib/returns.js");
 
 test("reason codes: refusal wins, TCS codes and text map to short codes", () => {
   assert.equal(reasonOfTrack({ deliveryinfo: [{ code: "RS", status: "Returned to shipper" }, { code: "HN", status: "Consignee not home" }, { code: "RD", status: "Refused to accept" }] }).code, "RD");
@@ -48,6 +48,7 @@ test("rebook input copies items, prices, address, confirms on WhatsApp and tags 
 const cn = "776412345601", cn2 = "776412345602";
 const tags = { 1: ["tcs-booked", "TCS-" + cn], 2: ["tcs-booked", "TCS-" + cn2, "ret-st:contacted"] };
 const calls = [];
+const addr1 = { firstName: "Saad", lastName: "Qureshi", address1: "House 1", address2: "", city: "Lahore", countryCodeV2: "PK", phone: "03001112233" };
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url), body = init.body ? JSON.parse(init.body) : {};
   const json = (o) => ({ ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => o, text: async () => JSON.stringify(o) });
@@ -64,10 +65,12 @@ globalThis.fetch = async (url, init = {}) => {
       { id: "gid://shopify/Order/5", name: "#5000", createdAt: "2026-11-12T08:00:00Z", tags: ["TCS-776412345605"], fulfillments: [{ createdAt: "2026-11-12T08:00:00Z" }], totalPriceSet: { shopMoney: { amount: "800" } }, shippingAddress: { name: "Late", city: "Lahore" }, lineItems: { nodes: [{ title: "Late", quantity: 1 }] } }] } } });
     if (/query Order\(/.test(q)) return json({ data: { order: { id: body.variables.id, tags: tags[2] } } });
     if (/query R\(/.test(q) && /customer/.test(q)) return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ errors: [{ message: "Access denied for customer field. Required access: read_customers" }] }), text: async () => "" };
-    if (/query R\(/.test(q)) return json({ data: { order: { id: "gid://shopify/Order/1", name: "#4335", tags: tags[1], phone: "03001112233", currencyCode: "PKR", shippingAddress: { firstName: "Saad", lastName: "Qureshi", address1: "House 1", city: "Lahore", countryCodeV2: "PK" }, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
+    if (/query R\(/.test(q)) return json({ data: { order: { id: "gid://shopify/Order/1", name: "#4335", tags: tags[1], phone: "03001112233", currencyCode: "PKR", shippingAddress: addr1, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
     if (/customers\(first/.test(q)) { calls.push("FIND " + body.variables.q); return json({ data: { customers: { nodes: [] } } }); }
     if (/customerCreate/.test(q)) { calls.push("NEWCUST " + body.variables.i.phone); return json({ data: { customerCreate: { customer: { id: "gid://shopify/Customer/77" }, userErrors: [] } } }); }
-    if (/orderCreate/.test(q)) { calls.push("CREATE " + JSON.stringify(body.variables.order.tags)); calls.push("CUST " + (body.variables.order.customer?.toAssociate?.id || "none")); return json({ data: { orderCreate: { order: { id: "gid://shopify/Order/99", name: "#4400", totalPriceSet: { shopMoney: { amount: "2400.00" } } }, userErrors: [] } } }); }
+    if (/query A\(/.test(q)) return json({ data: { order: { id: body.variables.id, name: "#4335", note: "old note", phone: "03001112233", tags: tags[1], shippingAddress: addr1 } } });
+    if (/orderUpdate/.test(q)) { const i = body.variables.input; calls.push("UPDATE " + JSON.stringify({ a: i.shippingAddress.address1, c: i.shippingAddress.city, p: i.phone, n: i.note })); Object.assign(addr1, { address1: i.shippingAddress.address1, address2: "", city: i.shippingAddress.city, phone: i.shippingAddress.phone }); return json({ data: { orderUpdate: { order: { id: i.id }, userErrors: [] } } }); }
+    if (/orderCreate/.test(q)) { calls.push("ADDR " + JSON.stringify([body.variables.order.shippingAddress.address1, body.variables.order.shippingAddress.city, body.variables.order.shippingAddress.phone, body.variables.order.phone])); calls.push("CREATE " + JSON.stringify(body.variables.order.tags)); calls.push("CUST " + (body.variables.order.customer?.toAssociate?.id || "none")); return json({ data: { orderCreate: { order: { id: "gid://shopify/Order/99", name: "#4400", totalPriceSet: { shopMoney: { amount: "2400.00" } } }, userErrors: [] } } }); }
     if (/tagsAdd/.test(q)) { calls.push("ADD " + body.variables.tags.join("|")); return json({ data: { tagsAdd: { userErrors: [] } } }); }
     if (/tagsRemove/.test(q)) { calls.push("REMOVE " + body.variables.tags.join("|")); return json({ data: { tagsRemove: { userErrors: [] } } }); }
   }
@@ -100,4 +103,30 @@ test("status change replaces the old tag; rebook creates the order and marks the
   assert.ok(calls.includes("CUST gid://shopify/Customer/77"), "the new order is linked to the customer");
   assert.equal(r.warning, "");
   tags[1] = ["tcs-booked", "TCS-" + cn, "ret-st:rebooked", "rebooked-as:#4400"];
+});
+
+test("address edit: keeps names and country, logs the old address, checks the phone", () => {
+  const o = { id: "gid://shopify/Order/1", note: "n", phone: "03001112233", shippingAddress: { firstName: "Saad", lastName: "Qureshi", address1: "Old street", address2: "Flat 2", city: "Lahore", countryCodeV2: "PK", phone: "03001112233", province: "Punjab" } };
+  const u = buildAddressUpdate(o, { address: "  House 9,  Block B ", city: "Karachi", phone: "0321 7654321" }, "2026-11-12");
+  assert.equal(u.input.shippingAddress.address1, "House 9, Block B"); assert.equal(u.input.shippingAddress.address2, "");
+  assert.equal(u.input.shippingAddress.city, "Karachi"); assert.equal(u.input.shippingAddress.firstName, "Saad"); assert.equal(u.input.shippingAddress.province, "Punjab");
+  assert.equal(u.input.shippingAddress.phone, "+923217654321"); assert.equal(u.input.phone, "+923217654321");
+  assert.match(u.input.note, /Address changed 2026-11-12 before rebooking\. Was: Old street, Flat 2, Lahore/);
+  const keep = buildAddressUpdate(o, { address: "New", city: "", phone: "" });
+  assert.equal(keep.input.shippingAddress.city, "Lahore"); assert.equal(keep.input.shippingAddress.phone, "03001112233"); assert.equal(keep.input.phone, undefined);
+  assert.throws(() => buildAddressUpdate(o, { address: "", city: "x" }), /new address/);
+  assert.throws(() => buildAddressUpdate(o, { address: "x", city: "x", phone: "12ab" }), /phone number/);
+});
+
+test("saving an address updates the order, and Book this order then uses the new address and phone", async () => {
+  tags[1] = ["tcs-booked", "TCS-" + cn];
+  calls.length = 0;
+  const s = await setReturnAddress("gid://shopify/Order/1", { address: "Shop 5, Mall Road", city: "Multan", phone: "0300 5556677" });
+  assert.deepEqual([s.address, s.city, s.phone], ["Shop 5, Mall Road", "Multan", "+923005556677"]);
+  assert.ok(calls.some((c) => c.startsWith("UPDATE") && c.includes("Shop 5, Mall Road") && c.includes("+923005556677")));
+  assert.ok(calls.includes("ADD address-edited"));
+  tags[1] = ["tcs-booked", "TCS-" + cn];
+  calls.length = 0;
+  await rebookReturn("gid://shopify/Order/1");
+  assert.ok(calls.includes('ADDR ["Shop 5, Mall Road","Multan","+923005556677","+923005556677"]'), calls.join(" | "));
 });

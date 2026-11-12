@@ -10,7 +10,7 @@ import * as guard from "../lib/guard.js";
 import { deliveryReport } from "../lib/report.js";
 import { dailyReport } from "../lib/daily.js";
 import { inProcess } from "../lib/inprocess.js";
-import { listReturns, setReturnStatus, rebookReturn } from "../lib/returns.js";
+import { listReturns, setReturnStatus, rebookReturn, setReturnAddress } from "../lib/returns.js";
 import { listAbandoned, markAbandonedHandled, sendOffer, offerStats } from "../lib/abandoned.js";
 import { stores, withStore, splitId } from "../lib/store.js";
 import { offerState, sendBatch, offerResults } from "../lib/reoffer.js";
@@ -116,6 +116,7 @@ export default async function handler(req, res) {
     if (body.action === "in_process") return res.status(200).json(await inProcess({ refresh: body.refresh === true }));
     if (body.action === "returns_list") return res.status(200).json(await listReturns({ from: String(body.from || ""), to: String(body.to || ""), refresh: body.refresh === true }));
     if (body.action === "return_status") return res.status(200).json(await setReturnStatus(String(body.id || ""), String(body.status || ""), String(body.text || "")));
+    if (body.action === "return_address") return res.status(200).json(await setReturnAddress(String(body.id || ""), { address: body.address, city: body.city, phone: body.phone }));
     if (body.action === "return_rebook") return res.status(200).json(await rebookReturn(String(body.id || "")));
     if (body.action === "problems") {
       return res.status(200).json({ problems: await notify.listProblems() });

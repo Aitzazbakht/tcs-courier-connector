@@ -1836,6 +1836,10 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
 .rtsel{min-width:150px}
 .rtcustom{display:block;margin-top:6px;width:100%;min-width:150px;box-sizing:border-box}
 .rtleg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 18px;padding:8px 2px;font-size:14px}
+.rtedit{margin-top:6px;border:0;background:none;padding:0;font:inherit;font-size:12.5px;font-weight:700;color:var(--ax-text,var(--pine));cursor:pointer;text-decoration:underline}
+.rtaddr{margin-top:8px;display:grid;gap:6px;max-width:300px}
+.rtaddr textarea,.rtaddr input{width:100%;box-sizing:border-box}
+.rtab{display:flex;gap:8px;flex-wrap:wrap}
 .rtbook{white-space:nowrap}
 .rterr{margin-top:6px;max-width:260px;font-size:12.5px;line-height:1.35;color:var(--rust,#d4533f);font-weight:600;word-break:break-word}
 #p-returns td.num{text-align:right;white-space:nowrap;font-weight:700}
@@ -4109,7 +4113,8 @@ function renderReturns() {
     const book = r.rebookedAs ? '<span class="chip ok">Rebooked ' + esc(r.rebookedAs) + "</span>" : r.status.key === "rebooked" ? '<span class="chip ok">Rebooked</span>' : r.canBook ? '<button class="btn primary rtbook" data-id="' + esc(r.id) + '">' + (r.err ? "Try again" : "Book this order") + "</button>" + (r.err ? '<div class="rterr">No order was created: ' + esc(r.err) + "</div>" : "") : '<span class="sub">–</span>';
     return "<tr><td>" + esc(r.customer || "–") + '<div class="sub">' + (r.phone ? '<a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + "</a>" : "") + "</div></td>" +
       '<td><span class="order">' + esc(r.order || "–") + "</span>" + (r.storeLabel ? storeBadge(r) : "") + '<div class="sub">' + (r.booked ? "Booked " + esc(r.booked) + " · " : "") + esc(r.tcsState) + '</div><div class="sub"><a href="https://www.tcsexpress.com/track/' + esc(r.cn) + '" target="_blank" rel="noopener">' + esc(r.cn) + "</a></div></td>" +
-      "<td>" + esc(r.address || "–") + '<div class="sub">' + esc(r.city) + "</div></td>" +
+      '<td><div class="rtaddrv">' + esc(r.address || "–") + '<div class="sub">' + esc(r.city) + "</div></div>" + (r.canBook ? '<button type="button" class="link rtedit" data-id="' + esc(r.id) + '">Edit address</button>' +
+        '<div class="rtaddr" hidden><textarea class="rta" rows="3" placeholder="New address">' + esc(r.address) + '</textarea><input class="rtc" placeholder="City" value="' + esc(r.city) + '"><input class="rtp" type="tel" placeholder="New phone (optional)"><div class="rtab"><button type="button" class="btn primary rtasave" data-id="' + esc(r.id) + '">Save address</button><button type="button" class="btn rtacancel">Cancel</button></div></div>' : "") + "</td>" +
       "<td>" + (r.items.length ? r.items.map(i => esc(i.title) + " &times;" + i.qty).join("<br>") : '<span class="sub">–</span>') + '</td><td class="num">' + rs(r.amount) + "</td><td>" + rc + "</td><td>" + stc2 + "</td><td>" + book + "</td></tr>";
   }).join("") : '<tr><td colspan="8" class="empty">' + (rows.length ? "No returns match these filters." : "No returned parcels in this range.") + "</td></tr>";
   rtCount();
@@ -4130,6 +4135,20 @@ $("#rtBody").addEventListener("change", (e) => {
   } else if (t.classList.contains("rtcustom")) { if (t.value.trim()) rtSaveStatus(t.dataset.id, "custom", t.value.trim()); }
 });
 $("#rtBody").addEventListener("click", async (e) => {
+  const ed = e.target.closest(".rtedit"), cx = e.target.closest(".rtacancel"), sv = e.target.closest(".rtasave");
+  if (ed) { const f = ed.parentElement.querySelector(".rtaddr"); f.hidden = !f.hidden; if (!f.hidden) f.querySelector(".rta").focus(); return; }
+  if (cx) { cx.closest(".rtaddr").hidden = true; return; }
+  if (sv) {
+    const f = sv.closest(".rtaddr"), r = rt.data.rows.find(x => x.id === sv.dataset.id); if (!r) return;
+    sv.disabled = true; sv.textContent = "Saving…";
+    try {
+      const d = await post({ action: "return_address", id: r.id, address: f.querySelector(".rta").value, city: f.querySelector(".rtc").value, phone: f.querySelector(".rtp").value });
+      r.address = d.address; r.city = d.city; if (d.phone) r.phone = d.phone; r.addrErr = "";
+      log("Address saved for " + (r.customer || r.order) + (f.querySelector(".rtp").value.trim() ? " (new phone " + d.phone + ")" : "") + ". Book this order will use it.");
+      renderReturns();
+    } catch (x) { sv.disabled = false; sv.textContent = "Save address"; let m = f.querySelector(".rterr"); if (!m) { m = document.createElement("div"); m.className = "rterr"; f.appendChild(m); } m.textContent = "Not saved: " + x.message; }
+    return;
+  }
   const b = e.target.closest(".rtbook"); if (!b) return;
   const r = rt.data.rows.find(x => x.id === b.dataset.id); if (!r) return;
   if (!confirm("Create a new order for " + (r.customer || "this customer") + " in " + r.storeLabel + "?  " + r.order + " · " + rs(r.amount) + " · " + r.items.map(i => i.title + " x" + i.qty).join(", ") + ".  It is created as cash on delivery, marked WhatsApp-confirmed and tagged Rebooked.")) return;
