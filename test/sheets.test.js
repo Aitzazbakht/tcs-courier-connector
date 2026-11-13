@@ -67,3 +67,11 @@ test("google tab names from items.push", () => {
   const h = 'items.push({name: "1 jan 2026", pageUrl: "https:\\/\\/x\\/htmlview\\/sheet?headers\\x3dtrue&gid=1111216177", gid: "1111216177",initialSheet: ("1111216177" == gid)});';
   assert.deepEqual(S.googleTabs(h)[0], ["1111216177", "1 jan 2026"]);
 });
+
+test("only one sheet per report kind", async () => {
+  setKv(fakeRedis());
+  const a = await S.createSheet("A", "x"), b = await S.createSheet("B", "x");
+  await S.setKind(a.id, "courier", "x"); const l = await S.setKind(b.id, "courier", "x");
+  assert.equal(l.find((x) => x.id === a.id).kind, ""); assert.equal(l.find((x) => x.id === b.id).kind, "courier");
+  await assert.rejects(() => S.setKind(a.id, "nope", "x"));
+});

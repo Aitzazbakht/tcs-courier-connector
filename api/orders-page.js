@@ -2000,6 +2000,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       <button class="btn" id="shNew">New sheet</button>
       <button class="btn" id="shImpBtn">Import from Google</button>
       <button class="btn" id="shRen">Rename</button>
+      <label class="field" style="display:flex;gap:6px;align-items:center">Used by <select id="shKindSet"><option value="">Nothing (just a sheet)</option><option value="courier">Total delivery report</option><option value="advice">Return orders (RTS)</option></select></label>
       <button class="btn" id="shLab" hidden data-tip="Read the tab names again from the Google sheet it was copied from">Fix tab names</button>
       <button class="btn" id="shDel">Delete</button>
       <input id="shUser" placeholder="Your name (shown in history)" maxlength="40" style="width:200px">
@@ -3569,7 +3570,7 @@ function shOpenSheet(id) {
   SH.sid = id; const s = SH.list.find((x) => x.id === id);
   if (!s) { $("#shTabs").innerHTML = ""; $("#shGrid").innerHTML = ""; $("#shInfo").textContent = "No sheets yet. Press New sheet, or Import from Google to copy one of your existing sheets."; return; }
   if (!s.tabs.find((x) => x.id === SH.tid)) SH.tid = s.tabs[0].id;
-  $("#shLab").hidden = !s.source; shDrawTabs(); shLoadTab();
+  $("#shLab").hidden = !s.source; $("#shKindSet").value = s.kind || ""; shDrawTabs(); shLoadTab();
 }
 function shDrawTabs() {
   const s = shCur().s; if (!s) return;
@@ -3653,6 +3654,7 @@ $("#shImpGo").addEventListener("click", async () => {
   catch (e) {} finally { $("#shImpGo").disabled = false; }
 });
 $("#shLab").addEventListener("click", async () => { try { const d = await shCall({ action: "sheet_relabel", sheet: SH.sid }); SH.list[SH.list.findIndex((x) => x.id === SH.sid)] = d.sheet; shDrawTabs(); log(d.renamed + " tabs renamed."); } catch (e) {} });
+$("#shKindSet").addEventListener("change", async () => { try { const d = await shCall({ action: "sheet_kind", sheet: SH.sid, kind: $("#shKindSet").value }); SH.list = d.sheets; shDrawSel(); log($("#shKindSet").value ? "This sheet is now read by the " + $("#shKindSet").selectedOptions[0].textContent + "." : "This sheet is no longer used by a report."); } catch (e) { $("#shKindSet").value = (shCur().s || {}).kind || ""; } });
 $("#shNew").addEventListener("click", async () => { const n = prompt("Name of the new sheet"); if (n === null) return; try { const d = await shCall({ action: "sheet_create", name: n }); SH.list.push(d.sheet); SH.sid = d.sheet.id; SH.tid = ""; shDrawSel(); shOpenSheet(SH.sid); } catch (e) {} });
 $("#shRen").addEventListener("click", async () => { const c = shCur(); if (!c.s) return; const n = prompt("New name", c.s.name); if (n === null) return; try { const d = await shCall({ action: "sheet_rename", sheet: SH.sid, name: n }); SH.list[SH.list.findIndex((x) => x.id === SH.sid)] = d.sheet; shDrawSel(); } catch (e) {} });
 $("#shDel").addEventListener("click", async () => { const c = shCur(); if (!c.s) return; if (prompt('This deletes the whole sheet "' + c.s.name + '" with all its tabs and history, and cannot be undone. Type DELETE to confirm.') !== "DELETE") return; try { await shCall({ action: "sheet_delete", sheet: SH.sid }); SH.sid = ""; await ensureSheets(); } catch (e) {} });
