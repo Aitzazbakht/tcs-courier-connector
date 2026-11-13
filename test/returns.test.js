@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 Object.assign(process.env, { TCS_BEARER_TOKEN: "b", TCS_USERNAME: "u", TCS_PASSWORD: "p", CONNECTOR_KEY: "k", SHOPIFY_ACCESS_TOKEN: "t", SHOPIFY_SHOP: "house.myshopify.com", SHOPIFY_SHOP_HERBS: "" });
 const { parseAdvice } = await import("../lib/shipperadvice.js");
-const { buildAddressUpdate, setReturnAddress, reasonOfTrack, statusOfTags, tagForStatus, buildRebookInput, REASONS, listReturns, setReturnStatus, rebookReturn } = await import("../lib/returns.js");
+const { pickLoose, nameScore, buildAddressUpdate, setReturnAddress, reasonOfTrack, statusOfTags, tagForStatus, buildRebookInput, REASONS, listReturns, setReturnStatus, rebookReturn } = await import("../lib/returns.js");
 
 test("reason codes: refusal wins, TCS codes and text map to short codes", () => {
   assert.equal(reasonOfTrack({ deliveryinfo: [{ code: "RS", status: "Returned to shipper" }, { code: "HN", status: "Consignee not home" }, { code: "RD", status: "Refused to accept" }] }).code, "RD");
@@ -57,15 +57,17 @@ globalThis.fetch = async (url, init = {}) => {
   if (/docs\.google\.com.*export/.test(u)) return { ok: true, status: 200, headers: { get: () => "text/csv" }, text: async () => (/gid=55/.test(u) ? "3 Nov 2026,status,,,\n" + cn2 + ",rts,Bilal,Flat 2 Karachi,3001112233\n776412345999,both,Zed,Somewhere,3000000000\n" : "Date / SR#,Consignment #,Comments,Status ,Name ,Address,PHone #\n1,900000000099,fake,Done,Test,Isb,3000000000\n") };
   if (/authentication\/token/.test(u)) return json({ accesstoken: "at", expiry: "2099-01-01" });
   if (/GetDynamicTrackDetail/.test(u)) return json({ shipmentinfo: [{ consignee: "Saad Qureshi", destination: "LAHORE" }], deliveryinfo: [{ code: "RS", status: "Returned" }, { code: "RD", status: "Refused" }], checkpoints: [] });
-  if (/cnbulkinquiry|bulk/i.test(u)) return json({ detail: [{ cnno: cn, cnstatus: "RS", bookingdate: "05/11/2026", destinationcode: "LHE", codamount: 2400 }, { cnno: cn2, cnstatus: "RT", bookingdate: "06/11/2026", destinationcode: "KHI", codamount: 1500 }, { cnno: "776412345603", cnstatus: "OK", bookingdate: "06/11/2026", destinationcode: "ISB", codamount: 900 }, { cnno: "776412345604", cnstatus: "RS", bookingdate: "15/10/2026", destinationcode: "LHE", codamount: 700 }, { cnno: "776412345605", cnstatus: "RS", bookingdate: "12/11/2026", destinationcode: "LHE", codamount: 800 }] });
+  if (/cnbulkinquiry|bulk/i.test(u)) return json({ detail: [{ cnno: cn, cnstatus: "RS", bookingdate: "05/11/2026", destinationcode: "LHE", codamount: 2400 }, { cnno: cn2, cnstatus: "RT", bookingdate: "06/11/2026", destinationcode: "KHI", codamount: 1500 }, { cnno: "776412345603", cnstatus: "OK", bookingdate: "06/11/2026", destinationcode: "ISB", codamount: 900 }, { cnno: "776412345604", cnstatus: "RS", bookingdate: "15/10/2026", destinationcode: "LHE", codamount: 700 }, { cnno: "776412345605", cnstatus: "RS", bookingdate: "12/11/2026", destinationcode: "LHE", codamount: 800 }, { cnno: "776412345700", cnstatus: "RS", bookingdate: "06/11/2026", destinationcode: "LHE", codamount: 1800 }] });
   if (/graphql/.test(u)) {
     const q = body.query || "";
     calls.push(q.slice(0, 40));
+    if (/query M\(/.test(q)) return json({ data: { orders: { pageInfo: { hasNextPage: false }, nodes: !/herbs/.test(u) ? [{ id: "gid://shopify/Order/6", name: "#4500", createdAt: "2026-11-05T08:00:00Z", cancelledAt: null, tags: [], totalPriceSet: { shopMoney: { amount: "1800" } }, shippingAddress: { name: "Saad Qureshi", city: "Lahore" } }] : [] } } });
     if (/orders\(first/.test(q)) return json({ data: { orders: { pageInfo: { hasNextPage: false }, nodes: [
       { id: "gid://shopify/Order/1", name: "#4335", createdAt: "2026-11-05T08:00:00Z", tags: tags[1], fulfillments: [{ createdAt: "2026-11-05T09:00:00Z" }], phone: "0300111", totalPriceSet: { shopMoney: { amount: "2400" } }, shippingAddress: { name: "Saad Qureshi", address1: "House 1", city: "Lahore", phone: "0300111" }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variantTitle: null }] } },
       { id: "gid://shopify/Order/2", name: "#4336", createdAt: "2026-11-06T08:00:00Z", tags: tags[2], fulfillments: [{ createdAt: "2026-11-06T08:00:00Z" }], totalPriceSet: { shopMoney: { amount: "1500" } }, shippingAddress: { name: "Bilal", address1: "Flat 2", city: "Karachi" }, lineItems: { nodes: [{ title: "Tea", quantity: 1, variantTitle: "100g" }] } },
       { id: "gid://shopify/Order/4", name: "#100", createdAt: "2026-10-15T08:00:00Z", tags: ["TCS-776412345604"], fulfillments: [{ createdAt: "2026-10-15T08:00:00Z" }], totalPriceSet: { shopMoney: { amount: "700" } }, shippingAddress: { name: "Old", city: "Lahore" }, lineItems: { nodes: [{ title: "Old", quantity: 1 }] } },
       { id: "gid://shopify/Order/5", name: "#5000", createdAt: "2026-11-12T08:00:00Z", tags: ["TCS-776412345605"], fulfillments: [{ createdAt: "2026-11-12T08:00:00Z" }], totalPriceSet: { shopMoney: { amount: "800" } }, shippingAddress: { name: "Late", city: "Lahore" }, lineItems: { nodes: [{ title: "Late", quantity: 1 }] } }] } } });
+    if (/query Order\(/.test(q) && body.variables.id.endsWith("/6")) return json({ data: { order: { id: body.variables.id, name: "#4500", createdAt: "2026-11-05T08:00:00Z", tags: ["tcs-booked"], phone: "03005550000", totalPriceSet: { shopMoney: { amount: "1800" } }, shippingAddress: { name: "Saad Qureshi", address1: "Shop 3, Main Bazar", city: "Lahore", phone: "03005550000" }, lineItems: { nodes: [{ title: "Herbal Tea", quantity: 2, variantTitle: null }] }, fulfillments: [] } } });
     if (/query Order\(/.test(q)) return json({ data: { order: { id: body.variables.id, tags: tags[2] } } });
     if (/query R\(/.test(q) && /customer/.test(q)) return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ errors: [{ message: "Access denied for customer field. Required access: read_customers" }] }), text: async () => "" };
     if (/query R\(/.test(q)) return json({ data: { order: { id: body.variables.id, name: "#4335", tags: body.variables.id.endsWith("/2") ? tags[2] : tags[1], phone: "03001112233", currencyCode: "PKR", shippingAddress: addr1, shippingLines: { nodes: [] }, lineItems: { nodes: [{ title: "Soap", quantity: 2, variant: { id: "gid://shopify/ProductVariant/1" }, discountedUnitPriceSet: { shopMoney: { amount: "1200" } } }] } } } });
@@ -83,12 +85,14 @@ globalThis.fetch = async (url, init = {}) => {
 test("list: returned parcels only, matched to their orders, with reasons, status and amounts", async () => {
   const r = await listReturns({ from: "2026-10-01", to: "2026-11-10" });
   assert.equal(r.from, "2026-10-21", "nothing before the start day is shown");
-  assert.equal(r.rows.length, 2);
+  assert.equal(r.rows.length, 3);
   const a = r.rows.find((x) => x.cn === cn), b = r.rows.find((x) => x.cn === cn2);
   assert.equal(a.order, "#4335"); assert.equal(a.amount, 2400); assert.equal(a.reason.code, "RD"); assert.equal(a.canBook, true);
   assert.equal(a.booked, "2026-11-05"); assert.equal(b.booked, "2026-11-06");
   assert.equal(r.rows.some((z) => z.cn === "776412345604" || z.cn === "776412345605"), false, "booked before the start day or after the range");
   assert.equal(a.products, "Soap x2"); assert.equal(a.tcsState, "Returned");
+  const lo = r.rows.find((z) => z.cn === "776412345700");
+  assert.equal(lo.order, "#4500"); assert.equal(lo.loose.confident, true); assert.equal(lo.address, "Shop 3, Main Bazar"); assert.equal(lo.products, "Herbal Tea x2"); assert.equal(lo.canBook, true); assert.equal(lo.amount, 1800);
   assert.equal(b.status.key, "rts", "the sheet says rts, which beats the contacted tag"); assert.equal(b.rts.day, "3 Nov 2026"); assert.equal(b.canBook, false); assert.equal(a.rts, null);
   assert.equal(b.tcsState, "Return in transit"); assert.equal(b.products, "Tea (100g) x1");
 });
@@ -147,4 +151,21 @@ test("shipper advice rows: rts is found in any column, with its date; other stat
 test("Book this order refuses a parcel the sheet marks RTS", async () => {
   tags[2] = ["tcs-booked", "TCS-" + cn2];
   await assert.rejects(() => rebookReturn("gid://shopify/Order/2"), /RTS/);
+});
+
+test("parcels booked outside the app: matched by whole name and amount (confident) or only partly (not confident)", () => {
+  const mk = (id, name, city, amount, day, extra = {}) => ({ st: { key: "house", label: "Chitral House" }, o: { id, name: "#" + id, createdAt: day + "T08:00:00Z", tags: [], totalPriceSet: { shopMoney: { amount: String(amount) } }, shippingAddress: { name, city }, ...extra } });
+  const orders = [mk("1", "Atiq Mirza", "Faisalabad", 10000, "2026-11-05"), mk("2", "Atiq Ahmed", "Faisalabad", 10000, "2026-11-05"), mk("3", "Sara Noor", "Lahore", 2500, "2026-11-05"),
+    mk("4", "Hira Khan", "Karachi", 900, "2026-11-05", { tags: ["TCS-776400000000"] }), mk("5", "Old Name", "Lahore", 700, "2026-09-01")];
+  const p = pickLoose([
+    { cn: "a", name: "ATIQ MIRZA", city: "FSD Faisalabad", amount: 10000, day: "2026-11-07" },
+    { cn: "b", name: "Sara", city: "Lahore", amount: 999, day: "2026-11-07" },
+    { cn: "c", name: "Hira Khan", city: "Karachi", amount: 900, day: "2026-11-07" },
+    { cn: "d", name: "Old Name", city: "Lahore", amount: 700, day: "2026-11-07" },
+  ], orders);
+  assert.equal(p.get("a").o.id, "1"); assert.equal(p.get("a").loose.confident, true); assert.equal(p.get("a").loose.how, "name and amount");
+  assert.equal(p.has("b"), false, "one word of the name is not enough");
+  assert.equal(p.has("c"), false, "already booked through the app (has its own TCS tag)");
+  assert.equal(p.has("d"), false, "order placed months before the parcel");
+  assert.equal(nameScore("Atiq Mirza", "mirza atiq"), 2); assert.equal(nameScore("Atiq", "Atiq Mirza"), 0);
 });
