@@ -2031,6 +2031,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
   <section class="panel" id="p-blocked" hidden>
     <div class="toolbar">
       <p class="note" style="margin:0;margin-right:auto">Devices that placed a fake order. On these devices the website shows "Order on WhatsApp" instead of Buy now and Checkout.</p>
+      <label class="field">Store <select id="blkStoreF"><option value="">All stores</option></select></label>
       <input id="blkSearch" type="search" placeholder="Search order, name or phone" aria-label="Search blocked" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:220px;background:var(--surface)">
     </div>
     <div class="toolbar" id="blkForm">
@@ -4062,8 +4063,15 @@ function renderBlocked() {
   setSwitch($("#webSw"), state.webBlock !== false);
   const q = ($("#blkSearch").value || "").toLowerCase().replace(/[\s#-]/g, "");
   const qd = q.replace(/\D/g, "").replace(/^(92|0)/, "");
-  const rows = q ? all.filter(x => (x.order + x.name + x.phone + x.city).toLowerCase().replace(/[\s#-]/g, "").includes(q)
-    || (qd.length >= 6 && String(x.phone).replace(/\D/g, "").includes(qd))) : all;
+  const sf = $("#blkStoreF"), sc = {}; all.forEach(x => { sc[x.store] = (sc[x.store] || 0) + 1; });
+  const labels = {}; all.forEach(x => { labels[x.store] = x.storeLabel; });
+  (state.stores || []).forEach(l => { if (!Object.values(labels).includes(l)) labels[l] = l; });
+  const keep = sf.value;
+  sf.innerHTML = '<option value="">All stores (' + all.length + ")</option>" + Object.keys(labels).map(k => '<option value="' + esc(k) + '">' + esc(labels[k]) + " (" + (sc[k] || 0) + ")</option>").join("");
+  sf.value = labels[keep] ? keep : "";
+  const byStore = sf.value ? all.filter(x => x.store === sf.value) : all;
+  const rows = q ? byStore.filter(x => (x.order + x.name + x.phone + x.city).toLowerCase().replace(/[\s#-]/g, "").includes(q)
+    || (qd.length >= 6 && String(x.phone).replace(/\D/g, "").includes(qd))) : byStore;
   $("#blocked").innerHTML = rows.length ? rows.map(x =>
     '<tr><td><span class="order">' + esc(x.order) + "</span>" + storeBadge({ store: x.store, storeLabel: x.storeLabel }) +
       '<div class="sub">' + (x.ids.length > 1 ? x.ids.length + " devices" : "1 device") + (x.manual ? " · blocked by hand" : "") + "</div></td>" +
@@ -4071,7 +4079,7 @@ function renderBlocked() {
     "<td>" + when(x.at) + "</td>" +
     "<td>" + (x.hits || 0) + (x.last ? '<div class="sub">last ' + when(x.last) + "</div>" : "") + "</td>" +
     '<td><button class="btn" data-unblock="' + esc(x.key) + '">Unblock</button></td></tr>').join("")
-    : '<tr><td colspan="5" class="empty">' + (q ? "No blocked device matches your search." : "No blocked devices. When you cancel a fake website order, its device appears here.") + "</td></tr>";
+    : '<tr><td colspan="5" class="empty">' + (q || sf.value ? "No blocked device matches your search." : "No blocked devices. When you cancel a fake website order, its device appears here.") + "</td></tr>";
   document.querySelectorAll("[data-unblock]").forEach(b => b.onclick = async () => {
     const x = all.find(r => r.key === b.dataset.unblock); if (!x) return;
     if (!confirm("Unblock " + x.name + " (" + x.order + ")? They can check out on the website again.")) return;
@@ -4081,6 +4089,7 @@ function renderBlocked() {
   });
 }
 $("#blkSearch").oninput = renderBlocked;
+$("#blkStoreF").onchange = renderBlocked;
 
 /* ---------- delivery problems: every in-process parcel ---------- */
 /* ---------- Return orders tab ---------- */
