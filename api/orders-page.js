@@ -3609,7 +3609,7 @@ async function shFlush() {
 }
 function shMove(td, dr, dc) { const r = +td.dataset.r + dr, c = +td.dataset.c + dc; const n = document.querySelector('#shGrid td[data-r="' + r + '"][data-c="' + c + '"]'); if (n) { n.focus(); const s = getSelection(), g = document.createRange(); g.selectNodeContents(n); s.removeAllRanges(); s.addRange(g); } }
 $("#shGrid").addEventListener("focusin", (e) => { const t = e.target; if (t.dataset && t.dataset.r) t.dataset.old = t.textContent; });
-$("#shGrid").addEventListener("focusout", (e) => { const t = e.target; if (t.dataset && t.dataset.r && t.dataset.old !== undefined) { shQueueEdit(+t.dataset.r, +t.dataset.c, t.textContent.replace(/\\r?\\n$/, "")); } });
+$("#shGrid").addEventListener("focusout", (e) => { const t = e.target; if (t.dataset && t.dataset.r && t.dataset.old !== undefined) { shQueueEdit(+t.dataset.r, +t.dataset.c, t.textContent.replace(/\r?\n$/, "")); } });
 $("#shGrid").addEventListener("keydown", (e) => {
   const t = e.target; if (!t.dataset || !t.dataset.r) return;
   if (e.key === "Enter" && !e.altKey) { e.preventDefault(); shMove(t, e.shiftKey ? -1 : 1, 0); }
@@ -3620,9 +3620,9 @@ $("#shGrid").addEventListener("keydown", (e) => {
 });
 $("#shGrid").addEventListener("paste", (e) => {
   const t = e.target; if (!t.dataset || !t.dataset.r) return;
-  const txt = (e.clipboardData || window.clipboardData).getData("text"); if (!/[\\t\\n]/.test(txt.replace(/\\n$/, ""))) return;
+  const txt = (e.clipboardData || window.clipboardData).getData("text"); if (!/[\t\n]/.test(txt.replace(/\n$/, ""))) return;
   e.preventDefault();
-  const lines = txt.replace(/\\r/g, "").replace(/\\n$/, "").split("\\n").map((l) => l.split("\\t")); const r0 = +t.dataset.r, c0 = +t.dataset.c;
+  const lines = txt.replace(/\r/g, "").replace(/\n$/, "").split("\n").map((l) => l.split("\t")); const r0 = +t.dataset.r, c0 = +t.dataset.c;
   lines.forEach((cells, i) => cells.forEach((v, j) => shQueueEdit(r0 + i, c0 + j, v)));
   shRender();
 });
@@ -3679,7 +3679,7 @@ function shPaint() {
   document.querySelectorAll("#shGrid td[data-r]").forEach((x) => { const r = +x.dataset.r, c = +x.dataset.c; if (r >= r1 && r <= r2 && c >= c1 && c <= c2) x.classList.add("rs"); });
 }
 function shBox() { const g = SH.rng; return g ? { r1: Math.min(g.r1, g.r2), r2: Math.max(g.r1, g.r2), c1: Math.min(g.c1, g.c2), c2: Math.max(g.c1, g.c2) } : null; }
-function shText(b) { const out = []; for (let r = b.r1; r <= b.r2; r++) { const row = []; for (let c = b.c1; c <= b.c2; c++) row.push(String((SH.rows[r] || [])[c] == null ? "" : SH.rows[r][c]).replace(/[\\t\\n\\r]+/g, " ")); out.push(row.join("\\t")); } return out.join("\\n"); }
+function shText(b) { const out = []; for (let r = b.r1; r <= b.r2; r++) { const row = []; for (let c = b.c1; c <= b.c2; c++) row.push(String((SH.rows[r] || [])[c] == null ? "" : SH.rows[r][c]).replace(/[\t\n\r]+/g, " ")); out.push(row.join("\t")); } return out.join("\n"); }
 function shClearRange() { const b = shBox(); if (!b) return; for (let r = b.r1; r <= b.r2; r++) for (let c = b.c1; c <= b.c2; c++) if ((SH.rows[r] || [])[c]) shQueueEdit(r, c, ""); shRender(); shPaint(); }
 function shSetRange(r1, c1, r2, c2) { SH.rng = { r1, c1, r2, c2 }; shPaint(); }
 const shCell = (t) => t && t.closest ? t.closest("#shGrid td[data-r]") : null;
@@ -3714,7 +3714,7 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("paste", (e) => {
   if (!shOpen() || !SH.rng || shEditing()) return; const b = shBox();
   const txt = (e.clipboardData || window.clipboardData).getData("text"); if (!txt) return; e.preventDefault();
-  const lines = txt.replace(/\\r/g, "").replace(/\\n$/, "").split("\\n").map((l) => l.split("\\t"));
+  const lines = txt.replace(/\r/g, "").replace(/\n$/, "").split("\n").map((l) => l.split("\t"));
   lines.forEach((cells, i) => cells.forEach((v, j) => shQueueEdit(b.r1 + i, b.c1 + j, v))); shRender(); shSetRange(b.r1, b.c1, b.r1 + lines.length - 1, b.c1 + Math.max(...lines.map((x) => x.length)) - 1);
 });
 window.addEventListener("beforeunload", () => { if (shQueue.size) shFlush(); });
