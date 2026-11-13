@@ -92,6 +92,7 @@ export default async function handler(req, res) {
       if (a === "sheet_list") return res.status(200).json(await sheets.sheetsList());
       if (a === "sheet_create") return res.status(200).json({ sheet: await sheets.createSheet(body.name, u, String(body.kind || "")) });
       if (a === "sheet_import") return res.status(200).json({ sheet: await sheets.importGoogle(body.url, body.name, u, String(body.kind || "")) });
+      if (a === "sheet_relabel") return res.status(200).json(await sheets.relabelFromGoogle(body.sheet, u));
       if (a === "sheet_rename") return res.status(200).json({ sheet: await sheets.renameSheet(body.sheet, body.name, u) });
       if (a === "sheet_delete") { await sheets.deleteSheet(body.sheet); return res.status(200).json({ ok: true }); }
       if (a === "sheet_tab_add") return res.status(200).json({ sheet: await sheets.addTab(body.sheet, body.name, u) });

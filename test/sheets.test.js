@@ -46,10 +46,6 @@ test("tabs and limits", async () => {
   await assert.rejects(() => S.deleteTab(s.id, s.tabs[0].id, "A"), /at least one/);
   await assert.rejects(() => S.editCells(s.id, s.tabs[0].id, [{ r: 99999, c: 0, v: "x" }], "A"), /limit/);
 });
-test("google tab names", () => {
-  const h = '<li id="sheet-button-123" class="x"><a href="#gid=123">March</a></li><a href="?gid=0">';
-  assert.deepEqual(S.googleTabs(h).find((x) => x[0] === "123"), ["123", "March"]);
-});
 
 test("courier sheet kind is read from the app copy", async () => {
   setKv(fakeRedis());
@@ -65,4 +61,9 @@ test("courier sheet kind is read from the app copy", async () => {
   await S.editCells(ss.id, ss.tabs[0].id, [{ r: 0, c: 0, v: "775492649540" }, { r: 0, c: 1, v: "rts" }], "A");
   const a = await adv.adviceRts({ refresh: true });
   assert.ok(a.own && a.map.has("775492649540"));
+});
+
+test("google tab names from items.push", () => {
+  const h = 'items.push({name: "1 jan 2026", pageUrl: "https:\\/\\/x\\/htmlview\\/sheet?headers\\x3dtrue&gid=1111216177", gid: "1111216177",initialSheet: ("1111216177" == gid)});';
+  assert.deepEqual(S.googleTabs(h)[0], ["1111216177", "1 jan 2026"]);
 });
