@@ -1859,6 +1859,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
 #shGrid td.rn.sel{background:rgba(120,120,120,.35);color:var(--ink)}
 #shGrid td:focus{box-shadow:inset 0 0 0 2px var(--ax,#2f7d68)}
 #shGrid td.hit{background:rgba(255,200,0,.18)}
+#shGrid td.rs{background:rgba(70,140,255,.28)!important}#shGrid.dragging{user-select:none;cursor:cell}#shGrid th{cursor:pointer}
 #shGrid td.saved{animation:shsv .9s}@keyframes shsv{from{background:rgba(60,170,120,.35)}to{background:transparent}}
 #shHist{display:none;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-top:10px;max-height:340px;overflow:auto}
 #shHist.on{display:block}
@@ -3589,9 +3590,10 @@ function shRender() {
   const q = SH.q.trim().toLowerCase(); const w = SH.rows.reduce((m, r) => Math.max(m, r.length), 0) || 4;
   let idx = []; for (let i = 0; i < SH.rows.length; i++) { if (!q || SH.rows[i].some((v) => String(v).toLowerCase().includes(q))) idx.push(i); }
   const total = idx.length; idx = idx.slice(0, SH.limit);
-  let h = '<thead><tr><th></th>'; for (let c = 0; c < w; c++) h += "<th>" + shCol(c) + "</th>"; h += "</tr></thead><tbody>";
+  let h = '<thead><tr><th></th>'; for (let c = 0; c < w; c++) h += '<th data-ch="' + c + '">' + shCol(c) + "</th>"; h += "</tr></thead><tbody>";
   for (const i of idx) { const r = SH.rows[i]; h += '<tr><td class="rn' + (i === SH.sel ? " sel" : "") + '" data-rn="' + i + '">' + (i + 1) + "</td>"; for (let c = 0; c < w; c++) { const v = r[c] == null ? "" : String(r[c]); h += '<td contenteditable="plaintext-only" data-r="' + i + '" data-c="' + c + '"' + (q && v.toLowerCase().includes(q) ? ' class="hit"' : "") + ">" + esc(v) + "</td>"; } h += "</tr>"; }
   $("#shGrid").innerHTML = h + "</tbody>";
+  shPaint();
   $("#shMore").innerHTML = total > idx.length ? '<button class="btn" id="shMoreBtn">Show ' + Math.min(500, total - idx.length) + " more (" + idx.length + " of " + total + ")</button>" : (q ? total + " matching rows" : "");
 }
 const shQueue = new Map(); let shTimer = null;
@@ -3668,6 +3670,53 @@ $("#shHistBtn").addEventListener("click", async () => {
   } catch (e) { box.innerHTML = '<div class="hr">' + esc(e.message) + "</div>"; }
 });
 $("#shHist").addEventListener("click", async (e) => { const b = e.target.closest("button[data-rev]"); if (!b) return; if (!confirm("Put this change back the way it was?")) return; try { await shCall({ action: "sheet_revert", sheet: SH.sid, at: b.dataset.rev }); await ensureSheets(); $("#shHist").classList.remove("on"); } catch (x) {} });
+/* range selection: drag, shift+click, row/column headers, copy, cut, delete, paste */
+SH.rng = null; SH.anchor = null; SH.drag = false;
+function shPaint() {
+  document.querySelectorAll("#shGrid td.rs").forEach((x) => x.classList.remove("rs"));
+  const g = SH.rng; if (!g) return;
+  const r1 = Math.min(g.r1, g.r2), r2 = Math.max(g.r1, g.r2), c1 = Math.min(g.c1, g.c2), c2 = Math.max(g.c1, g.c2);
+  document.querySelectorAll("#shGrid td[data-r]").forEach((x) => { const r = +x.dataset.r, c = +x.dataset.c; if (r >= r1 && r <= r2 && c >= c1 && c <= c2) x.classList.add("rs"); });
+}
+function shBox() { const g = SH.rng; return g ? { r1: Math.min(g.r1, g.r2), r2: Math.max(g.r1, g.r2), c1: Math.min(g.c1, g.c2), c2: Math.max(g.c1, g.c2) } : null; }
+function shText(b) { const out = []; for (let r = b.r1; r <= b.r2; r++) { const row = []; for (let c = b.c1; c <= b.c2; c++) row.push(String((SH.rows[r] || [])[c] == null ? "" : SH.rows[r][c]).replace(/[\\t\\n\\r]+/g, " ")); out.push(row.join("\\t")); } return out.join("\\n"); }
+function shClearRange() { const b = shBox(); if (!b) return; for (let r = b.r1; r <= b.r2; r++) for (let c = b.c1; c <= b.c2; c++) if ((SH.rows[r] || [])[c]) shQueueEdit(r, c, ""); shRender(); shPaint(); }
+function shSetRange(r1, c1, r2, c2) { SH.rng = { r1, c1, r2, c2 }; shPaint(); }
+const shCell = (t) => t && t.closest ? t.closest("#shGrid td[data-r]") : null;
+$("#shGrid").addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return; const td = shCell(e.target); if (!td) return;
+  const r = +td.dataset.r, c = +td.dataset.c;
+  if (e.shiftKey && SH.anchor) { e.preventDefault(); shSetRange(SH.anchor.r, SH.anchor.c, r, c); if (document.activeElement) document.activeElement.blur(); return; }
+  SH.anchor = { r, c }; SH.drag = true; if (SH.rng) { SH.rng = null; shPaint(); }
+});
+$("#shGrid").addEventListener("mouseover", (e) => {
+  if (!SH.drag) return; const td = shCell(e.target); if (!td || !SH.anchor) return;
+  const r = +td.dataset.r, c = +td.dataset.c; if (r === SH.anchor.r && c === SH.anchor.c && !SH.rng) return;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  getSelection().removeAllRanges(); $("#shGrid").classList.add("dragging"); shSetRange(SH.anchor.r, SH.anchor.c, r, c);
+});
+document.addEventListener("mouseup", () => { SH.drag = false; const g = $("#shGrid"); if (g) g.classList.remove("dragging"); });
+$("#shGrid").addEventListener("click", (e) => {
+  const t = e.target;
+  if (t.dataset && t.dataset.rn !== undefined) { const w = SH.rows.reduce((m, x) => Math.max(m, x.length), 1); SH.anchor = { r: +t.dataset.rn, c: 0 }; shSetRange(+t.dataset.rn, 0, +t.dataset.rn, w - 1); }
+  else if (t.dataset && t.dataset.ch !== undefined) { SH.anchor = { r: 0, c: +t.dataset.ch }; shSetRange(0, +t.dataset.ch, Math.max(0, SH.rows.length - 1), +t.dataset.ch); }
+});
+const shOpen = () => { const p = $("#p-sheets"); return p && !p.hidden; };
+const shEditing = () => { const a = document.activeElement; return a && a.dataset && a.dataset.r !== undefined; };
+document.addEventListener("copy", (e) => { if (!shOpen() || !SH.rng || shEditing()) return; const b = shBox(); if (b.r1 === b.r2 && b.c1 === b.c2) return; e.clipboardData.setData("text/plain", shText(b)); e.preventDefault(); shSaveMsg("Copied " + (b.r2 - b.r1 + 1) + " × " + (b.c2 - b.c1 + 1) + " cells"); });
+document.addEventListener("cut", (e) => { if (!shOpen() || !SH.rng || shEditing()) return; const b = shBox(); e.clipboardData.setData("text/plain", shText(b)); e.preventDefault(); shClearRange(); });
+document.addEventListener("keydown", (e) => {
+  if (!shOpen() || !SH.rng || shEditing()) return;
+  if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); shClearRange(); }
+  else if (e.key === "Escape") { SH.rng = null; shPaint(); }
+  else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") { e.preventDefault(); const w = SH.rows.reduce((m, x) => Math.max(m, x.length), 1); shSetRange(0, 0, SH.rows.length - 1, w - 1); }
+});
+document.addEventListener("paste", (e) => {
+  if (!shOpen() || !SH.rng || shEditing()) return; const b = shBox();
+  const txt = (e.clipboardData || window.clipboardData).getData("text"); if (!txt) return; e.preventDefault();
+  const lines = txt.replace(/\\r/g, "").replace(/\\n$/, "").split("\\n").map((l) => l.split("\\t"));
+  lines.forEach((cells, i) => cells.forEach((v, j) => shQueueEdit(b.r1 + i, b.c1 + j, v))); shRender(); shSetRange(b.r1, b.c1, b.r1 + lines.length - 1, b.c1 + Math.max(...lines.map((x) => x.length)) - 1);
+});
 window.addEventListener("beforeunload", () => { if (shQueue.size) shFlush(); });
 showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total", "stock", "sales", "waord", "returns", "sheets", "setup", "appearance", "menu"].includes(location.hash.slice(1)) && !(location.hash === "#menu" && !smallMQ()) ? location.hash.slice(1) : (smallMQ() ? "dashboard" : "waiting"));
 
