@@ -10,6 +10,7 @@ import * as guard from "../lib/guard.js";
 import { deliveryReport } from "../lib/report.js";
 import { dailyReport } from "../lib/daily.js";
 import { inProcess } from "../lib/inprocess.js";
+import * as sheets from "../lib/sheets.js";
 import { listReturns, setReturnStatus, rebookReturn, setReturnAddress } from "../lib/returns.js";
 import { listAbandoned, markAbandonedHandled, sendOffer, offerStats } from "../lib/abandoned.js";
 import { stores, withStore, splitId } from "../lib/store.js";
@@ -84,6 +85,25 @@ export default async function handler(req, res) {
       const [code, name] = String(body.city || body.city_code || "").split("|");
       const r = await sync.pushOrder(body.id, { cityCode: code || undefined, cityName: name || undefined, force: !!body.force });
       return res.status(200).json(r);
+    }
+    if (typeof body.action === "string" && body.action.startsWith("sheet_")) {
+      const u = String(body.user || "").trim().slice(0, 40) || "Someone";
+      const a = body.action;
+      if (a === "sheet_list") return res.status(200).json(await sheets.sheetsList());
+      if (a === "sheet_create") return res.status(200).json({ sheet: await sheets.createSheet(body.name, u, String(body.kind || "")) });
+      if (a === "sheet_import") return res.status(200).json({ sheet: await sheets.importGoogle(body.url, body.name, u, String(body.kind || "")) });
+      if (a === "sheet_rename") return res.status(200).json({ sheet: await sheets.renameSheet(body.sheet, body.name, u) });
+      if (a === "sheet_delete") { await sheets.deleteSheet(body.sheet); return res.status(200).json({ ok: true }); }
+      if (a === "sheet_tab_add") return res.status(200).json({ sheet: await sheets.addTab(body.sheet, body.name, u) });
+      if (a === "sheet_tab_rename") return res.status(200).json({ sheet: await sheets.renameTab(body.sheet, body.tab, body.name, u) });
+      if (a === "sheet_tab_delete") return res.status(200).json({ sheet: await sheets.deleteTab(body.sheet, body.tab, u) });
+      if (a === "sheet_get") return res.status(200).json(await sheets.getTab(body.sheet, body.tab));
+      if (a === "sheet_edit") return res.status(200).json(await sheets.editCells(body.sheet, body.tab, body.edits, u));
+      if (a === "sheet_rows_add") return res.status(200).json(await sheets.insertRows(body.sheet, body.tab, body.at, body.count, u));
+      if (a === "sheet_rows_delete") return res.status(200).json(await sheets.deleteRows(body.sheet, body.tab, body.at, body.count, u));
+      if (a === "sheet_history") return res.status(200).json(await sheets.history(body.sheet, 300));
+      if (a === "sheet_revert") return res.status(200).json(await sheets.revert(body.sheet, String(body.at || ""), u));
+      return res.status(400).json({ error: "Unknown sheet action" });
     }
     if (body.action === "blocked_list") {
       return res.status(200).json(await guard.list());
