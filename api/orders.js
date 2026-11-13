@@ -88,6 +88,10 @@ export default async function handler(req, res) {
     if (body.action === "blocked_list") {
       return res.status(200).json(await guard.list());
     }
+    if (body.action === "block_add") {
+      const r = await guard.blockManual({ order: body.order, name: body.name, phone: body.phone, store: String(body.store || "") });
+      return res.status(200).json({ ...r, blockedList: (await guard.list()).rows });
+    }
     if (body.action === "unblock") {
       return res.status(200).json(await guard.unblock(Array.isArray(body.ids) ? body.ids : []));
     }

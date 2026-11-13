@@ -2033,6 +2033,16 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       <p class="note" style="margin:0;margin-right:auto">Devices that placed a fake order. On these devices the website shows "Order on WhatsApp" instead of Buy now and Checkout.</p>
       <input id="blkSearch" type="search" placeholder="Search order, name or phone" aria-label="Search blocked" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:220px;background:var(--surface)">
     </div>
+    <div class="toolbar" id="blkForm">
+      <strong style="margin-right:6px">Block a customer</strong>
+      <label class="field">Order number <input id="blkOrder" inputmode="numeric" placeholder="e.g. 52379" autocomplete="off"></label>
+      <label class="field">Name <input id="blkName" placeholder="Customer name" autocomplete="off"></label>
+      <label class="field">Phone number <input id="blkPhone" type="tel" placeholder="03xx xxxxxxx" autocomplete="off"></label>
+      <label class="field">Store <select id="blkStore"><option value="">Any store</option><option value="house">Chitral House</option><option value="herbs">Chitral Herbs</option></select></label>
+      <button class="btn primary" id="blkAdd">Block customer</button>
+      <span class="sub" id="blkMsg" style="flex:1 1 100%"></span>
+    </div>
+    <p class="note" style="margin:0 0 10px">For a customer who is no longer in Waiting to book: type their order number and the website device that placed it is blocked. Name and phone are saved with it (if left empty, the order's own are used). Works for website orders from either store, however old.</p>
     <div class="sheet"><div class="scroll"><table>
       <thead><tr><th>Order</th><th>Customer</th><th>Blocked on</th><th>Blocked visits</th><th></th></tr></thead>
       <tbody id="blocked"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
@@ -4028,6 +4038,24 @@ $("#mkRefresh").onclick = mkRefresh;
 $("#mkCsv").onclick = mkCsv;
 
 /* ---------- blocked devices ---------- */
+$("#blkAdd").onclick = async () => {
+  const order = $("#blkOrder").value.trim(), name = $("#blkName").value.trim(), phone = $("#blkPhone").value.trim(), store = $("#blkStore").value, msg = $("#blkMsg");
+  msg.style.color = ""; 
+  if (!/[0-9]/.test(order)) { msg.textContent = "Type the order number."; msg.style.color = "var(--rust)"; return; }
+  if (!confirm("Block this customer on the website?  Order " + order + (name ? " · " + name : "") + (phone ? " · " + phone : "") + ".  Their device will see Order on WhatsApp instead of Buy now and Checkout.")) return;
+  $("#blkAdd").disabled = true; msg.textContent = "Looking up the order…";
+  try {
+    const d = await post({ action: "block_add", order, name, phone, store });
+    if (d.blocked > 0) {
+      msg.textContent = "Blocked: " + d.order + " (" + d.storeLabel + ") · " + (d.name || "customer") + (d.phone ? " · " + d.phone : "") + " · " + d.blocked + (d.blocked > 1 ? " devices" : " device") + ".";
+      $("#blkOrder").value = ""; $("#blkName").value = ""; $("#blkPhone").value = "";
+      state.blocked = d.blockedList; renderBlocked(); log(d.order + " blocked on the website.");
+    } else if (d.already > 0) { msg.textContent = d.order + " is already blocked."; }
+    else { msg.textContent = "Not blocked: " + (d.note || "nothing to block."); msg.style.color = "var(--rust)"; }
+  } catch (e) { msg.textContent = "Not blocked: " + e.message; msg.style.color = "var(--rust)"; }
+  finally { $("#blkAdd").disabled = false; }
+};
+$("#blkOrder").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#blkAdd").click(); });
 function renderBlocked() {
   const all = state.blocked || [];
   $("#cBlocked").textContent = all.length;
@@ -4038,7 +4066,7 @@ function renderBlocked() {
     || (qd.length >= 6 && String(x.phone).replace(/\D/g, "").includes(qd))) : all;
   $("#blocked").innerHTML = rows.length ? rows.map(x =>
     '<tr><td><span class="order">' + esc(x.order) + "</span>" + storeBadge({ store: x.store, storeLabel: x.storeLabel }) +
-      '<div class="sub">' + (x.ids.length > 1 ? x.ids.length + " devices" : "1 device") + "</div></td>" +
+      '<div class="sub">' + (x.ids.length > 1 ? x.ids.length + " devices" : "1 device") + (x.manual ? " · blocked by hand" : "") + "</div></td>" +
     "<td>" + esc(x.name) + '<div class="sub">' + esc(x.phone) + (x.city ? " · " + esc(x.city) : "") + "</div></td>" +
     "<td>" + when(x.at) + "</td>" +
     "<td>" + (x.hits || 0) + (x.last ? '<div class="sub">last ' + when(x.last) + "</div>" : "") + "</td>" +
