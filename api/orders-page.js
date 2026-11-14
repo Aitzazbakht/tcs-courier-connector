@@ -2293,7 +2293,7 @@ async function runTotal(refresh) {
       }
       $("#totBody").innerHTML = '<p class="note">Building the report…</p>';
     }
-    tot.data = await post({ action: "daily_report", date, to, refresh: !!refresh });
+    tot.data = await post({ action: "daily_report", date, to, refresh: span > 10 ? false : !!refresh });
     renderTotal();
     if (tot.data.warnings.length) log(tot.data.warnings.join("  ·  "));
   } catch (e) { tot.data = null; $("#cTotal").textContent = "–"; $("#totBody").innerHTML = '<p class="note">Could not load the report: ' + esc(e.message) + "</p>"; log(e.message); }
