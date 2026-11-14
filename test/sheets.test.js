@@ -85,3 +85,14 @@ test("final TCS parcels are remembered in storage and not asked again", async ()
   const r = await kvMget(["cs:trk:1", "cs:trk:2"]);
   assert.equal(r[0].group, "delivered"); assert.equal(r[1], null);
 });
+
+test("saved order days: how long each age is trusted", async () => {
+  const { dayFresh } = await import("../lib/daily.js");
+  const now = Date.now(), today = "2026-11-14";
+  assert.equal(dayFresh("2026-11-14", now - 60e3, today), true);
+  assert.equal(dayFresh("2026-11-14", now - 10 * 60e3, today), false);
+  assert.equal(dayFresh("2026-11-12", now - 20 * 60e3, today), true);
+  assert.equal(dayFresh("2026-11-08", now - 7 * 3600e3, today), false);
+  assert.equal(dayFresh("2026-11-08", now - 60e3, today, true), false);
+  assert.equal(dayFresh("2026-10-25", now - 99 * 86400e3, today, true), true);
+});

@@ -21,6 +21,9 @@
     "api/guard.js": {
       "maxDuration": 10
     },
+    "api/cron-warm.js": {
+      "maxDuration": 60
+    },
     "api/cron-stock.js": {
       "maxDuration": 60
     },
@@ -74,6 +77,10 @@
     {
       "path": "/api/cron-tracking",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron-warm",
+      "schedule": "10 21 * * *"
     },
     {
       "path": "/api/cron-stock",

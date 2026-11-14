@@ -2279,6 +2279,20 @@ async function runTotal(refresh) {
   tot.loading = true; $("#totRun").disabled = true; $("#totRefresh").disabled = true; $("#totPdf").disabled = true; log("");
   $("#totBody").innerHTML = '<p class="note">Reading orders and checking every parcel with TCS… this can take up to a minute.</p>';
   try {
+    // A long range is prepared in blocks of 10 days first (each block is saved), then the report is built from the saved data.
+    const span = Math.round((Date.parse(to) - Date.parse(date)) / 86400000) + 1;
+    if (span > 10) {
+      const add = (d, n) => new Date(Date.parse(d + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
+      for (let a = date, blk = 1; a <= to; a = add(a, 10), blk++) {
+        const b = add(a, 9) > to ? to : add(a, 9);
+        for (let tryN = 0; tryN < 4; tryN++) {
+          $("#totBody").innerHTML = '<p class="note">Saving data for the report: ' + esc(a) + " to " + esc(b) + " (block " + blk + " of " + Math.ceil(span / 10) + (tryN ? ", checking the rest" : "") + ")… the first time takes a while, later reports are quick.</p>";
+          const w = await post({ action: "daily_warm", date: a, to: b, refresh: !!refresh && tryN === 0 });
+          if (!w.pending) break;
+        }
+      }
+      $("#totBody").innerHTML = '<p class="note">Building the report…</p>';
+    }
     tot.data = await post({ action: "daily_report", date, to, refresh: !!refresh });
     renderTotal();
     if (tot.data.warnings.length) log(tot.data.warnings.join("  ·  "));

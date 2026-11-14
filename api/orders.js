@@ -8,7 +8,7 @@ import * as wa from "../lib/whatsapp.js";
 import * as notify from "../lib/notify.js";
 import * as guard from "../lib/guard.js";
 import { deliveryReport } from "../lib/report.js";
-import { dailyReport } from "../lib/daily.js";
+import { dailyReport, warmRange } from "../lib/daily.js";
 import { inProcess } from "../lib/inprocess.js";
 import * as sheets from "../lib/sheets.js";
 import { listReturns, setReturnStatus, rebookReturn, setReturnAddress } from "../lib/returns.js";
@@ -125,6 +125,11 @@ export default async function handler(req, res) {
     }
     if (body.action === "delivery_report") {
       return res.status(200).json(await deliveryReport(String(body.from || ""), String(body.to || "")));
+    }
+    if (body.action === "daily_warm") {
+      const work = warmRange(String(body.date || ""), String(body.to || ""), { refresh: body.refresh === true, budgetMs: 38000 });
+      work.catch(() => {});
+      return res.status(200).json(await Promise.race([work, new Promise((_, rej) => setTimeout(() => rej(new Error("Warm-up took too long; press the button again, what was saved is kept.")), 56000))]));
     }
     if (body.action === "daily_report") {
       // Answer before Vercel's own 60 second cut-off (which sends an HTML error page, not JSON). TCS results already fetched stay cached, so pressing Refresh again gets further.
