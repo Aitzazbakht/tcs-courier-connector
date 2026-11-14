@@ -5,7 +5,9 @@ import * as S from "../lib/sheets.js";
 
 function fakeRedis() {
   const kv = new Map();
-  return ([c, k, a, b]) => {
+  return (args) => {
+    const [c, k, a, b] = args;
+    if (c === "MGET") return args.slice(1).map((x) => (kv.has(x) ? kv.get(x) : null));
     if (c === "GET") return kv.has(k) ? kv.get(k) : null;
     if (c === "SET") { kv.set(k, a); return "OK"; }
     if (c === "DEL") { kv.delete(k); return 1; }
@@ -74,4 +76,12 @@ test("only one sheet per report kind", async () => {
   await S.setKind(a.id, "courier", "x"); const l = await S.setKind(b.id, "courier", "x");
   assert.equal(l.find((x) => x.id === a.id).kind, ""); assert.equal(l.find((x) => x.id === b.id).kind, "courier");
   await assert.rejects(() => S.setKind(a.id, "nope", "x"));
+});
+
+test("final TCS parcels are remembered in storage and not asked again", async () => {
+  setKv(fakeRedis());
+  const { kvSetMany, kvMget } = await import("../lib/kvstore.js");
+  await kvSetMany([["cs:trk:1", { valid: true, group: "delivered" }]], 60);
+  const r = await kvMget(["cs:trk:1", "cs:trk:2"]);
+  assert.equal(r[0].group, "delivered"); assert.equal(r[1], null);
 });
