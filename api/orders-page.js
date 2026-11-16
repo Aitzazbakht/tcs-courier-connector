@@ -3208,7 +3208,15 @@ function salesSections(d) {
   const pbc = stbl([["Channel"], ["Type"], ["Product"], ["Orders", 1], ["Units", 1], ["Gross sales", 1]], d.productsByChannel.map(r => srow([[esc(r.channel)], [esc(r.type)], [esc(r.product)], [r.orders, 1], [r.units, 1], [rs(r.gross), 1]])).concat(srow([["Total"], [""], [""], [""], [tot(d.productsByChannel, r => r.units), 1], [rs(tot(d.productsByChannel, r => r.gross)), 1]], 1)));
   const rv = stbl([["Channel"], ["Referrer"], ["Orders", 1], ["Total sales", 1]], d.referrerView.map(r => srow([[esc(r.source)], [esc(r.name)], [r.orders, 1], [rs(r.sales), 1]])));
   const uv = stbl([["UTM source"], ["UTM medium"], ["Orders", 1], ["Total sales", 1]], d.utmView.map(r => srow([[esc(r.source)], [esc(r.medium)], [r.orders, 1], [rs(r.sales), 1]])));
-  return { kp, mix, ch, pl, ad, camp, fun, wa, wm, hb, pr, pbc, rv, uv, od };
+  // Rebooked return parcels: shown on their own, never counted in the sales above.
+  const rb = d.rebooked || { count: 0, total: 0, house: { orders: 0, total: 0 }, herbs: { orders: 0, total: 0 }, cod: { orders: 0, total: 0 }, prepaid: { orders: 0, total: 0 }, rows: [] };
+  const rbLine = "Rebooked return parcels (not counted in sales): " + rb.count + (rb.count === 1 ? " order, " : " orders, ") + rs(rb.total);
+  const rbSummary = rb.count ? "<p class=\"note\"><b>" + rb.count + (rb.count === 1 ? " rebooked order" : " rebooked orders") + " · " + rs(rb.total) + "</b> — Chitral House " + rb.house.orders + " (" + rs(rb.house.total) + "), Chitral Herbs " + rb.herbs.orders + " (" + rs(rb.herbs.total) + ") · COD " + rb.cod.orders + " (" + rs(rb.cod.total) + "), Prepaid " + rb.prepaid.orders + " (" + rs(rb.prepaid.total) + ")</p>" : "";
+  const rbT = rb.count ? stbl([["New order"], ["Original order"], ["Store"], ["Products"], ["Payment"], ["Total", 1]],
+    rb.rows.map(r => srow([[esc(r.order)], [esc(r.original)], [esc(r.store)], [esc(r.products)], [esc(r.payment)], [rs(r.total), 1]])).concat(srow([["Total (" + rb.count + ")"], [""], [""], [""], [""], [rs(rb.total), 1]], 1)))
+    : '<p class="note">No rebooked return parcels for this date</p>';
+  const rbx = rbSummary + rbT + '<p class="note">These orders re-ship parcels that TCS returned; the original orders were already counted as sales on their own days.</p>';
+  return { kp, mix, ch, pl, ad, camp, fun, wa, wm, hb, pr, pbc, rv, uv, od, rbLine, rbx };
 }
 /* ---------- Sales report: phone dashboard (built only on phones; the tables below stay) ---------- */
 const SXC = ["#6BFF6B", "#22D3EE", "#8B5CF6", "#FFC93C", "#F2918A", "#60A5FA", "#9CA3AF"];
@@ -3318,6 +3326,7 @@ function renderSales() {
   $("#salBody").innerHTML = (smallMQ() ? salesPhone(d) : "") +
     '<div class="dgrid salk">' + S.kp.map(c => '<div class="dcard" style="cursor:default"><div class="dh">' + esc(c[0]) + '</div><div class="dv">' + esc(c[1]) + '</div><div class="dl" style="border-top:0">' + esc(c[2]) + "</div></div>").join("") + "</div>" +
     '<p class="note" style="margin:12px 0">' + esc(S.mix) + "</p>" +
+    '<p class="note" style="margin:-6px 0 12px">' + esc(S.rbLine) + "</p>" +
     box("1. Sales by channel", S.ch, true) + box("2. Sales by platform", S.pl, true) +
     box("3. Ad platforms vs Shopify", S.ad + '<p class="note">Spend and platform-reported purchases come from Windsor.ai (platforms count view-through and 7-day click conversions, so they can exceed Shopify). Shopify-credited sales come from each order\'s last visit (Meta, TikTok, Google paid) and from the source tag on WhatsApp orders. Meta web orders are split between the two Meta accounts by the campaign id in the order\'s UTM. All Chitral Herbs orders are credited to the Chitral Herbs Meta account. WhatsApp Marketing link orders are credited to no ad platform.</p>', true) +
     box("3a. Campaigns with spend", S.camp, true) +
@@ -3325,6 +3334,7 @@ function renderSales() {
     box("5. WhatsApp orders (" + d.whatsapp.length + ")", S.wa) + box("6. WhatsApp Marketing link orders (" + d.wm.length + ")", S.wm) + box("7. Chitral Herbs orders (" + d.herbs.length + ")", S.hb) +
     box("8. Products sold", S.pr) + box("9. Products by channel", S.pbc) + box("10. All orders with attribution (" + d.orders.length + ")", S.od) +
     box("11. Referrer view (Chitral House)", S.rv) + box("12. UTM view (Chitral House)", S.uv) +
+    box("13. Rebooked return parcels (not counted in sales) (" + ((d.rebooked && d.rebooked.count) || 0) + ")", S.rbx, !!(d.rebooked && d.rebooked.count)) +
     (notes.length ? '<p class="note">' + notes.map(esc).join("<br>") + "</p>" : "") +
     '<p class="note">Channels are worked out from each order\'s last visit in Shopify, so they can differ slightly from Shopify Analytics. The sessions funnel and the referrer and UTM views use Chitral House orders only (Chitral Herbs traffic is not included).</p>';
 }
@@ -3335,9 +3345,9 @@ $("#salPdf").onclick = () => {
   const fdate = d.dateTo && d.dateTo !== d.date ? fd1(d.date) + " to " + fd1(d.dateTo) : fd1(d.date, 1);
   const sec = (t, h) => "<h2>" + t + "</h2>" + h;
   const body = "<h1>Chitral House — Daily Sales Report</h1><div class=\"sub\">chitralhouse.com + chitralherbs.com · " + esc(fdate) + " · currency PKR · pulled " + esc(d.pulledAt) + "</div>" +
-    '<div class="k">' + S.kp.map(c => "<div><small>" + esc(c[0]) + "</small><b>" + esc(c[1]) + "</b><small>" + esc(c[2]) + "</small></div>").join("") + "</div><p class=\"note\">" + esc(S.mix) + "</p>" +
+    '<div class="k">' + S.kp.map(c => "<div><small>" + esc(c[0]) + "</small><b>" + esc(c[1]) + "</b><small>" + esc(c[2]) + "</small></div>").join("") + "</div><p class=\"note\">" + esc(S.mix) + "</p><p class=\"note\">" + esc(S.rbLine) + "</p>" +
     sec("1. Sales by channel", S.ch) + sec("2. Sales by platform", S.pl) + sec("3. Ad platforms vs Shopify", S.ad) + sec("3a. Campaigns with spend", S.camp) + sec("4. Sessions funnel by traffic source", S.fun) +
-    sec("5. WhatsApp orders", S.wa) + sec("6. WhatsApp Marketing link orders", S.wm) + sec("7. Chitral Herbs orders", S.hb) + sec("8. Products sold", S.pr) + sec("9. Products by channel", S.pbc) + sec("10. All orders with attribution", S.od) + sec("11. Referrer view", S.rv) + sec("12. UTM view", S.uv);
+    sec("5. WhatsApp orders", S.wa) + sec("6. WhatsApp Marketing link orders", S.wm) + sec("7. Chitral Herbs orders", S.hb) + sec("8. Products sold", S.pr) + sec("9. Products by channel", S.pbc) + sec("10. All orders with attribution", S.od) + sec("11. Referrer view", S.rv) + sec("12. UTM view", S.uv) + sec("13. Rebooked return parcels (not counted in sales)", S.rbx);
   const w = window.open("", "_blank"); if (!w) return log("Allow pop-ups to open the print view.");
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Sales report ' + esc(d.date + (d.dateTo && d.dateTo !== d.date ? ' to ' + d.dateTo : '')) + "</title><style>" + css + "</style></head><body>" + body + "</body></html>"); w.document.close(); setTimeout(() => w.print(), 300);
 };
