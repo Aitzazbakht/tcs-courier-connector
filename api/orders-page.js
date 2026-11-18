@@ -2331,7 +2331,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<"
 const log = (m) => { $("#log").textContent = m || ""; };
 const rs = (n) => "Rs " + Number(n || 0).toLocaleString("en-PK");
 const when = (d) => d ? new Date(d).toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
-const post = (body) => fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.error || r.status); return d; });
+const post = (body) => fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => { const t = await r.text(); let d; try { d = JSON.parse(t); } catch (e) { throw new Error("The server did not answer in time (it was probably waiting on TCS). Press the button again: what was already read is kept."); } if (!r.ok) throw new Error(d.error || r.status); return d; });
 
 /* ---------- delivery report: state and default dates (set up before the tabs run) ---------- */
 let rep = { data: null, loading: false, sort: "booked", dir: -1, preset: "30d" };
