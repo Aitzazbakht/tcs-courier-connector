@@ -2061,9 +2061,20 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
     </div>
     <div id="adSum" class="rtsum"></div>
     <p class="note">Parcels TCS could not deliver and is <b>waiting for your instruction on</b> (a ticket). Until you answer, TCS holds the parcel. TCS offers two answers: <b>Re-forward</b> (edited address, new address, hold at the TCS counter, or same address) or <b>Return to the shipper</b>. The waiting time turns amber after 2 days and red after 4 days.</p>
+    <div id="adFormBox" class="sheet" hidden style="padding:14px;margin-bottom:12px">
+      <h3 id="adFTitle" style="margin:0 0 10px"></h3>
+      <div class="toolbar" style="flex-wrap:wrap">
+        <label class="field">Your answer <select id="adFAns"><option value="">Choose…</option><option value="same">Re-forward to the same address</option><option value="edited">Re-forward to an edited address</option><option value="new">Re-forward to a new address</option><option value="hfc">Hold at the TCS counter (HFC)</option><option value="rts">Return to the shipper (RTS)</option></select></label>
+        <label class="field" id="adFPhoneRow">New phone (optional) <input type="tel" id="adFPhone" placeholder="03XX XXXXXXX"></label>
+        <label class="field">Note for TCS (optional) <input type="text" id="adFRem" maxlength="200" placeholder="e.g. customer confirmed on WhatsApp"></label>
+      </div>
+      <label class="field" id="adFAddrRow" hidden style="display:block;margin-top:8px">Delivery address <textarea id="adFAddr" rows="2" style="width:100%" placeholder="Full address with area and city"></textarea></label>
+      <div class="toolbar" style="margin-top:10px"><button class="btn on" id="adFSend">Send answer to TCS</button><button class="btn" id="adFCancel">Cancel</button><span class="stats" id="adFMsg"></span></div>
+      <p class="note" style="margin:6px 0 0">This tells TCS what to do with a real parcel and cannot be undone from here.</p>
+    </div>
     <div class="sheet"><div class="scroll"><table>
-      <thead><tr><th>Ticket</th><th>Parcel</th><th>Customer</th><th>Address</th><th>Products</th><th class="n">COD</th><th>TCS says</th><th class="n">Waiting</th></tr></thead>
-      <tbody id="adBody"><tr><td colspan="8" class="empty">Open this tab to load the tickets.</td></tr></tbody>
+      <thead><tr><th>Ticket</th><th>Parcel</th><th>Customer</th><th>Address</th><th>Products</th><th class="n">COD</th><th>TCS says</th><th class="n">Waiting</th><th></th></tr></thead>
+      <tbody id="adBody"><tr><td colspan="9" class="empty">Open this tab to load the tickets.</td></tr></tbody>
     </table></div></div>
     <details class="howto"><summary>The answers TCS accepts</summary><div id="adActs"></div></details>
   </section>
@@ -3866,9 +3877,9 @@ const ad = { data: null, loading: false };
 function ensureAdvice() { if (!ad.data && !ad.loading) loadAdvice(); }
 async function loadAdvice() {
   if (ad.loading) return; ad.loading = true; $("#adRefresh").disabled = true;
-  $("#adBody").innerHTML = '<tr><td colspan="8" class="empty">Reading tickets from TCS…</td></tr>';
+  $("#adBody").innerHTML = '<tr><td colspan="9" class="empty">Reading tickets from TCS…</td></tr>';
   try { ad.data = await post({ action: "advice_list" }); renderAdvice(); if (ad.data.warnings.length) log(ad.data.warnings.join("  ·  ")); }
-  catch (e) { ad.data = null; $("#adBody").innerHTML = '<tr><td colspan="8" class="empty">Couldn\'t load tickets: ' + esc(e.message) + "</td></tr>"; }
+  catch (e) { ad.data = null; $("#adBody").innerHTML = '<tr><td colspan="9" class="empty">Couldn\'t load tickets: ' + esc(e.message) + "</td></tr>"; }
   finally { ad.loading = false; $("#adRefresh").disabled = false; }
 }
 function renderAdvice() {
@@ -3876,7 +3887,7 @@ function renderAdvice() {
   const late = rows.filter(r => r.band === "bad").length;
   $("#adSum").innerHTML = '<span class="chip ' + (rows.length ? "bad" : "ok") + '"><b>' + rows.length + "</b> " + (rows.length === 1 ? "ticket" : "tickets") + " waiting for your advice</span>" + (late ? '<span class="chip bad">' + late + " waiting 4+ days</span>" : "");
   $("#adMeta").textContent = "Read from TCS " + new Date(d.pulledAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" });
-  $("#adBody").innerHTML = rows.length ? rows.map(r =>
+  $("#adBody").innerHTML = rows.length ? rows.map((r, i) =>
     '<tr class="ad-' + esc(r.band) + '"><td>' + esc(r.ticket) + "</td>" +
     '<td><a href="https://www.tcsexpress.com/track/' + esc(r.cn) + '" target="_blank" rel="noopener">' + esc(r.cn) + "</a>" + (r.order ? '<div class="sub">' + esc(r.order) + (r.storeLabel ? " · " + esc(r.storeLabel) : "") + "</div>" : '<div class="sub">no matching order</div>') + "</td>" +
     "<td>" + esc(r.customer || "–") + '<div class="sub"><a href="tel:' + esc(r.phone || r.cell) + '">' + esc(r.phone || r.cell) + "</a></div></td>" +
@@ -3884,10 +3895,34 @@ function renderAdvice() {
     "<td>" + esc(r.products || "–") + "</td>" +
     '<td class="num">' + (r.cod && r.cod.cod_amount != null ? rs(r.cod.cod_amount) : (typeof r.cod === "number" ? rs(r.cod) : "–")) + "</td>" +
     "<td>" + esc(r.status) + '<div class="sub">' + esc(r.remarks) + " · " + esc(r.when) + "</div></td>" +
-    '<td class="num"><span class="wpill ' + esc(r.band) + '">' + r.days + (r.days === 1 ? " day" : " days") + "</span></td></tr>").join("")
-    : '<tr><td colspan="8" class="empty">No tickets are waiting for your advice.</td></tr>';
+    '<td class="num"><span class="wpill ' + esc(r.band) + '">' + r.days + (r.days === 1 ? " day" : " days") + '</span></td><td><button class="btn" data-adans="' + i + '">Answer…</button></td></tr>').join("")
+    : '<tr><td colspan="9" class="empty">No tickets are waiting for your advice.</td></tr>';
+  document.querySelectorAll("[data-adans]").forEach(b => b.onclick = () => adOpen(+b.dataset.adans));
   $("#adActs").innerHTML = d.actions.map(a => "<p><b>" + esc(a.name) + "</b>" + (a.details.length ? ": " + a.details.map(x => esc(x.name)).join(", ") : "") + "</p>").join("");
 }
+let adSel = null;
+function adAddrShow() { const v = $("#adFAns").value; $("#adFAddrRow").hidden = !(v === "edited" || v === "new"); $("#adFAddrRow").style.display = $("#adFAddrRow").hidden ? "none" : "block"; }
+function adOpen(i) {
+  const r = ad.data && ad.data.rows[i]; if (!r) return; adSel = r;
+  $("#adFTitle").textContent = "Answer ticket " + r.ticket + " for parcel " + r.cn + (r.order ? " (" + r.order + (r.customer ? ", " + r.customer : "") + ")" : "");
+  $("#adFAns").value = ""; $("#adFAddr").value = r.address || ""; $("#adFPhone").value = ""; $("#adFRem").value = ""; $("#adFMsg").textContent = "";
+  adAddrShow(); $("#adFormBox").hidden = false; $("#adFormBox").scrollIntoView({ block: "center" });
+}
+$("#adFAns").onchange = adAddrShow;
+$("#adFCancel").onclick = () => { $("#adFormBox").hidden = true; adSel = null; };
+$("#adFSend").onclick = async () => {
+  const r = adSel; if (!r) return; const ans = $("#adFAns").value; if (!ans) return ($("#adFMsg").textContent = "Choose an answer first.");
+  const label = $("#adFAns").selectedOptions[0].textContent;
+  if (!confirm("Send this answer to TCS?\n\nTicket " + r.ticket + " · parcel " + r.cn + "\n" + label + "\n\nTCS will act on it and it cannot be undone from here.")) return;
+  $("#adFSend").disabled = true; $("#adFMsg").textContent = "Sending to TCS…";
+  try {
+    const d = await post({ action: "advice_answer", cn: r.cn, ticket: r.ticket, answer: ans, address: $("#adFAddr").value, phone: $("#adFPhone").value, remarks: $("#adFRem").value, confirm: true });
+    $("#adFMsg").textContent = "Sent: " + d.answer + ". TCS replied: " + JSON.stringify(d.response).slice(0, 160);
+    log("Answer sent to TCS for ticket " + r.ticket + ": " + d.answer);
+    ad.data = null; setTimeout(() => { $("#adFormBox").hidden = true; loadAdvice(); }, 1800);
+  } catch (e) { $("#adFMsg").textContent = "Not sent: " + e.message; }
+  finally { $("#adFSend").disabled = false; }
+};
 $("#adRefresh").onclick = loadAdvice;
 showTab(["dashboard", "waiting", "problems", "abandoned", "marketing", "blocked", "delivery", "total", "stock", "sales", "waord", "returns", "sheets", "codpay", "advice", "setup", "appearance", "menu"].includes(location.hash.slice(1)) && !(location.hash === "#menu" && !smallMQ()) ? location.hash.slice(1) : (smallMQ() ? "dashboard" : "waiting"));
 
