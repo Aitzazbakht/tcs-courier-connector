@@ -1989,8 +1989,8 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       <div id="skSum" class="rtsum"></div>
       <p class="note">Every parcel booked with TCS that is not delivered or returned yet, the longest-waiting first. <b>Days</b> counts from the day it was booked, when the courier normally picks it up. 0 to 3 days is normal (green), 4 to 5 amber, 6 to 9 red (check these first), 10 or more makes the whole row red.</p>
       <div class="sheet"><div class="scroll"><table>
-        <thead><tr><th>Customer</th><th>Address</th><th>Tracking number</th><th>Current status</th><th>Products</th><th class="n">Amount</th><th class="n">Days</th></tr></thead>
-        <tbody id="skBody"><tr><td colspan="7" class="empty">Open this tab to load in-process parcels.</td></tr></tbody>
+        <thead><tr><th>Customer</th><th>Address</th><th>Tracking number</th><th>Current status</th><th>Products</th><th class="n">Amount</th><th class="n">Last status change</th><th class="n">Days</th></tr></thead>
+        <tbody id="skBody"><tr><td colspan="8" class="empty">Open this tab to load in-process parcels.</td></tr></tbody>
       </table></div></div>
     </div>
   </section>
@@ -4542,8 +4542,9 @@ function renderStuck() {
     '<td><span class="chip ' + (r.issue ? "bad" : "wait") + '">' + esc(r.status) + "</span><div class=\"sub\">" + esc(r.latest) + (r.when ? " · " + esc(r.when) : "") + "</div></td>" +
     "<td>" + esc(r.products || "–") + "</td>" +
     '<td class="num">' + rs(r.cod) + "</td>" +
+    '<td class="num">' + (r.lastDays == null ? '<span class="sub">no date from TCS</span>' : (r.lastDays === 0 ? "Today" : r.lastDays === 1 ? "Yesterday" : r.lastDays + " days ago") + '<div class="sub">' + esc(r.lastDay) + "</div>") + "</td>" +
     '<td class="num"><span class="dpill ' + esc(r.band) + '">' + r.days + '</span><div class="sub">booked ' + esc(r.bookedDay || "?") + "</div></td></tr>").join("")
-    : '<tr><td colspan="7" class="empty">' + (rows.length ? "No stuck parcels match these filters." : "No parcels are in process.") + "</td></tr>";
+    : '<tr><td colspan="8" class="empty">' + (rows.length ? "No stuck parcels match these filters." : "No parcels are in process.") + "</td></tr>";
   document.querySelectorAll("[data-skb]").forEach(b => b.onclick = () => { pr.sk.band = pr.sk.band === b.dataset.skb ? "" : b.dataset.skb; renderStuck(); });
 }
 function prSetView(v) { pr.v = v; $("#prListWrap").hidden = v !== "list"; $("#prStuckWrap").hidden = v !== "stuck"; document.querySelectorAll("#prView button").forEach(b => b.classList.toggle("on", b.dataset.v === v)); if (v === "stuck") renderStuck(); }

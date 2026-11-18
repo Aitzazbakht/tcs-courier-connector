@@ -15,3 +15,11 @@ test("colour bands: 0-3 green, 4-5 amber, 6-9 red, 10+ whole row red", () => {
   assert.deepEqual([6, 7, 9].map(b), ["bad", "bad", "bad"]);
   assert.deepEqual([10, 11, 30].map(b), ["crit", "crit", "crit"]);
 });
+
+test("day of the last TCS status change", async () => {
+  const { whenDay } = await import("../lib/inprocess.js");
+  assert.equal(whenDay("Thursday Nov 12, 2026 14:30"), "2026-11-12");
+  assert.equal(whenDay("Nov 5, 2026 01:10"), "2026-11-05");
+  assert.equal(whenDay(""), "");
+  assert.equal(whenDay("not a date"), "");
+});
