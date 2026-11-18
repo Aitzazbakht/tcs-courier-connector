@@ -1,0 +1,29 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { buildCodPayments, waitBand, waitDays } from "../lib/codpay.js";
+
+const row = (o) => ({ cn: "100", order: "1", booked: "01/11/2026", delivered: "03/11/2026", city: "LHE", status_code: "OK", status: "Delivered", paid: false, amount_paid: 0, delivery_charges: 210, fuel_surcharge: 10, osa_charges: 0, sales_tax: 31.5, whit: 60, payment_date: null, ...o });
+
+test("wait bands: 0-7 normal, 8-12 amber, 13+ red", () => {
+  assert.deepEqual([0, 7].map(waitBand), ["ok", "ok"]);
+  assert.deepEqual([8, 12].map(waitBand), ["warn", "warn"]);
+  assert.deepEqual([13, 30].map(waitBand), ["bad", "bad"]);
+  assert.equal(waitDays("2026-11-10", "2026-11-18"), 8);
+});
+test("totals: paid, waiting (amount from withholding tax), returned, charges", () => {
+  const r = buildCodPayments([
+    row({ cn: "1" }),
+    row({ cn: "2", paid: true, amount_paid: 3000, whit: 60, payment_date: "10/11/2026 03:52 PM" }),
+    row({ cn: "3", status_code: "RS", status: "Returned to sender", delivered: "05/11/2026", whit: 0 }),
+    row({ cn: "4", status_code: "", status: "In transit", delivered: "" , whit: 0 }),
+    row({ cn: "5", delivered: "20/10/2026", whit: 100 }),
+  ], "2026-11-18");
+  const t = r.totals;
+  assert.equal(t.parcels, 5); assert.equal(t.delivered, 3); assert.equal(t.returned, 1); assert.equal(t.transit, 1);
+  assert.equal(t.paidCount, 1); assert.equal(t.paidAmount, 3000);
+  assert.equal(t.waitingCount, 2); assert.equal(t.waitingAmount, 3000 + 5000); // 60/0.02 and 100/0.02
+  assert.equal(t.late, 2); // 15 days and 29 days
+  assert.equal(r.rows[0].cn, "5"); // longest wait first
+  assert.equal(r.rows[0].band, "bad");
+  assert.deepEqual(r.payments, [{ date: "2026-11-10", parcels: 1, amount: 3000, charges: 251.5 }]);
+});
