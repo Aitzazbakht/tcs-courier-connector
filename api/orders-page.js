@@ -3673,7 +3673,7 @@ function mxEl_items() { return mxmEl ? mxmEl.body.querySelectorAll(".mxm-q,.mxm-
     return r;
   }; }
 const RT_START = "2026-10-21";
-const rt = { data: null, loading: false, status: "none", reason: "", sort: "new", q: "" };
+const rt = { data: null, loading: false, seq: 0, status: "none", reason: "", sort: "new", q: "" };
 const RT_ST = [["", "No status"], ["contacted", "Contacted"], ["reorder", "Reorder confirm"], ["dontneed", "Don't need"], ["custom", "Custom text"], ["rebooked", "Rebooked"]];
 const RT_LABEL = { "": "No status", contacted: "Contacted", reorder: "Reorder confirm", dontneed: "Don't need", rts: "RTS", rebooked: "Rebooked" };
 /* ---------- Sheets tab ---------- */
@@ -4554,20 +4554,23 @@ function ensureReturns() {
   if (!rt.data || f0 !== $("#rtFrom").value || t0 !== $("#rtTo").value) { if (!rt.loading) loadReturns(false); } else renderReturns();
 }
 async function loadReturns(refresh) {
-  if (rt.loading) return;
   let from = $("#rtFrom").value, to = $("#rtTo").value || from;
   if (!from) return log("Pick a start date.");
   if (from < RT_START) { from = RT_START; $("#rtFrom").value = from; }
-  rt.loading = true; $("#rtRefresh").disabled = true; $("#rtRun").disabled = true;
-  $("#rtBody").innerHTML = '<tr><td colspan="8" class="empty">Reading returned parcels from TCS and matching them to your orders… this can take up to a minute.</td></tr>';
+  // Show returns stays usable while an earlier load is still running: the newest request wins and an older answer is ignored.
+  const my = ++rt.seq;
+  rt.loading = true; $("#rtRefresh").disabled = true;
+  $("#rtBody").innerHTML = '<tr><td colspan="8" class="empty">Reading returned parcels from TCS for ' + esc(from) + " to " + esc(to) + " and matching them to your orders… this can take up to a minute when TCS is slow.</td></tr>";
   try {
-    rt.data = await post({ action: "returns_list", from, to, refresh: !!refresh });
+    const got = await post({ action: "returns_list", from, to, refresh: !!refresh });
+    if (my !== rt.seq) return;
+    rt.data = got;
     $("#rtMeta").textContent = rt.data.rows.length + " returned parcels · " + from + " to " + to;
     if (rt.data.warnings.length) log(rt.data.warnings.join("  ·  "));
     $("#rtLegend").innerHTML = '<div class="rtleg">' + Object.keys(rt.data.reasons).map(k => '<span><b class="chip ' + (k === "RD" ? "bad" : "wait") + '">' + k + "</b> " + esc(rt.data.reasons[k]) + "</span>").join("") + "</div>";
     renderReturns();
-  } catch (e) { rt.data = null; $("#rtBody").innerHTML = '<tr><td colspan="8" class="empty">Couldn\'t load returns: ' + esc(e.message) + "</td></tr>"; }
-  finally { rt.loading = false; $("#rtRefresh").disabled = false; $("#rtRun").disabled = false; }
+  } catch (e) { if (my !== rt.seq) return; rt.data = null; $("#rtBody").innerHTML = '<tr><td colspan="8" class="empty">Couldn\'t load returns: ' + esc(e.message) + "</td></tr>"; }
+  finally { if (my === rt.seq) { rt.loading = false; $("#rtRefresh").disabled = false; } }
 }
 function rtCount() { if (!rt.data) return; const n = rt.data.rows.filter(r => !r.status.key && r.id).length; $("#cReturns").textContent = n || "0"; }
 function rtKey(r) { return r.status.key === "custom" ? "c:" + String(r.status.text).toLowerCase() : (r.status.key || "none"); }
@@ -4652,6 +4655,9 @@ $("#rtStatus").onchange = () => { rt.status = $("#rtStatus").value; renderReturn
 $("#rtReason").onchange = () => { rt.reason = $("#rtReason").value; renderReturns(); };
 $("#rtSort").onchange = () => { rt.sort = $("#rtSort").value; renderReturns(); };
 $("#rtSearch").oninput = () => { rt.q = $("#rtSearch").value; renderReturns(); };
+// Picking a date shows that range after a short pause, so nothing has to be pressed.
+let rtDeb = null;
+$("#rtFrom").onchange = $("#rtTo").onchange = () => { document.querySelectorAll("#rtPreset button").forEach(x => x.classList.remove("on")); clearTimeout(rtDeb); rtDeb = setTimeout(() => loadReturns(false), 500); };
 $("#rtRun").onclick = () => { document.querySelectorAll("#rtPreset button").forEach(x => x.classList.remove("on")); loadReturns(false); };
 $("#rtRefresh").onclick = () => loadReturns(true);
 document.querySelectorAll("#rtPreset button").forEach(b => b.onclick = () => { document.querySelectorAll("#rtPreset button").forEach(x => x.classList.toggle("on", x === b)); rtDates(Number(b.dataset.d)); loadReturns(false); });

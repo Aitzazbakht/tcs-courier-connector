@@ -155,7 +155,13 @@ export default async function handler(req, res) {
     if (body.action === "abandoned_offer") return res.status(200).json(await sendOffer(String(body.id || ""), { testTo: String(body.testTo || "") }));
     if (body.action === "abandoned_handled") return res.status(200).json(await markAbandonedHandled(String(body.id || "")));
     if (body.action === "in_process") return res.status(200).json(await inProcess({ refresh: body.refresh === true }));
-    if (body.action === "returns_list") return res.status(200).json(await listReturns({ from: String(body.from || ""), to: String(body.to || ""), refresh: body.refresh === true }));
+    if (body.action === "returns_list") {
+      // Answer before Vercel's own 60 second cut-off (which sends a plain-text error, not JSON). What was already read from TCS is kept, so pressing again gets further.
+      const work = listReturns({ from: String(body.from || ""), to: String(body.to || ""), refresh: body.refresh === true });
+      work.catch(() => {});
+      const stop = new Promise((_, rej) => setTimeout(() => rej(new Error("TCS is slow right now. Press Show returns again: what was already read is kept, so it goes faster.")), 56000));
+      return res.status(200).json(await Promise.race([work, stop]));
+    }
     if (body.action === "return_status") return res.status(200).json(await setReturnStatus(String(body.id || ""), String(body.status || ""), String(body.text || "")));
     if (body.action === "return_address") return res.status(200).json(await setReturnAddress(String(body.id || ""), { address: body.address, city: body.city, phone: body.phone }));
     if (body.action === "return_rebook") return res.status(200).json(await rebookReturn(String(body.id || "")));
