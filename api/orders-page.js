@@ -3028,7 +3028,21 @@ async function runProfit(refresh) {
   $("#prBody").innerHTML = '<p class="note">Getting ad spend from Windsor, then reading both stores and checking every parcel with TCS... this can take up to a minute.</p>';
   try {
     await prFetchAds(true);
-    pf.data = await post({ action: "profit_report", pin: setupPin, date: date, to: $("#pfTo").value, usdRate: Number($("#pfRate").value) || 276, ads: prAdsRead(), adsDaily: pf.adsDaily || {}, refresh: !!refresh });
+    // A range over 10 days is first read in blocks of 10 days (each saved, nothing can time out), then the report is built from the saved data.
+    const pfDate = date, pfTo = $("#pfTo").value || date, pfSpan = Math.round((Date.parse(pfTo) - Date.parse(pfDate)) / 86400000) + 1;
+    if (pfSpan > 10) {
+      const add = (d, n) => new Date(Date.parse(d + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
+      for (let a = pfDate, blk = 1; a <= pfTo; a = add(a, 10), blk++) {
+        const b = add(a, 9) > pfTo ? pfTo : add(a, 9);
+        for (let tryN = 0; tryN < 4; tryN++) {
+          $("#prBody").innerHTML = '<p class="note">Reading orders and parcels: ' + esc(a) + " to " + esc(b) + " (block " + blk + " of " + Math.ceil(pfSpan / 10) + (tryN ? ", checking the rest" : "") + ")… the first time takes a while, later reports are quick.</p>";
+          const w = await post({ action: "daily_warm", date: a, to: b, refresh: !!refresh && tryN === 0 });
+          if (!w.pending) break;
+        }
+      }
+      $("#prBody").innerHTML = '<p class="note">Building the report…</p>';
+    }
+    pf.data = await post({ action: "profit_report", pin: setupPin, date: date, to: $("#pfTo").value, usdRate: Number($("#pfRate").value) || 276, ads: prAdsRead(), adsDaily: pf.adsDaily || {}, refresh: pfSpan > 10 ? false : !!refresh });
     renderProfit();
   } catch (e) {
     pf.data = null;

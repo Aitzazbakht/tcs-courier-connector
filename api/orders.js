@@ -172,10 +172,14 @@ export default async function handler(req, res) {
     if (body.action === "profit_report") {
       // Everything on the Setup tab checks the PIN again on the server, so the data can't be fetched without it.
       if (!(await pinGate(res, body.pin))) return;
-      return res.status(200).json(await profitReport({
+      // Answer before Vercel's own 60 second cut-off (which sends a plain-text error page, not JSON). Parcels already checked stay saved, so pressing Build report again gets further.
+      const work = profitReport({
         date: String(body.date || ""), to: String(body.to || ""), usdRate: Number(body.usdRate) || undefined,
         ads: body.ads && typeof body.ads === "object" ? body.ads : {}, adsDaily: body.adsDaily && typeof body.adsDaily === "object" ? body.adsDaily : {}, refresh: body.refresh === true,
-      }));
+      });
+      work.catch(() => {});
+      const stop = new Promise((_, rej) => setTimeout(() => rej(new Error("The report took too long this time. Press Build report again: what was already read is kept, so it goes faster.")), 56000));
+      return res.status(200).json(await Promise.race([work, stop]));
     }
     if (typeof body.action === "string" && body.action.startsWith("stock_")) {
       // No PIN here: like the other tabs, the page link's connector key is the protection.
