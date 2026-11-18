@@ -9,7 +9,7 @@ import * as notify from "../lib/notify.js";
 import * as guard from "../lib/guard.js";
 import { deliveryReport } from "../lib/report.js";
 import { dailyReport, warmRange } from "../lib/daily.js";
-import { codPayments } from "../lib/codpay.js";
+import { codPayments, codPrepare } from "../lib/codpay.js";
 import { inProcess } from "../lib/inprocess.js";
 import * as sheets from "../lib/sheets.js";
 import { listReturns, setReturnStatus, rebookReturn, setReturnAddress } from "../lib/returns.js";
@@ -127,6 +127,7 @@ export default async function handler(req, res) {
     if (body.action === "delivery_report") {
       return res.status(200).json(await deliveryReport(String(body.from || ""), String(body.to || "")));
     }
+    if (body.action === "cod_prepare") return res.status(200).json(await codPrepare(String(body.from || ""), String(body.to || ""), 40000));
     if (body.action === "cod_payments") return res.status(200).json(await codPayments(String(body.from || ""), String(body.to || "")));
     if (body.action === "daily_warm") {
       const work = warmRange(String(body.date || ""), String(body.to || ""), { refresh: body.refresh === true, budgetMs: 38000 });

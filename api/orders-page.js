@@ -3809,7 +3809,14 @@ async function loadCodPay() {
   const from = $("#cpFrom").value, to = $("#cpTo").value || from; if (!from) return log("Pick a start date.");
   cp.loading = true; $("#cpRun").disabled = true;
   $("#cpBody").innerHTML = '<tr><td colspan="9" class="empty">Reading payments from TCS…</td></tr>';
-  try { cp.data = await post({ action: "cod_payments", from, to }); $("#cpMeta").textContent = cp.data.rows.length + " parcels booked " + from + " to " + to; renderCodPay(); }
+  try {
+    // TCS answers one request at a time, so the range is read in 10-day blocks first (each kept for 20 minutes), then shown.
+    for (let i = 0; i < 12; i++) {
+      const p = await post({ action: "cod_prepare", from, to });
+      if (!p.missing) break;
+      $("#cpBody").innerHTML = '<tr><td colspan="9" class="empty">Reading payments from TCS: ' + (p.blocks - p.missing) + " of " + p.blocks + " blocks done…</td></tr>";
+    }
+    cp.data = await post({ action: "cod_payments", from, to }); $("#cpMeta").textContent = cp.data.rows.length + " parcels booked " + from + " to " + to; renderCodPay(); }
   catch (e) { cp.data = null; $("#cpBody").innerHTML = '<tr><td colspan="9" class="empty">Couldn\'t load payments: ' + esc(e.message) + "</td></tr>"; }
   finally { cp.loading = false; $("#cpRun").disabled = false; }
 }

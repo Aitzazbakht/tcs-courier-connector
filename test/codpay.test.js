@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCodPayments, waitBand, waitDays } from "../lib/codpay.js";
+import { buildCodPayments, waitBand, waitDays, blocks } from "../lib/codpay.js";
 
 const row = (o) => ({ cn: "100", order: "1", booked: "01/11/2026", delivered: "03/11/2026", city: "LHE", status_code: "OK", status: "Delivered", paid: false, amount_paid: 0, delivery_charges: 210, fuel_surcharge: 10, osa_charges: 0, sales_tax: 31.5, whit: 60, payment_date: null, ...o });
 
@@ -29,7 +29,16 @@ test("totals: paid, waiting (amount from withholding tax), returned, charges", (
 });
 
 test("amount of an unpaid parcel comes from the booking list when TCS has no tax figure", () => {
-  const r = buildCodPayments([row({ cn: "7", whit: 0 })], "2026-11-18", new Map([["7", 4500]]));
+  const r = buildCodPayments([row({ cn: "7", whit: 0, bookingValue: 4500 })], "2026-11-18");
   assert.equal(r.rows[0].cod, 4500); assert.equal(r.rows[0].codSource, "booking value");
   assert.equal(r.totals.waitingAmount, 4500);
+});
+
+test("10-day blocks line up on fixed days and stop at today", () => {
+  const b = blocks("2026-11-05", "2026-11-18", "2026-11-18");
+  assert.ok(b.length >= 2);
+  assert.ok(b[0][0] <= "2026-11-05" && b[0][1] >= "2026-11-05");
+  assert.equal(b[b.length - 1][1], "2026-11-18");
+  for (const [a, e] of b) assert.ok(a <= e);
+  assert.deepEqual(blocks("2026-11-18", "2026-11-18", "2026-11-18").length, 1);
 });
