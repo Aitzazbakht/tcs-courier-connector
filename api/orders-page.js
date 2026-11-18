@@ -2040,11 +2040,11 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       <span class="stats" id="cpMeta" style="margin-left:auto"></span>
     </div>
     <div class="toolbar">
-      <div class="seg" id="cpView"><button type="button" data-v="waiting" class="on">Waiting for payment</button><button type="button" data-v="paid">Paid</button><button type="button" data-v="returned">Returned</button><button type="button" data-v="all">All</button></div>
+      <div class="seg" id="cpView"><button type="button" data-v="waiting" class="on">Waiting for payment</button><button type="button" data-v="paid">Paid</button><button type="button" data-v="returned">Returned</button><button type="button" data-v="nodispatch">No tracking</button><button type="button" data-v="all">All</button></div>
       <label class="field">Search <input type="search" id="cpSearch" placeholder="CN, order number, city"></label>
     </div>
     <div id="cpSum" class="rtsum"></div>
-    <p class="note">What TCS has paid you for cash-on-delivery parcels, by the day they were booked. <b>Waiting for payment</b> lists delivered parcels TCS has not paid out yet, longest wait first: up to 7 days is normal (green), 8 to 12 amber, 13 or more red. The COD amount of a parcel TCS has not paid yet is its booking value. Charges are delivery, fuel surcharge, area charges and sales tax.</p>
+    <p class="note">What TCS has paid you for cash-on-delivery parcels, by the day they were booked. <b>Waiting for payment</b> lists delivered parcels TCS has not paid out yet, longest wait first: up to 7 days is normal (green), 8 to 12 amber, 13 or more red. The COD amount of a parcel TCS has not paid yet is its booking value. <b>No tracking</b> lists parcels TCS's payment list calls delivered but whose tracking has no history at all: a tracking number was made but the parcel was never picked up, so nothing is owed for them and they are left out of the waiting totals. Charges are delivery, fuel surcharge, area charges and sales tax.</p>
     <div class="sheet"><div class="scroll"><table>
       <thead><tr><th>CN</th><th>Order</th><th>Booked</th><th>Delivered</th><th>City</th><th>Status</th><th>Payment</th><th class="n">COD amount</th><th class="n">Charges</th></tr></thead>
       <tbody id="cpBody"><tr><td colspan="9" class="empty">Open this tab to load the payments.</td></tr></tbody>
@@ -3857,11 +3857,13 @@ function renderCodPay() {
     ["Waiting for payment", t.waitingCount + " parcels" + (t.waitingAmount ? " · " + rs(t.waitingAmount) : ""), t.late ? t.late + " waiting 13+ days" : "", t.late ? "bad" : "wait"],
     ["Paid by TCS", t.paidCount + " parcels · " + rs(t.paidAmount), "", "ok"],
     ["Returned / in transit", t.returned + " / " + t.transit, "", ""],
+    ...(t.noTrackingCount ? [["No tracking history", t.noTrackingCount + " parcels", "left out of waiting", "wait"]] : []),
+    ...(t.unchecked ? [["Not checked yet", t.unchecked + " parcels", "press Show payments again", ""]] : []),
     ["Charges", rs(Math.round(t.charges)), "withheld tax " + rs(Math.round(t.withheld)), ""],
   ].map(c => '<span class="chip ' + c[3] + '"><b>' + esc(c[0]) + "</b> " + esc(c[1]) + (c[2] ? " · " + esc(c[2]) : "") + "</span>").join("");
-  const pick = (r) => cp.view === "all" || (cp.view === "waiting" && r.waiting) || (cp.view === "paid" && r.paid) || (cp.view === "returned" && r.group === "returned");
+  const pick = (r) => cp.view === "all" || (cp.view === "waiting" && r.waiting) || (cp.view === "paid" && r.paid) || (cp.view === "returned" && r.group === "returned") || (cp.view === "nodispatch" && r.group === "nodispatch");
   const list = d.rows.filter(r => pick(r) && (!q || [r.cn, r.order, r.city].join(" ").toLowerCase().includes(q)));
-  const pay = (r) => r.paid ? '<span class="wpill paid">Paid ' + esc(String(r.payDate).slice(0, 10)) + "</span>" : r.waiting ? '<span class="wpill ' + r.band + '">Waiting ' + r.days + (r.days === 1 ? " day" : " days") + "</span>" : '<span class="sub">–</span>';
+  const pay = (r) => r.paid ? '<span class="wpill paid">Paid ' + esc(String(r.payDate).slice(0, 10)) + "</span>" : r.group === "nodispatch" ? '<span class="wpill" style="background:rgba(150,150,150,.25)">No tracking</span>' : r.waiting ? '<span class="wpill ' + r.band + '">Waiting ' + r.days + (r.days === 1 ? " day" : " days") + "</span>" : '<span class="sub">–</span>';
   const amt = (r) => r.paid ? rs(r.amountPaid) : r.cod != null ? "~ " + rs(r.cod) : '<span class="sub">not known</span>';
   $("#cpBody").innerHTML = list.length ? list.slice(0, 1500).map(r =>
     '<tr class="cp-' + esc(r.band || "") + '"><td><a href="https://www.tcsexpress.com/track/' + esc(r.cn) + '" target="_blank" rel="noopener">' + esc(r.cn) + "</a></td><td>" + esc(r.order || "–") + "</td><td>" + esc(r.booked) + "</td><td>" + esc(r.delivered || "–") + "</td><td>" + esc(r.city) + "</td><td>" + esc(r.status) + "</td><td>" + pay(r) + '</td><td class="num">' + amt(r) + '</td><td class="num">' + rs(r.charges) + "</td></tr>").join("")

@@ -42,3 +42,13 @@ test("10-day blocks line up on fixed days and stop at today", () => {
   for (const [a, e] of b) assert.ok(a <= e);
   assert.deepEqual(blocks("2026-11-18", "2026-11-18", "2026-11-18").length, 1);
 });
+
+test("delivered-but-unpaid parcels with no tracking history are set aside, not counted as waiting", () => {
+  const rows = [row({ cn: "1", delivered: "05/10/2026", whit: 0 }), row({ cn: "2", delivered: "05/10/2026", whit: 0 }), row({ cn: "3", paid: true, amount_paid: 2000, payment_date: "10/11/2026 03:52 PM" })];
+  const r = buildCodPayments(rows, "2026-11-18", new Set(["1"]));
+  assert.equal(r.totals.waitingCount, 1); assert.equal(r.totals.noTrackingCount, 1);
+  const n = r.rows.find((x) => x.cn === "1");
+  assert.equal(n.group, "nodispatch"); assert.equal(n.waiting, false); assert.equal(n.days, null);
+  assert.equal(r.totals.paidCount, 1); // a paid parcel is never set aside
+  assert.equal(r.totals.late, 1);
+});
