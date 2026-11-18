@@ -1866,6 +1866,13 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
 #shHist .hr{display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px}
 #shHist .hr .t{color:var(--mute);min-width:128px;font-size:12px}#shHist .hr .d{flex:1;word-break:break-word}
 #shSave{font-size:12px;color:var(--mute);margin-left:auto}
+#p-problems .dpill{display:inline-block;min-width:36px;text-align:center;padding:3px 11px;border-radius:999px;font-weight:800;font-variant-numeric:tabular-nums}
+#p-problems .dpill.ok{background:rgba(47,179,107,.22);color:#2fb36b}
+#p-problems .dpill.warn{background:rgba(245,166,35,.3);color:#f0a020}
+#p-problems .dpill.bad{background:rgba(232,66,52,.3);color:#ff6b5e}
+#p-problems .dpill.crit{background:#d92d20;color:#fff}
+#p-problems tr.sk-crit>td{background:rgba(217,45,32,.22)}
+#p-problems tr.sk-bad>td:last-child,#p-problems tr.sk-warn>td:last-child{box-shadow:inset -3px 0 0 currentColor}
 #p-returns td.num{text-align:right;white-space:nowrap;font-weight:700}
 </style></head>
 <body>
@@ -1957,6 +1964,8 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
   </section>
 
   <section class="panel" id="p-problems" hidden>
+    <div class="toolbar"><div class="seg" id="prView"><button type="button" data-v="list" class="on">Problem list</button><button type="button" data-v="stuck">Stuck parcels</button></div></div>
+    <div id="prListWrap">
     <div class="toolbar">
       <label class="field">Status <select id="prStatus"><option value="">All statuses</option></select></label>
       <label class="field">Order date <input type="date" id="prDate"></label>
@@ -1969,6 +1978,21 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       <thead><tr><th>Order</th><th>Customer</th><th>CN</th><th>Status</th><th>Details</th><th>Customer reply</th><th></th></tr></thead>
       <tbody id="problems"><tr><td colspan="7" class="empty">Open this tab to load in-process parcels.</td></tr></tbody>
     </table></div></div>
+    </div>
+    <div id="prStuckWrap" hidden>
+      <div class="toolbar">
+        <label class="field">Search <input type="search" id="skSearch" placeholder="Name, phone, order, tracking number, city, product"></label>
+        <label class="field">Store <select id="skStore"><option value="">Both stores</option></select></label>
+        <button class="btn" id="skRefresh" data-tip="Ask TCS again for every parcel instead of using the results saved in the last 15 minutes.">Refresh TCS status</button>
+        <span class="stats" id="skMeta" style="margin-left:auto"></span>
+      </div>
+      <div id="skSum" class="rtsum"></div>
+      <p class="note">Every parcel booked with TCS that is not delivered or returned yet, the longest-waiting first. <b>Days</b> counts from the day it was booked, when the courier normally picks it up. 0 to 3 days is normal (green), 4 to 5 amber, 6 to 9 red (check these first), 10 or more makes the whole row red.</p>
+      <div class="sheet"><div class="scroll"><table>
+        <thead><tr><th>Customer</th><th>Address</th><th>Tracking number</th><th>Current status</th><th>Products</th><th class="n">Amount</th><th class="n">Days</th></tr></thead>
+        <tbody id="skBody"><tr><td colspan="7" class="empty">Open this tab to load in-process parcels.</td></tr></tbody>
+      </table></div></div>
+    </div>
   </section>
   <section class="panel" id="p-returns" hidden>
     <div class="toolbar">
@@ -4014,6 +4038,7 @@ function renderAband() {
     try { await post({ action: "abandoned_handled", id: b.dataset.abdone }); const r = ab.data.rows.find(x => x.id === b.dataset.abdone); if (r) r.handled = true; renderAband(); }
     catch (e) { b.disabled = false; log("Couldn't mark done: " + e.message); }
   });
+  if (typeof renderStuck === "function") renderStuck();
 }
 async function loadAbStats(from, to) {
   $("#abStats").innerHTML = '<p class="note">Checking how many offers worked…</p>';
@@ -4494,6 +4519,38 @@ function renderProblems() {
     catch (e) { b.disabled = false; log("Couldn't mark done: " + e.message); }
   });
 }
+/* ---------- Delivery problems: Stuck parcels view ---------- */
+pr.v = "list"; pr.sk = { band: "", q: "", store: "" };
+const SK_BANDS = [["crit", "10+ days"], ["bad", "6-9 days"], ["warn", "4-5 days"], ["ok", "0-3 days"]];
+function skRows() { return (pr.data ? pr.data.rows : []).slice().sort((a, b) => (b.days - a.days) || (b.cod - a.cod) || String(a.name).localeCompare(String(b.name))); }
+function renderStuck() {
+  if (!pr.data) return;
+  const rows = skRows(), q = pr.sk.q.trim().toLowerCase();
+  const stores = [...new Set(rows.map(r => r.store))];
+  const sel = $("#skStore"); if (sel.options.length !== stores.length + 1) sel.innerHTML = '<option value="">Both stores</option>' + stores.map(k => '<option value="' + esc(k) + '">' + esc((rows.find(r => r.store === k) || {}).storeLabel || k) + "</option>").join("");
+  sel.value = pr.sk.store;
+  const base = rows.filter(r => (!pr.sk.store || r.store === pr.sk.store) && (!q || [r.name, r.customer, r.phone, r.cn, r.city, r.address, r.products, r.status].join(" ").toLowerCase().includes(q)));
+  const list = base.filter(r => !pr.sk.band || r.band === pr.sk.band);
+  const cnt = {}; base.forEach(r => cnt[r.band] = (cnt[r.band] || 0) + 1);
+  const tot = list.reduce((t, r) => t + (Number(r.cod) || 0), 0);
+  $("#skSum").innerHTML = '<span class="chip">' + list.length + " of " + rows.length + " parcels</span><span class=\"chip\">" + rs(tot) + "</span>" + SK_BANDS.filter(b => cnt[b[0]]).map(b => '<button type="button" class="chip' + (pr.sk.band === b[0] ? " ok" : "") + '" data-skb="' + b[0] + '"><span class="dpill ' + b[0] + '" style="min-width:0;padding:0 8px">' + cnt[b[0]] + "</span> " + b[1] + "</button>").join("");
+  $("#skMeta").textContent = rows.length + " parcels still with TCS" + (pr.data.windowDays ? " · orders from the last " + pr.data.windowDays + " days" : "");
+  $("#skBody").innerHTML = list.length ? list.map(r =>
+    '<tr class="sk-' + esc(r.band) + '"><td><span class="order">' + esc(r.name) + "</span>" + storeBadge(r) + '<div>' + esc(r.customer) + '</div><div class="sub"><a href="tel:' + esc(r.phone) + '">' + esc(r.phone) + "</a></div></td>" +
+    "<td>" + esc(r.address || "–") + '<div class="sub">' + esc(r.city) + "</div></td>" +
+    '<td><a href="https://www.tcsexpress.com/track/' + esc(r.cn) + '" target="_blank" rel="noopener">' + esc(r.cn) + "</a></td>" +
+    '<td><span class="chip ' + (r.issue ? "bad" : "wait") + '">' + esc(r.status) + "</span><div class=\"sub\">" + esc(r.latest) + (r.when ? " · " + esc(r.when) : "") + "</div></td>" +
+    "<td>" + esc(r.products || "–") + "</td>" +
+    '<td class="num">' + rs(r.cod) + "</td>" +
+    '<td class="num"><span class="dpill ' + esc(r.band) + '">' + r.days + '</span><div class="sub">booked ' + esc(r.bookedDay || "?") + "</div></td></tr>").join("")
+    : '<tr><td colspan="7" class="empty">' + (rows.length ? "No stuck parcels match these filters." : "No parcels are in process.") + "</td></tr>";
+  document.querySelectorAll("[data-skb]").forEach(b => b.onclick = () => { pr.sk.band = pr.sk.band === b.dataset.skb ? "" : b.dataset.skb; renderStuck(); });
+}
+function prSetView(v) { pr.v = v; $("#prListWrap").hidden = v !== "list"; $("#prStuckWrap").hidden = v !== "stuck"; document.querySelectorAll("#prView button").forEach(b => b.classList.toggle("on", b.dataset.v === v)); if (v === "stuck") renderStuck(); }
+document.querySelectorAll("#prView button").forEach(b => b.onclick = () => prSetView(b.dataset.v));
+$("#skSearch").oninput = () => { pr.sk.q = $("#skSearch").value; renderStuck(); };
+$("#skStore").onchange = () => { pr.sk.store = $("#skStore").value; renderStuck(); };
+$("#skRefresh").onclick = () => loadProblems(true);
 $("#prStatus").onchange = renderProblems;
 $("#prDate").onchange = () => { $("#prAll").classList.toggle("on", !$("#prDate").value); renderProblems(); };
 $("#prAll").onclick = () => { $("#prDate").value = ""; $("#prAll").classList.add("on"); renderProblems(); };
