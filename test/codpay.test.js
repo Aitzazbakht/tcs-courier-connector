@@ -52,3 +52,12 @@ test("delivered-but-unpaid parcels with no tracking history are set aside, not c
   assert.equal(r.totals.paidCount, 1); // a paid parcel is never set aside
   assert.equal(r.totals.late, 1);
 });
+
+test("delivered parcels the booking list shows with COD 0 are not waiting for money; unknown stays waiting", () => {
+  const rows = [row({ cn: "1", whit: 0, bookingValue: 0 }), row({ cn: "2", whit: 0, bookingValue: null }), row({ cn: "3", whit: 0, bookingValue: 4500 })];
+  const r = buildCodPayments(rows, "2026-11-18");
+  assert.equal(r.rows.find((x) => x.cn === "1").group, "nocod");
+  assert.equal(r.totals.noCodCount, 1);
+  assert.equal(r.totals.waitingCount, 2); // the unknown one and the one with COD 4500
+  assert.equal(r.totals.waitingAmount, 4500);
+});
