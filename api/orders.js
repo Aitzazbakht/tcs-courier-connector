@@ -133,7 +133,7 @@ export default async function handler(req, res) {
     if (body.action === "cod_prepare") return res.status(200).json(await codPrepare(String(body.from || ""), String(body.to || ""), 40000));
     if (body.action === "cod_payments") return res.status(200).json(await codPayments(String(body.from || ""), String(body.to || "")));
     if (body.action === "daily_warm") {
-      const work = warmRange(String(body.date || ""), String(body.to || ""), { refresh: body.refresh === true, budgetMs: 38000 });
+      const work = warmRange(String(body.date || ""), String(body.to || ""), { refresh: body.refresh === true, budgetMs: 34000 });
       work.catch(() => {});
       return res.status(200).json(await Promise.race([work, new Promise((_, rej) => setTimeout(() => rej(new Error("Warm-up took too long; press the button again, what was saved is kept.")), 56000))]));
     }
