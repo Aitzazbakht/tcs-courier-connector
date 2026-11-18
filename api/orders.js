@@ -10,6 +10,7 @@ import * as guard from "../lib/guard.js";
 import { deliveryReport } from "../lib/report.js";
 import { dailyReport, warmRange } from "../lib/daily.js";
 import { codPayments, codPrepare } from "../lib/codpay.js";
+import { adviceList } from "../lib/advice.js";
 import { inProcess } from "../lib/inprocess.js";
 import * as sheets from "../lib/sheets.js";
 import { listReturns, setReturnStatus, rebookReturn, setReturnAddress } from "../lib/returns.js";
@@ -127,6 +128,7 @@ export default async function handler(req, res) {
     if (body.action === "delivery_report") {
       return res.status(200).json(await deliveryReport(String(body.from || ""), String(body.to || "")));
     }
+    if (body.action === "advice_list") return res.status(200).json(await adviceList());
     if (body.action === "cod_prepare") return res.status(200).json(await codPrepare(String(body.from || ""), String(body.to || ""), 40000));
     if (body.action === "cod_payments") return res.status(200).json(await codPayments(String(body.from || ""), String(body.to || "")));
     if (body.action === "daily_warm") {
