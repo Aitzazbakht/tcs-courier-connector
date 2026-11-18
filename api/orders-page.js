@@ -3894,8 +3894,8 @@ function renderAdvice() {
     "<td>" + esc(r.address || "–") + '<div class="sub">' + esc(r.city || r.destination) + (r.origin ? " · from " + esc(r.origin) : "") + "</div></td>" +
     "<td>" + esc(r.products || "–") + "</td>" +
     '<td class="num">' + (r.cod && r.cod.cod_amount != null ? rs(r.cod.cod_amount) : (typeof r.cod === "number" ? rs(r.cod) : "–")) + "</td>" +
-    "<td>" + esc(r.status) + '<div class="sub">' + esc(r.remarks) + " · " + esc(r.when) + "</div></td>" +
-    '<td class="num"><span class="wpill ' + esc(r.band) + '">' + r.days + (r.days === 1 ? " day" : " days") + '</span></td><td><button class="btn" data-adans="' + i + '">Answer…</button></td></tr>').join("")
+    "<td>" + esc(r.status) + '<div class="sub">' + esc(r.remarks) + (r.when ? " · " + esc(r.when) : "") + "</div></td>" +
+    '<td class="num">' + (r.days == null ? '<span class="sub">unknown</span>' : '<span class="wpill ' + esc(r.band) + '">' + (r.days === 0 ? "today" : r.days + (r.days === 1 ? " day" : " days")) + "</span>") + '</td><td><button class="btn" data-adans="' + i + '">Answer…</button></td></tr>').join("")
     : '<tr><td colspan="9" class="empty">No tickets are waiting for your advice.</td></tr>';
   document.querySelectorAll("[data-adans]").forEach(b => b.onclick = () => adOpen(+b.dataset.adans));
   $("#adActs").innerHTML = d.actions.map(a => "<p><b>" + esc(a.name) + "</b>" + (a.details.length ? ": " + a.details.map(x => esc(x.name)).join(", ") : "") + "</p>").join("");

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { shapeTicket, adviceBand, ticketDay } from "../lib/advice.js";
+import { shapeTicket, adviceBand, ticketDay, withTracking } from "../lib/advice.js";
 
 test("ticket day and waiting bands", () => {
   assert.equal(ticketDay("2026-11-01 07:00 PM"), "2026-11-01");
@@ -9,9 +9,14 @@ test("ticket day and waiting bands", () => {
   assert.deepEqual([2, 3].map(adviceBand), ["warn", "warn"]);
   assert.deepEqual([4, 17].map(adviceBand), ["bad", "bad"]);
 });
-test("a TCS pending ticket is shaped for the page", () => {
-  const r = shapeTicket({ consignmentno: " 173020115689 ", ticketno: 88095865, deliverystatus: "Not Collected – Self Collection", deliverydate: "2026-11-01 07:00 PM", remarks: "HFSA", consigneecell: "03459299960", origin: "ISLAMABAD", destination: "Bunair" }, "2026-11-18");
-  assert.equal(r.cn, "173020115689"); assert.equal(r.days, 17); assert.equal(r.band, "bad"); assert.equal(r.destination, "Bunair");
+test("a TCS pending ticket is shaped for the page; waiting time comes from tracking, not the ticket's own date", () => {
+  const r = shapeTicket({ consignmentno: " 173020115689 ", ticketno: 88095865, deliverystatus: "Not Collected – Self Collection", deliverydate: "2026-11-01 07:00 PM", remarks: "HFSA", consigneecell: "03459299960", origin: "ISLAMABAD", destination: "Bunair" });
+  assert.equal(r.cn, "173020115689"); assert.equal(r.days, null); assert.equal(r.destination, "Bunair");
+  const w = withTracking(r, { valid: true, when: "Wednesday Nov 18, 2026 11:48", state: "Awaiting Consignee Collection", booked: "2026-11-16" }, "2026-11-18");
+  assert.equal(w.day, "2026-11-18"); assert.equal(w.days, 0); assert.equal(w.band, "ok");
+  const old = withTracking(r, { valid: true, when: "Wednesday Nov 11, 2026 10:00", state: "x" }, "2026-11-18");
+  assert.equal(old.days, 7); assert.equal(old.band, "bad");
+  assert.equal(withTracking(r, { valid: false }, "2026-11-18").days, null);
 });
 
 import { buildAdviceBody, adviceAnswer, ANSWERS } from "../lib/advice.js";
