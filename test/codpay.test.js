@@ -95,7 +95,19 @@ test("the next payment is the week after the last paid one: waiting COD minus ch
   const u = buildCodPayments(rows, "2026-11-18").upcoming;
   assert.equal(u.weekFrom, "2026-11-15"); assert.equal(u.weekTo, "2026-11-21"); assert.equal(u.expectedPay, "2026-11-24");
   assert.equal(u.parcels, 2); assert.equal(u.carriedOver, 1); assert.equal(u.thisWeek, 1); assert.equal(u.unknownAmount, 1);
-  assert.equal(u.cod, 10000); assert.equal(u.charges, 503); assert.equal(u.returnedCharges, 251.5); assert.equal(u.tax, 400);
-  assert.equal(u.estimatedDeposit, Math.round(10000 - 503 - 251.5 - 400));
+  assert.equal(u.cod, 10000); assert.equal(u.charges, 251.5); /* only the parcel delivered this week: the carried-over one was charged last week */ assert.equal(u.returnedCharges, 251.5); assert.equal(u.tax, 400);
+  assert.equal(u.estimatedDeposit, Math.round(10000 - 251.5 - 251.5 - 400));
   assert.equal(buildCodPayments([row({ cn: "9", delivered: "16/11/2026", bookingValue: 1000 })], "2026-11-18").upcoming, null);
+});
+
+test("past payments: a parcel's charges count in the week it was delivered, even if its COD is paid later", () => {
+  const rows = [
+    row({ cn: "1", paid: true, amount_paid: 3000, whit: 60, delivered: "05/11/2026", payment_date: "11/11/2026 03:52 PM" }),
+    row({ cn: "2", paid: true, amount_paid: 2000, whit: 40, delivered: "06/11/2026", payment_date: "17/11/2026 03:52 PM" }), // delivered in week 1, paid in week 2's payment
+  ];
+  const r = buildCodPayments(rows, "2026-11-18");
+  const first = r.payments.find((p) => p.date === "2026-11-11");
+  assert.equal(first.charges, 251.5);        // the paid parcel's own charges
+  assert.equal(first.weekCharges, 503);      // both parcels were delivered that week
+  assert.equal(first.estimatedDeposit, Math.round(3000 - 503 - 0 - 120));
 });
