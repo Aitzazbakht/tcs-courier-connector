@@ -25,7 +25,8 @@ test("totals: paid, waiting (amount from withholding tax), returned, charges", (
   assert.equal(t.late, 2); // 15 days and 29 days
   assert.equal(r.rows[0].cn, "5"); // longest wait first
   assert.equal(r.rows[0].band, "bad");
-  assert.deepEqual(r.payments, [{ date: "2026-11-10", parcels: 1, amount: 3000, charges: 251.5 }]);
+  assert.equal(r.payments.length, 1);
+  assert.deepEqual({ date: r.payments[0].date, parcels: r.payments[0].parcels, amount: r.payments[0].amount, charges: r.payments[0].charges }, { date: "2026-11-10", parcels: 1, amount: 3000, charges: 251.5 });
 });
 
 test("amount of an unpaid parcel comes from the booking list when TCS has no tax figure", () => {
@@ -60,4 +61,25 @@ test("delivered parcels the booking list shows with COD 0 are not waiting for mo
   assert.equal(r.totals.noCodCount, 1);
   assert.equal(r.totals.waitingCount, 2); // the unknown one and the one with COD 4500
   assert.equal(r.totals.waitingAmount, 4500);
+});
+
+import { billingWeek } from "../lib/codpay.js";
+test("billing week is the Sunday-to-Saturday week before the payment day (matches TCS's 11 and 17 Nov payments)", () => {
+  assert.deepEqual(billingWeek("2026-11-11"), { from: "2026-11-01", to: "2026-11-07" });
+  assert.deepEqual(billingWeek("2026-11-17"), { from: "2026-11-08", to: "2026-11-14" });
+  assert.deepEqual(billingWeek("2026-10-05"), { from: "2026-09-27", to: "2026-10-03" });
+  assert.equal(billingWeek(""), null);
+});
+test("estimated deposit = COD paid - charges - returned charges - both taxes", () => {
+  const rows = [
+    row({ cn: "1", paid: true, amount_paid: 3000, whit: 60, delivered: "05/11/2026", payment_date: "11/11/2026 03:52 PM" }),
+    row({ cn: "2", paid: true, amount_paid: 2000, whit: 40, delivered: "06/11/2026", payment_date: "11/11/2026 03:52 PM" }),
+    row({ cn: "3", status_code: "RS", status: "Returned to sender", delivered: "04/11/2026", whit: 0 }),
+  ];
+  const r = buildCodPayments(rows, "2026-11-18");
+  const p = r.payments[0];
+  // charges per parcel = 210 + 10 + 0 + 31.5 = 251.5
+  assert.equal(p.amount, 5000); assert.equal(p.charges, 503); assert.equal(p.returnedCharges, 251.5); assert.equal(p.tax, 200);
+  assert.equal(p.estimatedDeposit, Math.round(5000 - 503 - 251.5 - 200));
+  assert.equal(p.weekFrom, "2026-11-01");
 });
