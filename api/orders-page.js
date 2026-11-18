@@ -2038,7 +2038,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       <label class="field">Search <input type="search" id="cpSearch" placeholder="CN, order number, city"></label>
     </div>
     <div id="cpSum" class="rtsum"></div>
-    <p class="note">What TCS has paid you for cash-on-delivery parcels, by the day they were booked. <b>Waiting for payment</b> lists delivered parcels TCS has not paid out yet, longest wait first: up to 7 days is normal (green), 8 to 12 amber, 13 or more red. TCS does not show the COD amount of an unpaid parcel, so it is worked out from the withholding tax it records (about 25 rupees off). Charges are delivery, fuel surcharge, area charges and sales tax.</p>
+    <p class="note">What TCS has paid you for cash-on-delivery parcels, by the day they were booked. <b>Waiting for payment</b> lists delivered parcels TCS has not paid out yet, longest wait first: up to 7 days is normal (green), 8 to 12 amber, 13 or more red. The COD amount of a parcel TCS has not paid yet is its booking value. Charges are delivery, fuel surcharge, area charges and sales tax.</p>
     <div class="sheet"><div class="scroll"><table>
       <thead><tr><th>CN</th><th>Order</th><th>Booked</th><th>Delivered</th><th>City</th><th>Status</th><th>Payment</th><th class="n">COD amount</th><th class="n">Charges</th></tr></thead>
       <tbody id="cpBody"><tr><td colspan="9" class="empty">Open this tab to load the payments.</td></tr></tbody>

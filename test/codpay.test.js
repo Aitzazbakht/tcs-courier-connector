@@ -27,3 +27,9 @@ test("totals: paid, waiting (amount from withholding tax), returned, charges", (
   assert.equal(r.rows[0].band, "bad");
   assert.deepEqual(r.payments, [{ date: "2026-11-10", parcels: 1, amount: 3000, charges: 251.5 }]);
 });
+
+test("amount of an unpaid parcel comes from the booking list when TCS has no tax figure", () => {
+  const r = buildCodPayments([row({ cn: "7", whit: 0 })], "2026-11-18", new Map([["7", 4500]]));
+  assert.equal(r.rows[0].cod, 4500); assert.equal(r.rows[0].codSource, "booking value");
+  assert.equal(r.totals.waitingAmount, 4500);
+});
