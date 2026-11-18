@@ -83,3 +83,19 @@ test("estimated deposit = COD paid - charges - returned charges - both taxes", (
   assert.equal(p.estimatedDeposit, Math.round(5000 - 503 - 251.5 - 200));
   assert.equal(p.weekFrom, "2026-11-01");
 });
+
+test("the next payment is the week after the last paid one: waiting COD minus charges, this week's returns and 4% tax", () => {
+  const rows = [
+    row({ cn: "1", paid: true, amount_paid: 3000, whit: 60, delivered: "13/11/2026", payment_date: "17/11/2026 03:52 PM" }),
+    row({ cn: "2", delivered: "14/11/2026", whit: 0, bookingValue: 4000 }), // carried over from last week, still unpaid
+    row({ cn: "3", delivered: "16/11/2026", whit: 0, bookingValue: 6000 }), // delivered this week
+    row({ cn: "4", status_code: "RS", status: "Returned to sender", delivered: "17/11/2026", whit: 0 }),
+    row({ cn: "5", delivered: "16/11/2026", whit: 0, bookingValue: null }), // amount unknown, left out of the sum
+  ];
+  const u = buildCodPayments(rows, "2026-11-18").upcoming;
+  assert.equal(u.weekFrom, "2026-11-15"); assert.equal(u.weekTo, "2026-11-21"); assert.equal(u.expectedPay, "2026-11-24");
+  assert.equal(u.parcels, 2); assert.equal(u.carriedOver, 1); assert.equal(u.thisWeek, 1); assert.equal(u.unknownAmount, 1);
+  assert.equal(u.cod, 10000); assert.equal(u.charges, 503); assert.equal(u.returnedCharges, 251.5); assert.equal(u.tax, 400);
+  assert.equal(u.estimatedDeposit, Math.round(10000 - 503 - 251.5 - 400));
+  assert.equal(buildCodPayments([row({ cn: "9", delivered: "16/11/2026", bookingValue: 1000 })], "2026-11-18").upcoming, null);
+});
