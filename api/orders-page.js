@@ -2303,9 +2303,10 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
         <button class="btn" id="prPdf" disabled>Download PDF</button>
         <span class="stats" id="pfMeta" style="margin-left:auto"></span>
       </div>
+      <div class="sheet" id="prMeta" style="padding:14px 16px;margin-bottom:14px"><div class="note">Checking the Meta connection...</div></div>
       <div class="sheet" style="padding:14px 16px;margin-bottom:14px">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-weight:700">Ad spend for the selected date(s) (PKR)</div><button class="btn" id="prFetchAds" type="button">Fetch from Windsor</button></div>
-        <p class="note" style="margin:2px 0 6px">Fetch fills what Windsor knows. Anything it cannot find stays blank: type it in. The report adds them up.</p>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-weight:700">Ad spend for the selected date(s) (PKR)</div><button class="btn" id="prFetchAds" type="button">Fetch ad spend</button></div>
+        <p class="note" style="margin:2px 0 6px">Fetch fills what Meta (connected above) or Windsor knows. Anything it cannot find stays blank: type it in. The report adds them up.</p>
         <div class="note" id="prAdNote" style="margin:0 0 8px" aria-live="polite"></div>
         <div class="adgrid" id="prAds"></div>
         <label class="adf" style="margin-top:8px">USD rate (PKR per $, market rate) <input type="number" min="1" step="0.5" inputmode="decimal" id="pfRate" value="276"></label>
@@ -2989,7 +2990,28 @@ function prInit() {
   $("#pfRefresh").onclick = () => runProfit(true);
   $("#prPdf").onclick = prPdf;
   $("#prFetchAds").onclick = prFetchAds;
-  prAdsLoad();
+  prAdsLoad(); prMetaLoad();
+}
+// Direct Meta connection (our own Merchixo Meta app, read-only). Replaces the Windsor Meta connector when connected.
+async function prMetaLoad() {
+  const box = $("#prMeta"); if (!box) return;
+  let m; try { m = await post({ action: "meta_status" }); } catch (e) { box.innerHTML = '<div class="note">Could not check Meta: ' + esc(e.message) + "</div>"; return; }
+  const q = new URLSearchParams(location.search).get("meta");
+  const msg = q === "ok" ? "Meta connected." : q === "denied" ? "Meta sign-in was cancelled." : q === "failed" ? "Meta sign-in did not work. Try again." : "";
+  if (q) history.replaceState(null, "", location.pathname + location.hash);
+  const btn = '<button class="btn primary" id="prMetaGo" type="button">' + (m.connected ? "Reconnect Meta" : "Connect Meta Ads") + "</button>";
+  if (!m.enabled) { box.innerHTML = '<div style="font-weight:700">Meta ads (direct)</div><div class="note">Not switched on yet. Add META_APP_SECRET (the Merchixo Meta app secret) in Vercel and redeploy. Until then ad spend comes from Windsor.</div>'; return; }
+  box.innerHTML = '<div style="font-weight:700">Meta ads' + (m.connected ? " connected" + (m.name ? " as " + esc(m.name) : "") : " (direct, replaces Windsor Meta)") + "</div>" +
+    '<div class="note" style="margin:2px 0 8px">' + (m.connected ? (m.expired ? "Your Meta login expired. Reconnect to keep spend updating. " : "Spend and campaigns are read straight from Meta (" + m.accounts + " ad accounts visible, read-only). Windsor is only used if Meta fails. ") : "Sign in with Facebook once. We only read spend and results and never change your ads. ") + esc(msg) + "</div>" +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap">' + btn + (m.connected ? '<button class="btn" id="prMetaOff" type="button">Disconnect</button>' : "") + "</div>";
+  $("#prMetaGo").onclick = async function () {
+    try { const r = await post({ action: "meta_start", pin: setupPin }); location.href = r.url; }
+    catch (e) { if (e.message === "Wrong PIN") setupLock("The PIN was not accepted. Enter it again."); else $("#prMeta").insertAdjacentHTML("beforeend", '<div class="note">' + esc(e.message) + "</div>"); }
+  };
+  if (m.connected) $("#prMetaOff").onclick = async function () {
+    if (!confirm("Disconnect Meta? The saved Meta login is deleted and Windsor is used again.")) return;
+    try { await post({ action: "meta_disconnect", pin: setupPin }); prMetaLoad(); } catch (e) { $("#prMeta").insertAdjacentHTML("beforeend", '<div class="note">' + esc(e.message) + "</div>"); }
+  };
 }
 async function prFetchAds(auto) {
   const date = $("#pfDate").value;

@@ -20,6 +20,7 @@ import { offerState, sendBatch, offerResults } from "../lib/reoffer.js";
 import { startExport, exportStatus, streamStore } from "../lib/marketing.js";
 import { profitReport } from "../lib/profit.js";
 import { adSpend } from "../lib/ads.js";
+import * as meta from "../lib/meta.js";
 import { herbsOrders } from "../lib/herbs.js";
 import { salesReport } from "../lib/sales.js";
 import * as waorders from "../lib/waorders.js";
@@ -52,6 +53,14 @@ export default async function handler(req, res) {
     if (!timingSafeEqual(sha(url.searchParams.get("feed_key") ?? ""), sha(want))) { await new Promise((r) => setTimeout(r, 800)); return res.status(403).json({ error: "Forbidden" }); }
     try { return res.status(200).json(await herbsOrders(String(url.searchParams.get("herbs_orders")))); }
     catch (e) { return res.status(500).json({ error: e.message }); }
+  }
+  if (req.method === "GET" && url.searchParams.get("metacb")) {
+    // Facebook sends the owner back here (/meta-callback is rewritten to this). The signed state proves this server started the sign-in.
+    res.setHeader("Cache-Control", "no-store");
+    const back = (q) => res.writeHead(302, { Location: "/orders/" + encodeURIComponent(process.env.CONNECTOR_KEY || "") + "?meta=" + q + "#setup" }).end();
+    if (url.searchParams.get("error")) return back("denied");
+    if (!meta.metaEnabled() || !meta.stateOk(url.searchParams.get("state")) || !url.searchParams.get("code")) return res.status(400).send("This Meta sign-in link is not valid or has expired. Go back to the Profit tab and press Connect Meta Ads again.");
+    try { await meta.connect(url.searchParams.get("code")); return back("ok"); } catch (e) { return back("failed"); }
   }
   if (!keyOk(url.searchParams.get("key"))) return res.status(403).json({ error: "Forbidden" });
   res.setHeader("Cache-Control", "no-store");
@@ -214,6 +223,16 @@ export default async function handler(req, res) {
       } catch (e) { return res.status(200).json({ error: e.message }); }
     }
     if (body.action === "sales_report") return res.status(200).json(await salesReport(String(body.date || ""), { to: String(body.to || "") }));
+    if (body.action === "meta_status") return res.status(200).json(await meta.metaView());
+    if (body.action === "meta_start") {
+      if (!(await pinGate(res, body.pin))) return;
+      if (!meta.metaEnabled()) return res.status(400).json({ error: "Meta is not switched on yet: add META_APP_SECRET in Vercel (the Merchixo Meta app secret) and redeploy." });
+      return res.status(200).json({ url: meta.authUrl() });
+    }
+    if (body.action === "meta_disconnect") {
+      if (!(await pinGate(res, body.pin))) return;
+      await meta.removeMeta(); return res.status(200).json(await meta.metaView());
+    }
     if (body.action === "ad_spend") {
       if (!(await pinGate(res, body.pin))) return;
       return res.status(200).json(await adSpend(String(body.date || ""), String(body.to || "")));

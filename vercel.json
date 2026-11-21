@@ -37,6 +37,10 @@
       "destination": "/api/app"
     },
     {
+      "source": "/meta-callback",
+      "destination": "/api/orders?metacb=1"
+    },
+    {
       "source": "/g.js",
       "destination": "/api/guard?js=1"
     },
