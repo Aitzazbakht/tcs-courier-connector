@@ -74,3 +74,12 @@ test("the saved record never exposes the token in the page view", async () => {
   await connected(); const v = await meta.metaView();
   assert.equal(v.connected, true); assert.equal(v.accounts, 3); assert.ok(!JSON.stringify(v).includes("tok"));
 });
+
+test("page: Meta connection shows in Appearance and Profit, and reuses no element id", async () => {
+  process.env.CONNECTOR_KEY = "k".repeat(20);
+  const page = (await import("../api/orders-page.js")).default;
+  const html = await new Promise((resolve) => { const res = { setHeader() {}, status() { return this; }, send: resolve, end: resolve }; page({ method: "GET", url: "/api/orders-page?key=" + "k".repeat(20), headers: {} }, res); });
+  assert.ok((String(html).match(/class="[^"]*metaconn/g) || []).length >= 2);
+  assert.equal((String(html).match(/id="prMeta"/g) || []).length, 1, "prMeta belongs to Delivery problems only");
+  assert.ok(String(html).includes("data-meta=\"go\""));
+});

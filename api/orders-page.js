@@ -2281,6 +2281,8 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       </div>
       <h3 class="apheading" style="margin-top:22px">Accent colour</h3><div class="apsubt">Buttons, links, highlights and the glow behind the glass. Delivered, returned and warning colours stay the same.</div>
       <div class="apsw" id="apAccents"></div>
+      <h3 class="apheading" style="margin-top:22px">Connections</h3><div class="apsubt">Ad accounts for the Profit and Sales reports. The same connection is shown in the Profit report.</div>
+      <div class="metaconn" style="margin-top:8px"><div class="note">Checking the Meta connection...</div></div>
       <h3 class="apheading apside" style="margin-top:22px">Sidebar</h3>
       <div class="apside" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div class="apsubt" style="margin:0">Fold it to icons for more room. Shortcut: press [ .</div><div class="seg" id="apRail"><button data-r="full" type="button">Full</button><button data-r="icons" type="button">Icons</button></div></div>
     </div>
@@ -2303,7 +2305,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
         <button class="btn" id="prPdf" disabled>Download PDF</button>
         <span class="stats" id="pfMeta" style="margin-left:auto"></span>
       </div>
-      <div class="sheet" id="prMeta" style="padding:14px 16px;margin-bottom:14px"><div class="note">Checking the Meta connection...</div></div>
+      <div class="sheet metaconn" style="padding:14px 16px;margin-bottom:14px"><div class="note">Checking the Meta connection...</div></div>
       <div class="sheet" style="padding:14px 16px;margin-bottom:14px">
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-weight:700">Ad spend for the selected date(s) (PKR)</div><button class="btn" id="prFetchAds" type="button">Fetch ad spend</button></div>
         <p class="note" style="margin:2px 0 6px">Fetch fills what Meta (connected above) or Windsor knows. Anything it cannot find stays blank: type it in. The report adds them up.</p>
@@ -2990,32 +2992,41 @@ function prInit() {
   $("#pfRefresh").onclick = () => runProfit(true);
   $("#prPdf").onclick = prPdf;
   $("#prFetchAds").onclick = prFetchAds;
-  prAdsLoad(); prMetaLoad();
+  prAdsLoad();
 }
 // Direct Meta connection (our own Merchixo Meta app, read-only). Replaces the Windsor Meta connector when connected.
+// Shown in every ".metaconn" box (Appearance > Connections, and the Profit report).
+const metaBoxes = () => Array.prototype.slice.call(document.querySelectorAll(".metaconn"));
+const metaPaint = (html) => metaBoxes().forEach((b) => { b.innerHTML = html; });
+const metaNote = (t) => metaBoxes().forEach((b) => b.insertAdjacentHTML("beforeend", '<div class="note">' + esc(t) + "</div>"));
 async function prMetaLoad() {
-  const box = $("#prMeta"); if (!box) return;
+  if (!metaBoxes().length) return;
   let m;
   try { m = await Promise.race([post({ action: "meta_status" }), new Promise((_, no) => setTimeout(() => no(new Error("no answer after 20 seconds")), 20000))]); }
-  catch (e) { box.innerHTML = '<div class="note">Could not check Meta: ' + esc(e.message) + ' <button class="btn" id="prMetaRetry" type="button">Try again</button></div>'; $("#prMetaRetry").onclick = prMetaLoad; return; }
+  catch (e) { metaPaint('<div class="note">Could not check Meta: ' + esc(e.message) + ' <button class="btn" data-meta="retry" type="button">Try again</button></div>'); return; }
   const q = new URLSearchParams(location.search).get("meta");
   const msg = q === "ok" ? "Meta connected." : q === "denied" ? "Meta sign-in was cancelled." : q === "failed" ? "Meta sign-in did not work. Try again." : "";
   if (q) history.replaceState(null, "", location.pathname + location.hash);
-  const btn = '<button class="btn primary" id="prMetaGo" type="button">' + (m.connected ? "Reconnect Meta" : "Connect Meta Ads") + "</button>";
-  if (!m.enabled) { box.innerHTML = '<div style="font-weight:700">Meta ads (direct)</div><div class="note">Not switched on yet. Add META_APP_SECRET (the Merchixo Meta app secret) in Vercel and redeploy. Until then ad spend comes from Windsor.</div>'; return; }
-  box.innerHTML = '<div style="font-weight:700">Meta ads' + (m.connected ? " connected" + (m.name ? " as " + esc(m.name) : "") : " (direct, replaces Windsor Meta)") + "</div>" +
+  if (!m.enabled) { metaPaint('<div style="font-weight:700">Meta ads (direct)</div><div class="note">Not switched on yet. Add META_APP_SECRET (the Merchixo Meta app secret) in Vercel and redeploy. Until then ad spend comes from Windsor.</div>'); return; }
+  metaPaint('<div style="font-weight:700">Meta ads' + (m.connected ? " connected" + (m.name ? " as " + esc(m.name) : "") : " (direct, replaces Windsor Meta)") + "</div>" +
     '<div class="note" style="margin:2px 0 8px">' + (m.connected ? (m.expired ? "Your Meta login expired. Reconnect to keep spend updating. " : "Spend and campaigns are read straight from Meta (" + m.accounts + " ad accounts visible, read-only). Windsor is only used if Meta fails. ") : "Sign in with Facebook once. We only read spend and results and never change your ads. ") + esc(msg) + "</div>" +
-    '<div style="display:flex;gap:10px;flex-wrap:wrap">' + btn + (m.connected ? '<button class="btn" id="prMetaOff" type="button">Disconnect</button>' : "") + "</div>";
-  $("#prMetaGo").onclick = async function () {
-    try { const r = await post({ action: "meta_start", pin: setupPin }); location.href = r.url; }
-    catch (e) { if (e.message === "Wrong PIN") setupLock("The PIN was not accepted. Enter it again."); else $("#prMeta").insertAdjacentHTML("beforeend", '<div class="note">' + esc(e.message) + "</div>"); }
-  };
-  if (m.connected) $("#prMetaOff").onclick = async function () {
-    if (!confirm("Disconnect Meta? The saved Meta login is deleted and Windsor is used again.")) return;
-    try { await post({ action: "meta_disconnect", pin: setupPin }); prMetaLoad(); } catch (e) { $("#prMeta").insertAdjacentHTML("beforeend", '<div class="note">' + esc(e.message) + "</div>"); }
-  };
+    '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" data-meta="go" type="button">' + (m.connected ? "Reconnect Meta" : "Connect Meta Ads") + "</button>" + (m.connected ? '<button class="btn" data-meta="off" type="button">Disconnect</button>' : "") + "</div>");
 }
-setTimeout(prMetaLoad, 0); // also at page start: it needs only the key, so it does not depend on the Setup unlock
+// Connecting or disconnecting needs the Setup PIN; asked here when Setup is not unlocked.
+function metaPin() { if (setupPin) return setupPin; const p = window.prompt("Setup PIN"); return p ? p.trim() : ""; }
+document.addEventListener("click", async function (ev) {
+  const b = ev.target.closest && ev.target.closest("[data-meta]"); if (!b) return;
+  const what = b.dataset.meta;
+  if (what === "retry") { prMetaLoad(); return; }
+  if (what === "off" && !confirm("Disconnect Meta? The saved Meta login is deleted and Windsor is used again.")) return;
+  const pin = metaPin(); if (!pin) return;
+  b.disabled = true;
+  try {
+    if (what === "go") { const r = await post({ action: "meta_start", pin: pin }); location.href = r.url; return; }
+    await post({ action: "meta_disconnect", pin: pin }); prMetaLoad();
+  } catch (e) { b.disabled = false; metaNote(e.message === "Wrong PIN" ? "The PIN was not accepted." : e.message); }
+});
+setTimeout(prMetaLoad, 0); // at page start: it needs only the key, so it does not depend on the Setup unlock
 async function prFetchAds(auto) {
   const date = $("#pfDate").value;
   if (!date) return log("Pick the order date.");
