@@ -2995,7 +2995,9 @@ function prInit() {
 // Direct Meta connection (our own Merchixo Meta app, read-only). Replaces the Windsor Meta connector when connected.
 async function prMetaLoad() {
   const box = $("#prMeta"); if (!box) return;
-  let m; try { m = await post({ action: "meta_status" }); } catch (e) { box.innerHTML = '<div class="note">Could not check Meta: ' + esc(e.message) + "</div>"; return; }
+  let m;
+  try { m = await Promise.race([post({ action: "meta_status" }), new Promise((_, no) => setTimeout(() => no(new Error("no answer after 20 seconds")), 20000))]); }
+  catch (e) { box.innerHTML = '<div class="note">Could not check Meta: ' + esc(e.message) + ' <button class="btn" id="prMetaRetry" type="button">Try again</button></div>'; $("#prMetaRetry").onclick = prMetaLoad; return; }
   const q = new URLSearchParams(location.search).get("meta");
   const msg = q === "ok" ? "Meta connected." : q === "denied" ? "Meta sign-in was cancelled." : q === "failed" ? "Meta sign-in did not work. Try again." : "";
   if (q) history.replaceState(null, "", location.pathname + location.hash);
@@ -3013,6 +3015,7 @@ async function prMetaLoad() {
     try { await post({ action: "meta_disconnect", pin: setupPin }); prMetaLoad(); } catch (e) { $("#prMeta").insertAdjacentHTML("beforeend", '<div class="note">' + esc(e.message) + "</div>"); }
   };
 }
+setTimeout(prMetaLoad, 0); // also at page start: it needs only the key, so it does not depend on the Setup unlock
 async function prFetchAds(auto) {
   const date = $("#pfDate").value;
   if (!date) return log("Pick the order date.");
