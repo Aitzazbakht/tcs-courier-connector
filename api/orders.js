@@ -21,6 +21,7 @@ import { startExport, exportStatus, streamStore } from "../lib/marketing.js";
 import { profitReport } from "../lib/profit.js";
 import { adSpend } from "../lib/ads.js";
 import * as meta from "../lib/meta.js";
+import * as google from "../lib/google.js";
 import { herbsOrders } from "../lib/herbs.js";
 import { salesReport } from "../lib/sales.js";
 import * as waorders from "../lib/waorders.js";
@@ -61,6 +62,14 @@ export default async function handler(req, res) {
     if (url.searchParams.get("error")) return back("denied");
     if (!meta.metaEnabled() || !meta.stateOk(url.searchParams.get("state")) || !url.searchParams.get("code")) return res.status(400).send("This Meta sign-in link is not valid or has expired. Go back to the Profit tab and press Connect Meta Ads again.");
     try { await meta.connect(url.searchParams.get("code")); return back("ok"); } catch (e) { return back("failed"); }
+  }
+  if (req.method === "GET" && url.searchParams.get("googlecb")) {
+    // Google sends the owner back here (/google-callback is rewritten to this). The signed state proves this server started the sign-in.
+    res.setHeader("Cache-Control", "no-store");
+    const back = (q) => res.writeHead(302, { Location: "/orders/" + encodeURIComponent(process.env.CONNECTOR_KEY || "") + "?google=" + q + "#appearance" }).end();
+    if (url.searchParams.get("error")) return back("denied");
+    if (!google.googleEnabled() || !google.stateOk(url.searchParams.get("state")) || !url.searchParams.get("code")) return res.status(400).send("This Google sign-in link is not valid or has expired. Go back and press Connect Google Ads again.");
+    try { await google.connect(url.searchParams.get("code")); return back("ok"); } catch (e) { return back("failed"); }
   }
   if (!keyOk(url.searchParams.get("key"))) return res.status(403).json({ error: "Forbidden" });
   res.setHeader("Cache-Control", "no-store");
@@ -223,6 +232,16 @@ export default async function handler(req, res) {
       } catch (e) { return res.status(200).json({ error: e.message }); }
     }
     if (body.action === "sales_report") return res.status(200).json(await salesReport(String(body.date || ""), { to: String(body.to || "") }));
+    if (body.action === "google_status") return res.status(200).json(await google.googleView());
+    if (body.action === "google_start") {
+      if (!(await pinGate(res, body.pin))) return;
+      if (!google.googleEnabled()) return res.status(400).json({ error: "Google is not switched on yet: add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Vercel and redeploy." });
+      return res.status(200).json({ url: google.authUrl() });
+    }
+    if (body.action === "google_disconnect") {
+      if (!(await pinGate(res, body.pin))) return;
+      await google.removeGoogle(); return res.status(200).json(await google.googleView());
+    }
     if (body.action === "meta_status") return res.status(200).json(await meta.metaView());
     if (body.action === "meta_start") {
       if (!(await pinGate(res, body.pin))) return;

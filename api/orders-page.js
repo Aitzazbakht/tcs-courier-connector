@@ -2283,6 +2283,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
       <div class="apsw" id="apAccents"></div>
       <h3 class="apheading" style="margin-top:22px">Connections</h3><div class="apsubt">Ad accounts for the Profit and Sales reports. The same connection is shown in the Profit report.</div>
       <div class="metaconn" style="margin-top:8px"><div class="note">Checking the Meta connection...</div></div>
+      <div class="googleconn" style="margin-top:14px"><div class="note">Checking the Google connection...</div></div>
       <h3 class="apheading apside" style="margin-top:22px">Sidebar</h3>
       <div class="apside" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div class="apsubt" style="margin:0">Fold it to icons for more room. Shortcut: press [ .</div><div class="seg" id="apRail"><button data-r="full" type="button">Full</button><button data-r="icons" type="button">Icons</button></div></div>
     </div>
@@ -2306,6 +2307,7 @@ html[data-mx] #prBody .pr .chk .keep>svg,html[data-mx] #prBody .pr .chk>svg{back
         <span class="stats" id="pfMeta" style="margin-left:auto"></span>
       </div>
       <div class="sheet metaconn" style="padding:14px 16px;margin-bottom:14px"><div class="note">Checking the Meta connection...</div></div>
+      <div class="sheet googleconn" style="padding:14px 16px;margin-bottom:14px"><div class="note">Checking the Google connection...</div></div>
       <div class="sheet" style="padding:14px 16px;margin-bottom:14px">
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-weight:700">Ad spend for the selected date(s) (PKR)</div><button class="btn" id="prFetchAds" type="button">Fetch ad spend</button></div>
         <p class="note" style="margin:2px 0 6px">Fetch fills what Meta (connected above) or Windsor knows. Anything it cannot find stays blank: type it in. The report adds them up.</p>
@@ -3027,6 +3029,35 @@ document.addEventListener("click", async function (ev) {
   } catch (e) { b.disabled = false; metaNote(e.message === "Wrong PIN" ? "The PIN was not accepted." : e.message); }
 });
 setTimeout(prMetaLoad, 0); // at page start: it needs only the key, so it does not depend on the Setup unlock
+// Direct Google Ads connection (our own Google Cloud OAuth client, read-only). Replaces the Windsor Google Ads connector when connected.
+const googleBoxes = () => Array.prototype.slice.call(document.querySelectorAll(".googleconn"));
+const googlePaint = (html) => googleBoxes().forEach((b) => { b.innerHTML = html; });
+async function googleLoad() {
+  if (!googleBoxes().length) return;
+  let g;
+  try { g = await Promise.race([post({ action: "google_status" }), new Promise((_, no) => setTimeout(() => no(new Error("no answer after 20 seconds")), 20000))]); }
+  catch (e) { googlePaint('<div class="note">Could not check Google: ' + esc(e.message) + ' <button class="btn" data-google="retry" type="button">Try again</button></div>'); return; }
+  const q = new URLSearchParams(location.search).get("google");
+  const msg = q === "ok" ? "Google connected." : q === "denied" ? "Google sign-in was cancelled." : q === "failed" ? "Google sign-in did not work. Try again." : "";
+  if (q) history.replaceState(null, "", location.pathname + location.hash);
+  if (!g.enabled) { googlePaint('<div style="font-weight:700">Google Ads (direct)</div><div class="note">Not switched on yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (from the Google Cloud OAuth client) in Vercel and redeploy. Until then Google spend comes from Windsor.</div>'); return; }
+  googlePaint('<div style="font-weight:700">Google Ads' + (g.connected ? " connected" + (g.email ? " as " + esc(g.email) : "") : " (direct, replaces Windsor Google Ads)") + "</div>" +
+    '<div class="note" style="margin:2px 0 8px">' + (g.connected ? "Spend and campaigns are read straight from Google Ads (read-only, " + g.customers + " accounts open directly). Windsor is only used if Google fails. " : "Sign in with Google once. We only read spend and results and never change your ads. ") + esc(msg) + "</div>" +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" data-google="go" type="button">' + (g.connected ? "Reconnect Google" : "Connect Google Ads") + "</button>" + (g.connected ? '<button class="btn" data-google="off" type="button">Disconnect</button>' : "") + "</div>");
+}
+document.addEventListener("click", async function (ev) {
+  const b = ev.target.closest && ev.target.closest("[data-google]"); if (!b) return;
+  const what = b.dataset.google;
+  if (what === "retry") { googleLoad(); return; }
+  if (what === "off" && !confirm("Disconnect Google Ads? The saved Google login is deleted and Windsor is used again.")) return;
+  const pin = metaPin(); if (!pin) return;
+  b.disabled = true;
+  try {
+    if (what === "go") { const r = await post({ action: "google_start", pin: pin }); location.href = r.url; return; }
+    await post({ action: "google_disconnect", pin: pin }); googleLoad();
+  } catch (e) { b.disabled = false; googleBoxes().forEach((x) => x.insertAdjacentHTML("beforeend", '<div class="note">' + esc(e.message === "Wrong PIN" ? "The PIN was not accepted." : e.message) + "</div>")); }
+});
+setTimeout(googleLoad, 0);
 async function prFetchAds(auto) {
   const date = $("#pfDate").value;
   if (!date) return log("Pick the order date.");
